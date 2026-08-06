@@ -122,9 +122,18 @@ Implemented so far (see `docs/ARCHITECTURE.md` for the full slice order):
 1. ✅ Repo, tooling, and docs foundation
 2. ✅ Expo scaffold (Expo Router + React Native Web) + a basic design
    system and placeholder tab navigation shell — no feature logic yet
-3. ⬜ Supabase project — not created yet
+3. ✅ Supabase project created and client wired up (`lib/supabase.ts`) —
+   no screens use it yet, that starts with slice 2
 4. ⬜ Authentication, profiles, listings, and everything after — not
    started; each screen currently states which slice will build it
+
+### Getting your own `.env.local`
+
+The Supabase project URL and publishable key aren't committed (see
+`.env.example` for the format). Ask whoever set up the Supabase project
+to add you as a project member in the Supabase dashboard so you can copy
+your own values from **Settings → API** — don't pass the key around
+outside that.
 
 ## Setting up with Claude Code
 
