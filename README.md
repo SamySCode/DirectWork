@@ -18,7 +18,8 @@ Full product and architecture context lives in [`docs/`](docs/):
 - **Client**: Expo (SDK 57) + React Native + TypeScript (strict) + Expo
   Router + React Native Web — one codebase for iOS, Android and Web.
 - **Backend**: Supabase — Postgres, Auth, Storage, Realtime, RLS, Edge
-  Functions. **Not set up yet** — see "Current status" below.
+  Functions. Project is live and the client is wired up; no tables/auth
+  flows built yet — see "Current status" below.
 - **Tooling**: ESLint 10 (flat config) + Prettier + TypeScript strict.
 
 ## Project structure
@@ -127,13 +128,54 @@ Implemented so far (see `docs/ARCHITECTURE.md` for the full slice order):
 4. ⬜ Authentication, profiles, listings, and everything after — not
    started; each screen currently states which slice will build it
 
-### Getting your own `.env.local`
+## Supabase access
 
-The Supabase project URL and publishable key aren't committed (see
-`.env.example` for the format). Ask whoever set up the Supabase project
-to add you as a project member in the Supabase dashboard so you can copy
-your own values from **Settings → API** — don't pass the key around
-outside that.
+DirectWork's Supabase project already exists — nobody needs to create
+their own. You need to be invited to it once, and each person keeps
+their own local `.env.local` (gitignored, never committed) with their
+own copy of the same project credentials.
+
+### As the project owner (one-time, per teammate)
+
+1. Open the [Supabase dashboard](https://supabase.com/dashboard), select
+   the DirectWork organization, then go to **Organization → Team**.
+2. Click **Invite**, enter their email, and assign the **Developer**
+   role — full project content access (tables, SQL editor, auth users,
+   etc.) without the ability to change organization/billing settings or
+   add new owners. Don't hand out Owner/Administrator unless there's a
+   real reason to.
+3. If prompted to scope the invite to a project rather than the whole
+   organization, choose the DirectWork project.
+4. The invite link is only valid for **24 hours** — tell them to accept
+   it promptly.
+
+### As an invited teammate (one-time, per person)
+
+1. Accept the email invite (create a free Supabase account first if you
+   don't already have one).
+2. In the dashboard, open the DirectWork project → **Settings → API**.
+3. Copy the **Project URL** and the **Publishable key** — safe to copy,
+   that's what it's for. Never copy or share the **Secret key**.
+4. In your local clone, create `.env.local` from the template and fill
+   in those two values:
+
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   (Windows PowerShell: `Copy-Item .env.example .env.local`)
+
+   ```
+   EXPO_PUBLIC_SUPABASE_URL=<your Project URL>
+   EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<your Publishable key>
+   ```
+
+5. That's it — `.env.local` is gitignored, so it stays local to your
+   machine only.
+
+The Supabase CLI (needed later, once we start writing migrations) is a
+separate, per-person step via `npx supabase login` — not something
+that gets shared or set up yet.
 
 ## Setting up with Claude Code
 
