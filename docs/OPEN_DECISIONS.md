@@ -3,8 +3,6 @@
 Genuine product decisions not yet made. Do not silently resolve these
 during implementation — surface them for a decision instead.
 
-- **Skills taxonomy**: fixed curated list, free-text tags, or free text
-  with a curated autocomplete?
 - **Company/org entity**: does a small company get a distinct
   organization account with multiple managers, or does one person's
   profile own listings on the company's behalf for MVP?
@@ -42,3 +40,11 @@ during implementation — surface them for a decision instead.
 
 - TanStack Query as the data-fetching layer — not mandated by the
   product spec, added to avoid hand-rolled cache/loading/error state.
+
+## Resolved
+
+- **Skills taxonomy** (resolved): free text with a curated autocomplete.
+  Users can type any skill; matches from the growing `skills` table are
+  suggested as they type, and typing something new adds it to that table
+  rather than rejecting it. Balances flexibility (no seed list needed for
+  MVP) with convergence toward consistent naming over time.
