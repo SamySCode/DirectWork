@@ -36,6 +36,8 @@ export const typography = {
     android: "Roboto",
     default: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   }),
+  // General Sans (Fontshare Free License) - wordmark/headlines only, see lib/fonts.ts.
+  displayFontFamily: "GeneralSans-Bold",
   size: {
     xs: 12,
     sm: 14,

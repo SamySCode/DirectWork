@@ -44,4 +44,10 @@ module.exports = tseslint.config(
       "@typescript-eslint/no-require-imports": "off",
     },
   },
+  {
+    files: ["lib/fonts.ts"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 );
