@@ -1,4 +1,6 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
+import { Text } from "../../../components/Text";
+import { Wordmark } from "../../../components/Wordmark";
 import { colors, spacing, typography } from "../../../lib/theme";
 
 type AuthHeaderProps = {
@@ -8,7 +10,7 @@ type AuthHeaderProps = {
 export function AuthHeader({ title }: AuthHeaderProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.brand}>DirectWork</Text>
+      <Wordmark />
       <Text style={styles.title}>{title}</Text>
     </View>
   );
@@ -18,12 +20,6 @@ const styles = StyleSheet.create({
   container: {
     alignItems: "center",
     gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  brand: {
-    fontSize: typography.size.xxl,
-    fontWeight: typography.weight.bold,
-    color: colors.accent,
   },
   title: {
     fontSize: typography.size.md,

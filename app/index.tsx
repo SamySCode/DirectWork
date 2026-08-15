@@ -1,13 +1,7 @@
 import { Redirect } from "expo-router";
-import { LoadingState } from "../components/LoadingState";
-import { useSession } from "../features/auth/hooks";
+import { useAuth } from "../features/auth/SessionProvider";
 
 export default function Index() {
-  const { session, loading } = useSession();
-
-  if (loading) {
-    return <LoadingState />;
-  }
-
+  const { session } = useAuth();
   return <Redirect href={session ? "/dashboard" : "/sign-in"} />;
 }

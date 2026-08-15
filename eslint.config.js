@@ -13,6 +13,25 @@ module.exports = tseslint.config(
   {
     rules: {
       "@typescript-eslint/no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            {
+              name: "react-native",
+              importNames: ["Text"],
+              message:
+                "Import Text from components/Text instead - it applies the app's font family. Without it, React Native Web falls back to the browser's default serif font.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ["components/Text.tsx"],
+    rules: {
+      "no-restricted-imports": "off",
     },
   },
   {

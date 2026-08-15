@@ -1,3 +1,5 @@
+import { Platform } from "react-native";
+
 export const colors = {
   background: "#F7F8FA",
   surface: "#FFFFFF",
@@ -29,6 +31,11 @@ export const radius = {
 } as const;
 
 export const typography = {
+  fontFamily: Platform.select({
+    ios: "System",
+    android: "Roboto",
+    default: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  }),
   size: {
     xs: 12,
     sm: 14,

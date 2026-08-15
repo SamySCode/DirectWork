@@ -1,5 +1,10 @@
-import { ActivityIndicator, Pressable, PressableProps, StyleSheet, Text } from "react-native";
+import { useRef } from "react";
+import { ActivityIndicator, Animated, Pressable, PressableProps, StyleSheet } from "react-native";
+import { nativeDriverEnabled } from "../lib/animation";
 import { colors, radius, spacing, typography } from "../lib/theme";
+import { Text } from "./Text";
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type ButtonVariant = "primary" | "secondary";
 
@@ -14,20 +19,40 @@ export function Button({
   variant = "primary",
   loading = false,
   disabled,
+  onPressIn,
+  onPressOut,
   ...pressableProps
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const animateTo = (toValue: number) => {
+    Animated.spring(scale, {
+      toValue,
+      useNativeDriver: nativeDriverEnabled,
+      speed: 40,
+      bounciness: 6,
+    }).start();
+  };
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
-      style={({ pressed }) => [
+      onPressIn={(event) => {
+        animateTo(0.97);
+        onPressIn?.(event);
+      }}
+      onPressOut={(event) => {
+        animateTo(1);
+        onPressOut?.(event);
+      }}
+      style={[
         styles.base,
         variant === "primary" ? styles.primary : styles.secondary,
-        isDisabled && styles.disabled,
-        pressed && !isDisabled && styles.pressed,
+        isDisabled ? styles.disabled : null,
+        { transform: [{ scale }] },
       ]}
       {...pressableProps}
     >
@@ -43,7 +68,7 @@ export function Button({
           {label}
         </Text>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -65,9 +90,6 @@ const styles = StyleSheet.create({
   },
   disabled: {
     opacity: 0.5,
-  },
-  pressed: {
-    opacity: 0.85,
   },
   label: {
     fontSize: typography.size.md,

@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { Button } from "../../../components/Button";
 import { EmptyState } from "../../../components/EmptyState";
+import { Text } from "../../../components/Text";
 import { signOut } from "../../../features/auth/api";
-import { useSession } from "../../../features/auth/hooks";
+import { useAuth } from "../../../features/auth/SessionProvider";
 import { colors, spacing, typography } from "../../../lib/theme";
 
 export default function ProfileScreen() {
-  const { session } = useSession();
+  const { session } = useAuth();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {

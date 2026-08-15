@@ -1,8 +1,10 @@
 import { Link } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { FadeIn } from "../../components/FadeIn";
+import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
 import { signUp } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
@@ -44,47 +46,51 @@ export default function SignUpScreen() {
     >
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Card style={styles.card}>
-          {submitted ? (
-            <>
-              <AuthHeader title="Check your email" />
-              <Text style={styles.description}>
-                We sent a confirmation link to {email}. Click it, then come back and sign in.
-              </Text>
-              <Link href="/sign-in" style={styles.link}>
-                Back to sign in
-              </Link>
-            </>
-          ) : (
-            <>
-              <AuthHeader title="Create your account" />
-              <TextField
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                error={errors.email}
-              />
-              <TextField
-                label="Password"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-                error={errors.password}
-              />
-              <TextField
-                label="Confirm password"
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-                secureTextEntry
-                error={errors.confirmPassword}
-              />
-              {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-              <Button label="Create account" onPress={handleSubmit} loading={loading} />
-              <Link href="/sign-in" style={styles.link}>
-                Already have an account? Sign in
-              </Link>
-            </>
-          )}
+          <FadeIn key={submitted ? "success" : "form"}>
+            {submitted ? (
+              <View style={styles.group}>
+                <AuthHeader title="Check your email" />
+                <Text style={styles.description}>
+                  We sent a confirmation link to {email}. Click it, then come back and sign in.
+                </Text>
+                <Link href="/sign-in" style={styles.link}>
+                  Back to sign in
+                </Link>
+              </View>
+            ) : (
+              <View style={styles.group}>
+                <AuthHeader title="Create your account" />
+                <View style={styles.fields}>
+                  <TextField
+                    label="Email"
+                    value={email}
+                    onChangeText={setEmail}
+                    keyboardType="email-address"
+                    error={errors.email}
+                  />
+                  <TextField
+                    label="Password"
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry
+                    error={errors.password}
+                  />
+                  <TextField
+                    label="Confirm password"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry
+                    error={errors.confirmPassword}
+                  />
+                </View>
+                {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+                <Button label="Create account" onPress={handleSubmit} loading={loading} />
+                <Link href="/sign-in" style={styles.link}>
+                  Already have an account? Sign in
+                </Link>
+              </View>
+            )}
+          </FadeIn>
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -105,6 +111,12 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 420,
     alignSelf: "center",
+    padding: spacing.xl,
+  },
+  group: {
+    gap: spacing.lg,
+  },
+  fields: {
     gap: spacing.md,
   },
   description: {
@@ -116,6 +128,7 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
   },
   link: {
+    fontFamily: typography.fontFamily,
     color: colors.accent,
     fontSize: typography.size.sm,
     textAlign: "center",

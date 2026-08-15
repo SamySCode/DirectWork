@@ -1,6 +1,7 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 import { colors, spacing, typography } from "../lib/theme";
 import { Button } from "./Button";
+import { Text } from "./Text";
 
 type ErrorStateProps = {
   title?: string;
