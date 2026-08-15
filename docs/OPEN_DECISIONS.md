@@ -26,6 +26,17 @@ during implementation — surface them for a decision instead.
   (professionals browse projects, owners don't browse people) for v1?
 - **CV/document limits**: acceptable file types and size caps for
   uploads.
+- **Social login (OAuth)**: v1 reference designs show Google/LinkedIn
+  sign-in. No provider is configured in Supabase (email/password only) —
+  decide if/which providers are worth the setup before building the UI.
+- **Terms of Service / Privacy Policy**: referenced in a reference
+  sign-up design; no such documents exist yet. Needed before any
+  required-acknowledgement checkbox can be built (same "not legal advice,
+  needs real review" caveat as the partner agreement template).
+- **Identity verification**: v1 reference designs show "Verified"
+  badges/checks on profiles. Not in the current data model — decide
+  whether any verification is in scope for MVP or a later phase before
+  designing for it.
 
 ## Recommendations flagged for reconsideration
 

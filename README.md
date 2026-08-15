@@ -123,10 +123,14 @@ Implemented so far (see `docs/ARCHITECTURE.md` for the full slice order):
 1. ✅ Repo, tooling, and docs foundation
 2. ✅ Expo scaffold (Expo Router + React Native Web) + a basic design
    system and placeholder tab navigation shell — no feature logic yet
-3. ✅ Supabase project created and client wired up (`lib/supabase.ts`) —
-   no screens use it yet, that starts with slice 2
-4. ⬜ Authentication, profiles, listings, and everything after — not
-   started; each screen currently states which slice will build it
+3. ✅ Supabase project created and client wired up (`lib/supabase.ts`)
+4. ✅ Authentication — sign up, sign in, sign out, password reset request,
+   session persistence, and route gating between `(auth)` and `(tabs)`
+   (`features/auth/`, `app/(auth)/`). Email confirmation is required
+   (Supabase default), so sign-up shows a "check your email" state rather
+   than logging straight in.
+5. ⬜ Profiles, listings, and everything after — not started; each
+   remaining tab screen currently states which slice will build it
 
 ## Supabase access
 
