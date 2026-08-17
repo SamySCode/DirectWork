@@ -8,8 +8,9 @@ import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
 import { signUp } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
-import { fieldErrors, signUpSchema } from "../../features/auth/schemas";
+import { signUpSchema } from "../../features/auth/schemas";
 import { colors, spacing, typography } from "../../lib/theme";
+import { fieldErrors } from "../../lib/validation";
 
 export default function SignUpScreen() {
   const [email, setEmail] = useState("");

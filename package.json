@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:rls": "node supabase/tests/rls-profiles.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

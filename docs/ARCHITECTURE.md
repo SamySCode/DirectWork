@@ -1,5 +1,9 @@
 # Architecture
 
+Read `docs/PRODUCT_STRATEGY.md` first — it explains why the slice order
+below is trimmed and reordered from the original 11-slice plan, and what
+conditions bring the deferred slices back.
+
 ## Product boundary
 
 DirectWork is a direct professional project and job marketplace, not a
@@ -69,21 +73,45 @@ app/
 
 ## Vertical slices (implementation order)
 
-1. Repository & tooling foundation (this shell)
-2. Authentication (sign up/in/out, recovery, cross-platform sessions)
-3. Professional profiles (minimal fields, skills, paid/partner interest)
-4. Listing creation & management (draft/publish/pause/close)
-5. Discovery & listing detail (public browse/search/filter)
-6. Applications — submission (paid & partner routes)
-7. Owner application management (accept/reject, filter)
-8. Partner agreement flow + private-field gating
-9. Basic private workspace (overview, members, private info, discussion)
-10. Messaging & notifications (project-scoped, Realtime)
-11. Cross-platform polish & deployment prep (EAS)
+Reordered and trimmed per `docs/PRODUCT_STRATEGY.md` Phase 2 — the goal
+is the smallest software that supports a validated manual matching loop,
+not the fullest possible marketplace.
 
-Each slice should be implementable and testable independently. Payments,
-advanced AI, matching, and heavier workspace tooling are explicitly later
-phases, not MVP.
+1. Repository & tooling foundation (this shell) ✅
+2. Authentication (sign up/in/out, recovery, cross-platform sessions) ✅
+3. Professional profiles (minimal fields, skills, paid/partner interest)
+   — in progress
+
+**Phase 1 checkpoint** (`docs/PRODUCT_STRATEGY.md`): manual validation,
+mostly non-engineering. May not need slices 4+ at all to run — a form
+and a spreadsheet can test the loop faster than building UI for it.
+Don't start slice 4 until this has produced real signal.
+
+4. Curated listings with admission criteria (structured fields for the
+   partner route — what's already built, time commitment, milestone,
+   proposed terms — not free-text prose)
+5. Discovery (simple browse/search — heavy filtering is premature at low
+   listing volume)
+6. Invite/apply + mutual acceptance (trimmed: no full audit-trail state
+   machine yet, just submitted → accepted/rejected)
+7. Contact reveal on mutual acceptance (pulled forward from the old
+   messaging slice — not real-time chat, just unlocking contact info)
+8. Trial-project status + completion/attestation record (the outcome
+   ledger — see `docs/DATA_MODEL.md`)
+9. Optional, scoped partner agreement flow (per-listing opt-in, scoped to
+   attached materials, not "the idea" — only build once real legal text
+   replaces the placeholder)
+
+**Deferred to Phase 3**, conditional on Phase 1/2 producing real signal:
+fuller application state machine + audit trail, Realtime messaging,
+private workspace, notifications, SEO/static rendering, monetization
+(Stripe Checkout for owner-side paid listings — not Connect).
+
+10. Cross-platform polish & deployment prep (EAS)
+
+Each slice should be implementable and testable independently. Full
+marketplace payments, advanced AI, matching, and heavier workspace
+tooling remain later phases, not MVP.
 
 ## Deferred until explicitly started
 

@@ -1,0 +1,47 @@
+import { z } from "zod";
+
+export const remotePrefOptions = ["remote", "hybrid", "onsite", "flexible"] as const;
+
+// http(s)-only: url() validates format but not scheme, and would accept
+// something like "javascript:..." - reject anything else at the input
+// boundary rather than relying on every future renderer to sanitize it.
+const httpUrlPattern = /^https?:\/\/[^\s]+$/i;
+
+export const profileSchema = z
+  .object({
+    fullName: z
+      .string()
+      .trim()
+      .min(1, "Enter your name")
+      .max(200, "Keep this under 200 characters"),
+    headline: z
+      .string()
+      .trim()
+      .min(1, "Enter a short professional headline")
+      .max(200, "Keep this under 200 characters"),
+    bio: z.string().trim().max(1000, "Keep your bio under 1000 characters").optional(),
+    location: z.string().trim().max(200, "Keep this under 200 characters").optional(),
+    remotePref: z.enum(remotePrefOptions).optional(),
+    availability: z.string().trim().max(200, "Keep this under 200 characters").optional(),
+    currentRole: z.string().trim().max(200, "Keep this under 200 characters").optional(),
+    experienceLevel: z.string().trim().max(200, "Keep this under 200 characters").optional(),
+    seekingPaid: z.boolean(),
+    seekingPartner: z.boolean(),
+    portfolioUrl: z
+      .string()
+      .trim()
+      .max(500, "Keep this under 500 characters")
+      .refine((value) => value === "" || httpUrlPattern.test(value), {
+        message: "Enter a valid http:// or https:// URL",
+      })
+      .transform((value) => (value === "" ? undefined : value)),
+    skills: z
+      .array(z.string().trim().min(1).max(100, "Keep skill names under 100 characters"))
+      .min(1, "Add at least one skill"),
+  })
+  .refine((data) => data.seekingPaid || data.seekingPartner, {
+    message: "Select at least one: paid work or partnership",
+    path: ["seekingPaid"],
+  });
+
+export type ProfileInput = z.infer<typeof profileSchema>;

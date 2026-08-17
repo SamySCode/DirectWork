@@ -8,8 +8,9 @@ import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
 import { requestPasswordReset } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
-import { fieldErrors, forgotPasswordSchema } from "../../features/auth/schemas";
+import { forgotPasswordSchema } from "../../features/auth/schemas";
 import { colors, spacing, typography } from "../../lib/theme";
+import { fieldErrors } from "../../lib/validation";
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState("");

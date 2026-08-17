@@ -17,6 +17,7 @@ export function TextField({ label, error, style, onFocus, onBlur, ...inputProps 
       <TextInput
         style={[
           styles.input,
+          inputProps.multiline ? styles.inputMultiline : null,
           focused ? styles.inputFocused : null,
           error ? styles.inputError : null,
           style,
@@ -59,6 +60,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
     outlineColor: colors.accent,
     outlineOffset: 2,
+  },
+  inputMultiline: {
+    minHeight: 100,
+    paddingVertical: spacing.sm,
+    textAlignVertical: "top",
   },
   inputFocused: {
     borderColor: colors.accent,
