@@ -1,20 +1,20 @@
 # app/
 
-Expo Router file-based routes.
+Expo Router file-based routes. The full route map, and the root guard
+that moves people between welcome, onboarding and the app, is in
+`docs/ARCHITECTURE.md`.
 
-Built so far: root layout (`_layout.tsx`) and the `(tabs)` group shell
-(dashboard, discover, applications, messages, profile) with placeholder
-screens — no feature logic yet, just navigation + the design system from
-`components/` and `lib/theme.ts`.
+Screens stay thin: data comes from `features/*/hooks.ts`, and anything
+reused across screens lives in `features/*/components/` or
+`components/`.
 
-Still to come, one vertical slice at a time (see `docs/ARCHITECTURE.md`):
+Not built (see `docs/ARCHITECTURE.md` for why):
 
-- `(auth)/` — sign-in, sign-up, forgot-password
-- `(onboarding)/` — profile setup, skills, paid/partner interest
-- `project/[projectId]/` — listing detail, manage, apply, workspace
-- `agreement/[applicationId]/` — partner agreement acceptance flow
-- `profile/[userId]/` — public profile view
-- `settings/`
+- `agreement/[applicationId]/`: the partner agreement flow. It waits on
+  real legal text (slice 9).
+- `messages/` and a project workspace (Phase 3). Contact reveal on
+  acceptance covers this for now.
 
-Don't build these ahead of their slice — they depend on decisions still
-open in `docs/OPEN_DECISIONS.md`.
+Typed routes are on (`experiments.typedRoutes`). If `tsc` complains about
+an `href` after adding a route, run `npm run typecheck`, which regenerates
+`.expo/types/router.d.ts` first.

@@ -48,28 +48,27 @@ only if a genuine second package (e.g. a shared types package) emerges.
 
 ```
 app/
-  (auth)/sign-in.tsx
-  (auth)/sign-up.tsx
-  (auth)/forgot-password.tsx
-  (onboarding)/profile-setup.tsx
-  (onboarding)/skills.tsx
-  (onboarding)/interests.tsx        # paid / partner / both
-  (tabs)/_layout.tsx
-  (tabs)/dashboard.tsx              # summary, not a feed
-  (tabs)/discover/index.tsx         # browse + search + filter
-  (tabs)/discover/[projectId].tsx   # listing detail
-  (tabs)/applications/index.tsx     # my applications
-  (tabs)/messages/index.tsx
-  (tabs)/messages/[projectId].tsx
-  (tabs)/profile/index.tsx          # my profile (edit)
-  profile/[userId].tsx              # public profile view
-  project/create.tsx
-  project/[projectId]/manage.tsx    # owner: edit, applications, members
-  project/[projectId]/apply.tsx
-  project/[projectId]/workspace.tsx # members-only
-  agreement/[applicationId].tsx     # accept-agreement flow
-  settings/index.tsx
+  (auth)/welcome.tsx               # front door: what this is, sign up / sign in
+  (auth)/sign-in.tsx, sign-up.tsx, forgot-password.tsx
+  update-password.tsx              # password-reset link lands here (web + native)
+  onboarding.tsx                   # 3 steps: intent -> about you -> skills
+  (tabs)/home.tsx                  # "needs you" actions + skill-matched picks, not a feed
+  (tabs)/discover/index.tsx        # browse + search + filter (infinite list)
+  (tabs)/applications/index.tsx    # my applications
+  (tabs)/listings/index.tsx        # my listings + plan quota
+  (tabs)/profile/index.tsx         # my profile + account menu
+  listing/new.tsx, listing/[id]/edit.tsx
+  listing/[id]/index.tsx           # detail; owners also get lifecycle + applicants
+  application/[id].tsx             # applicant view: progress, contact, outcome
+  people/[id].tsx                  # public profile + track record
+  account/edit.tsx
+  billing.tsx                      # hidden unless EXPO_PUBLIC_BILLING_ENABLED
+  review.tsx                       # operator curation queue (admins only)
 ```
+
+The root guard (`features/auth/hooks.ts` `useProtectedRoute`) keeps people
+on the right step: signed out -> welcome, no profile -> onboarding,
+otherwise the app.
 
 ## Vertical slices (implementation order)
 
@@ -77,53 +76,46 @@ Reordered and trimmed per `docs/PRODUCT_STRATEGY.md` Phase 2 — the goal
 is the smallest software that supports a validated manual matching loop,
 not the fullest possible marketplace.
 
-1. Repository & tooling foundation (this shell) ✅
+1. Repository & tooling foundation ✅
 2. Authentication (sign up/in/out, recovery, cross-platform sessions) ✅
-3. Professional profiles (minimal fields, skills, paid/partner interest)
-   — in progress
+3. Professional profiles + onboarding ✅
+4. Curated listings with admission criteria + operator review queue ✅
+5. Discovery (search, type/remote filters, skill-match highlighting) ✅
+6. Apply + mutual acceptance (submitted -> accepted/rejected/withdrawn) ✅
+7. Contact reveal on mutual acceptance ✅
+8. Collaboration + mutually-confirmed outcome ledger / track record ✅
+9. Optional, scoped partner agreement flow — **not built**: still waits on
+   real legal text replacing the placeholder (docs/OPEN_DECISIONS.md)
 
-**Phase 1 checkpoint** (`docs/PRODUCT_STRATEGY.md`): manual validation,
-mostly non-engineering. May not need slices 4+ at all to run — a form
-and a spreadsheet can test the loop faster than building UI for it.
-Don't start slice 4 until this has produced real signal.
+**Build-ahead note (2026-11-04):** the Phase 1 checkpoint (manual
+validation before slice 4, `docs/PRODUCT_STRATEGY.md`) was
+explicitly overridden by the product owner, who asked for the app to be
+built as far as possible in one pass. Slices 4-8 plus owner-side billing
+(see `docs/MONETIZATION.md`) were built together. The Phase 1 manual
+validation in `docs/PRODUCT_STRATEGY.md` is still the recommended way to
+find out whether the loop works — the software now supports running it
+in-app instead of on a spreadsheet.
 
-4. Curated listings with admission criteria (structured fields for the
-   partner route — what's already built, time commitment, milestone,
-   proposed terms — not free-text prose)
-5. Discovery (simple browse/search — heavy filtering is premature at low
-   listing volume)
-6. Invite/apply + mutual acceptance (trimmed: no full audit-trail state
-   machine yet, just submitted → accepted/rejected)
-7. Contact reveal on mutual acceptance (pulled forward from the old
-   messaging slice — not real-time chat, just unlocking contact info)
-8. Trial-project status + completion/attestation record (the outcome
-   ledger — see `docs/DATA_MODEL.md`)
-9. Optional, scoped partner agreement flow (per-listing opt-in, scoped to
-   attached materials, not "the idea" — only build once real legal text
-   replaces the placeholder)
+Still deferred to Phase 3, conditional on real signal: Realtime messaging,
+private workspace, notifications (email/push), SEO/static rendering,
+fuller audit-trail UI.
 
-**Deferred to Phase 3**, conditional on Phase 1/2 producing real signal:
-fuller application state machine + audit trail, Realtime messaging,
-private workspace, notifications, SEO/static rendering, monetization
-(Stripe Checkout for owner-side paid listings — not Connect).
-
-10. Cross-platform polish & deployment prep (EAS)
+10. Cross-platform polish & deployment prep (EAS) — config in place
+    (`eas.json`, bundle ids, brand icons, CI); store submission steps in
+    `docs/LAUNCH.md`
 
 Each slice should be implementable and testable independently. Full
 marketplace payments, advanced AI, matching, and heavier workspace
 tooling remain later phases, not MVP.
 
-## Deferred until explicitly started
+## Data access pattern
 
-The following have **not** been set up yet, by design — this shell exists
-so they can be plugged in without restructuring anything:
-
-- `npx create-expo-app` (or `npx expo install` into this structure) —
-  generates its own `app.json`, `babel.config.js`, `metro.config.js`, and
-  native scaffolding
-- Supabase project creation + `supabase init` in `supabase/`
-- `@supabase/supabase-js`, `expo-router`, `react-native-web`, and other
-  runtime dependencies — intentionally not listed in `package.json` yet so
-  we don't hand-pick versions that may not match the Expo SDK's compatible
-  set at integration time; use `npx expo install <pkg>` when that day comes
-- EAS build/submit configuration
+- Reads go straight from the client through RLS (`features/*/api.ts`),
+  cached by TanStack Query (`lib/query.ts`: 30s stale time, refetch on app
+  foreground, no Realtime).
+- Every status change goes through the `actions` Edge Function, which
+  calls a `private.*` SQL function that authorizes and transitions
+  atomically. See `docs/ACCESS_CONTROL.md`.
+- Supabase isn’t needed to test the database: `npm run test:db` runs the
+  real migrations in PGlite (Postgres in WASM) with a stub of Supabase’s
+  auth schema and roles.

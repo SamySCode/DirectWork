@@ -1,285 +1,179 @@
-import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
-import { Button } from "../../../components/Button";
-import { Chip } from "../../../components/Chip";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Href, useRouter } from "expo-router";
+import { ComponentProps } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Avatar } from "../../../components/Avatar";
+import { Badge } from "../../../components/Badge";
+import { Card } from "../../../components/Card";
+import { ErrorState } from "../../../components/ErrorState";
 import { LoadingState } from "../../../components/LoadingState";
+import { PageHero } from "../../../components/PageHero";
+import { Screen } from "../../../components/Screen";
 import { Text } from "../../../components/Text";
-import { TextField } from "../../../components/TextField";
+import { useIsAdmin } from "../../../features/admin/hooks";
 import { signOut } from "../../../features/auth/api";
 import { useAuth } from "../../../features/auth/SessionProvider";
-import { upsertMyProfile } from "../../../features/profile/api";
-import { SkillsField } from "../../../features/profile/components/SkillsField";
-import { useMyProfile } from "../../../features/profile/hooks";
-import { profileSchema, remotePrefOptions } from "../../../features/profile/schemas";
-import { colors, spacing, typography } from "../../../lib/theme";
-import { fieldErrors } from "../../../lib/validation";
+import { ProfileStrengthCard } from "../../../features/profile/components/ProfileStrengthCard";
+import { ProfileView } from "../../../features/profile/components/ProfileView";
+import { profileStrength } from "../../../features/profile/strength";
+import { avatarUrl } from "../../../features/profile/api";
+import {
+  useMyProfile,
+  usePortfolio,
+  useReferences,
+  useTrackRecord,
+} from "../../../features/profile/hooks";
+import { billingAvailable } from "../../../features/billing/availability";
+import { colors, spacing, tabThemes, typography } from "../../../lib/theme";
 
-const remotePrefLabels: Record<(typeof remotePrefOptions)[number], string> = {
-  remote: "Remote",
-  hybrid: "Hybrid",
-  onsite: "On-site",
-  flexible: "Flexible",
+type Row = {
+  icon: ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  onPress: () => void;
+  tone?: "danger";
 };
 
 export default function ProfileScreen() {
+  const router = useRouter();
   const { session } = useAuth();
-  const userId = session?.user.id;
-  const { profile, skills, loading, refetch } = useMyProfile(userId);
+  const { profile, skills, loading, error, refetch, userId } = useMyProfile();
+  const trackRecord = useTrackRecord(userId);
+  const portfolio = usePortfolio(userId);
+  const references = useReferences(userId);
+  const isAdmin = useIsAdmin();
 
-  const [fullName, setFullName] = useState("");
-  const [headline, setHeadline] = useState("");
-  const [bio, setBio] = useState("");
-  const [location, setLocation] = useState("");
-  const [remotePref, setRemotePref] = useState<(typeof remotePrefOptions)[number] | undefined>();
-  const [availability, setAvailability] = useState("");
-  const [currentRole, setCurrentRole] = useState("");
-  const [experienceLevel, setExperienceLevel] = useState("");
-  const [seekingPaid, setSeekingPaid] = useState(false);
-  const [seekingPartner, setSeekingPartner] = useState(false);
-  const [portfolioUrl, setPortfolioUrl] = useState("");
-  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  if (loading) return <LoadingState />;
+  if (error || !profile) return <ErrorState title="Couldn't load your profile" onRetry={refetch} />;
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formError, setFormError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
+  const go = (href: Href) => () => router.push(href);
 
-  useEffect(() => {
-    if (profile) {
-      setFullName(profile.full_name);
-      setHeadline(profile.headline);
-      setBio(profile.bio ?? "");
-      setLocation(profile.location ?? "");
-      setRemotePref(profile.remote_pref ?? undefined);
-      setAvailability(profile.availability ?? "");
-      setCurrentRole(profile.current_title ?? "");
-      setExperienceLevel(profile.experience_level ?? "");
-      setSeekingPaid(profile.seeking_paid);
-      setSeekingPartner(profile.seeking_partner);
-      setPortfolioUrl(profile.portfolio_url ?? "");
-    }
-    setSelectedSkills(skills);
-  }, [profile, skills]);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await signOut();
-    } finally {
-      setSigningOut(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!userId) return;
-    setFormError(null);
-    setSaved(false);
-    const result = profileSchema.safeParse({
-      fullName,
-      headline,
-      bio: bio || undefined,
-      location: location || undefined,
-      remotePref,
-      availability: availability || undefined,
-      currentRole: currentRole || undefined,
-      experienceLevel: experienceLevel || undefined,
-      seekingPaid,
-      seekingPartner,
-      portfolioUrl,
-      skills: selectedSkills,
-    });
-    if (!result.success) {
-      setErrors(fieldErrors(result.error));
-      return;
-    }
-    setErrors({});
-    setSaving(true);
-    try {
-      await upsertMyProfile(userId, result.data);
-      setSaved(true);
-      await refetch();
-    } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Something went wrong");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  if (loading) {
-    return <LoadingState />;
-  }
+  const rows: Row[] = [
+    { icon: "create-outline", label: "Edit profile", onPress: go("/account/edit") },
+    { icon: "eye-outline", label: "See your public profile", onPress: go(`/people/${profile.id}`) },
+    { icon: "notifications-outline", label: "Activity", onPress: go("/inbox") },
+    { icon: "bulb-outline", label: "Guide & tips", onPress: go("/guide") },
+    ...(billingAvailable
+      ? [{ icon: "card-outline" as const, label: "Plans & billing", onPress: go("/billing") }]
+      : []),
+    ...(isAdmin.data
+      ? [
+          {
+            icon: "shield-checkmark-outline" as const,
+            label: "Review queue",
+            onPress: go("/review"),
+          },
+          {
+            icon: "flag-outline" as const,
+            label: "Reports",
+            onPress: go("/moderation"),
+          },
+        ]
+      : []),
+    { icon: "eye-off-outline", label: "Blocked people", onPress: go("/account/blocked") },
+    { icon: "log-out-outline", label: "Sign out", onPress: () => signOut() },
+    {
+      icon: "trash-outline",
+      label: "Delete account",
+      onPress: go("/account/delete"),
+      tone: "danger",
+    },
+  ];
 
   return (
-    <KeyboardAvoidingView
-      style={styles.page}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    <Screen
+      onRefresh={refetch}
+      header={
+        <PageHero
+          theme={tabThemes.profile}
+          title={profile.full_name}
+          subtitle={profile.headline}
+          top={<Avatar name={profile.full_name} uri={avatarUrl(profile.avatar_url)} size={72} />}
+        >
+          <View style={styles.heroBadges}>
+            {profile.seeking_paid ? <Badge label="Open to paid work" tone="neutral" /> : null}
+            {profile.seeking_partner ? <Badge label="Open to partnerships" tone="neutral" /> : null}
+            {profile.wants_to_hire ? <Badge label="Hiring" tone="neutral" /> : null}
+          </View>
+        </PageHero>
+      }
     >
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <Text style={styles.title}>Your profile</Text>
+      <ProfileStrengthCard
+        items={profileStrength(profile, skills.length, portfolio.data?.length ?? 0)}
+        tint={tabThemes.profile.tint}
+        onFix={() => router.push("/account/edit")}
+      />
+      <ProfileView
+        profile={profile}
+        skills={skills}
+        trackRecord={trackRecord.data}
+        portfolio={portfolio.data}
+        references={references.data}
+        showHeader={false}
+      />
 
-        <View style={styles.fields}>
-          <TextField
-            label="Full name"
-            value={fullName}
-            onChangeText={setFullName}
-            error={errors.fullName}
-          />
-          <TextField
-            label="Headline"
-            value={headline}
-            onChangeText={setHeadline}
-            placeholder="e.g. Senior React Native Engineer"
-            error={errors.headline}
-          />
-          <TextField
-            label="Bio"
-            value={bio}
-            onChangeText={setBio}
-            multiline
-            numberOfLines={4}
-            error={errors.bio}
-          />
-          <TextField
-            label="Location"
-            value={location}
-            onChangeText={setLocation}
-            error={errors.location}
-          />
-          <TextField
-            label="Current or preferred role"
-            value={currentRole}
-            onChangeText={setCurrentRole}
-            error={errors.currentRole}
-          />
-          <TextField
-            label="Experience level"
-            value={experienceLevel}
-            onChangeText={setExperienceLevel}
-            placeholder="e.g. 5+ years"
-            error={errors.experienceLevel}
-          />
-          <TextField
-            label="Availability"
-            value={availability}
-            onChangeText={setAvailability}
-            placeholder="e.g. 20 hrs/week"
-            error={errors.availability}
-          />
-          <TextField
-            label="Portfolio URL"
-            value={portfolioUrl}
-            onChangeText={setPortfolioUrl}
-            keyboardType="url"
-            error={errors.portfolioUrl}
-          />
-
-          <View style={styles.group}>
-            <Text style={styles.groupLabel}>Remote preference</Text>
-            <View style={styles.chipRow}>
-              {remotePrefOptions.map((option) => (
-                <Chip
-                  key={option}
-                  label={remotePrefLabels[option]}
-                  selected={remotePref === option}
-                  onPress={() => setRemotePref(remotePref === option ? undefined : option)}
-                />
-              ))}
-            </View>
-          </View>
-
-          <SkillsField value={selectedSkills} onChange={setSelectedSkills} error={errors.skills} />
-
-          <View style={styles.group}>
-            <Text style={styles.groupLabel}>Looking for</Text>
-            <View style={styles.chipRow}>
-              <Chip
-                label="Paid work"
-                selected={seekingPaid}
-                onPress={() => setSeekingPaid((value) => !value)}
-              />
-              <Chip
-                label="Partnership"
-                selected={seekingPartner}
-                onPress={() => setSeekingPartner((value) => !value)}
-              />
-            </View>
-            {errors.seekingPaid ? <Text style={styles.error}>{errors.seekingPaid}</Text> : null}
-          </View>
-        </View>
-
-        {formError ? <Text style={styles.formError}>{formError}</Text> : null}
-        {saved ? <Text style={styles.saved}>Profile saved.</Text> : null}
-
-        <Button label="Save profile" onPress={handleSave} loading={saving} />
-
-        <View style={styles.footer}>
-          {session?.user.email ? (
-            <Text style={styles.email}>Signed in as {session.user.email}</Text>
-          ) : null}
-          <Button
-            label="Sign out"
-            variant="secondary"
-            onPress={handleSignOut}
-            loading={signingOut}
-          />
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+      <Card style={styles.menu}>
+        {rows.map((row, index) => (
+          <Pressable
+            key={row.label}
+            onPress={row.onPress}
+            accessibilityRole="button"
+            style={[styles.row, index > 0 ? styles.rowDivider : null]}
+          >
+            <Ionicons
+              name={row.icon}
+              size={20}
+              color={row.tone === "danger" ? colors.danger : colors.textSecondary}
+            />
+            <Text style={[styles.rowLabel, row.tone === "danger" ? styles.danger : null]}>
+              {row.label}
+            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+        ))}
+      </Card>
+      {session?.user.email ? (
+        <Text style={styles.email}>Signed in as {session.user.email}</Text>
+      ) : null}
+    </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  page: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  scrollContent: {
-    padding: spacing.lg,
-    gap: spacing.lg,
-  },
-  title: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.semibold,
-    color: colors.textPrimary,
-  },
-  fields: {
-    gap: spacing.md,
-  },
-  group: {
-    gap: spacing.sm,
-  },
-  groupLabel: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-    color: colors.textSecondary,
-  },
-  chipRow: {
+  heroBadges: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacing.sm,
+    gap: spacing.xs,
   },
-  error: {
-    fontSize: typography.size.xs,
-    color: colors.danger,
+  menu: {
+    padding: 0,
   },
-  formError: {
-    color: colors.danger,
-    fontSize: typography.size.sm,
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    minHeight: 52,
   },
-  saved: {
-    color: colors.success,
-    fontSize: typography.size.sm,
-  },
-  footer: {
-    gap: spacing.sm,
-    paddingTop: spacing.lg,
+  rowDivider: {
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
+  rowLabel: {
+    flex: 1,
+    fontSize: typography.size.md,
+    color: colors.textPrimary,
+  },
+  danger: {
+    color: colors.danger,
+  },
+  error: {
+    color: colors.danger,
+    fontSize: typography.size.sm,
+    textAlign: "center",
+  },
   email: {
     fontSize: typography.size.sm,
-    color: colors.textSecondary,
+    color: colors.textMuted,
     textAlign: "center",
   },
 });

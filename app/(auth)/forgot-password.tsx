@@ -9,7 +9,7 @@ import { TextField } from "../../components/TextField";
 import { requestPasswordReset } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
 import { forgotPasswordSchema } from "../../features/auth/schemas";
-import { colors, spacing, typography } from "../../lib/theme";
+import { colors, shadow, spacing, typography } from "../../lib/theme";
 import { fieldErrors } from "../../lib/validation";
 
 export default function ForgotPasswordScreen() {
@@ -83,7 +83,7 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   scrollContent: {
     flexGrow: 1,
@@ -91,6 +91,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   card: {
+    ...shadow.raised,
     width: "100%",
     maxWidth: 420,
     alignSelf: "center",

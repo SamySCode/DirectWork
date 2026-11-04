@@ -9,9 +9,17 @@ type SkillsFieldProps = {
   value: string[];
   onChange: (skills: string[]) => void;
   error?: string;
+  label?: string;
+  placeholder?: string;
 };
 
-export function SkillsField({ value, onChange, error }: SkillsFieldProps) {
+export function SkillsField({
+  value,
+  onChange,
+  error,
+  label = "Skills",
+  placeholder = "Type a skill and press enter",
+}: SkillsFieldProps) {
   const [query, setQuery] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
 
@@ -43,18 +51,37 @@ export function SkillsField({ value, onChange, error }: SkillsFieldProps) {
     onChange(value.filter((s) => s !== name));
   };
 
+  // Offer the typed text itself as an option - "press enter" isn't
+  // discoverable on a phone keyboard.
+  const trimmedQuery = query.trim();
+  const showAddTyped =
+    trimmedQuery.length > 0 &&
+    !suggestions.some((s) => s.toLowerCase() === trimmedQuery.toLowerCase()) &&
+    !value.some((s) => s.toLowerCase() === trimmedQuery.toLowerCase());
+
   return (
     <View style={styles.container}>
       <TextField
-        label="Skills"
+        label={label}
         value={query}
         onChangeText={setQuery}
         onSubmitEditing={() => addSkill(query)}
-        placeholder="Type a skill and press enter"
+        placeholder={placeholder}
+        returnKeyType="done"
+        submitBehavior="submit"
         error={error}
       />
-      {suggestions.length > 0 ? (
+      {suggestions.length > 0 || showAddTyped ? (
         <View style={styles.suggestions}>
+          {showAddTyped ? (
+            <Pressable
+              onPress={() => addSkill(trimmedQuery)}
+              style={styles.suggestionItem}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.suggestionText, styles.addTyped]}>Add “{trimmedQuery}”</Text>
+            </Pressable>
+          ) : null}
           {suggestions.map((suggestion) => (
             <Pressable
               key={suggestion}
@@ -99,6 +126,10 @@ const styles = StyleSheet.create({
   suggestionText: {
     fontSize: typography.size.sm,
     color: colors.textPrimary,
+  },
+  addTyped: {
+    color: colors.accent,
+    fontWeight: typography.weight.semibold,
   },
   chips: {
     flexDirection: "row",
