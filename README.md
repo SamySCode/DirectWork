@@ -11,28 +11,33 @@ Full product and architecture context lives in [`docs/`](docs/):
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — stack, repo layout, routes, slice order
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md) — entities and state machines
 - [`docs/ACCESS_CONTROL.md`](docs/ACCESS_CONTROL.md) — RLS / Edge Function strategy
-- [`docs/OPEN_DECISIONS.md`](docs/OPEN_DECISIONS.md) — product decisions not yet made
+- [`docs/OPEN_DECISIONS.md`](docs/OPEN_DECISIONS.md) — product decisions not yet made (and provisional ones to review)
+- [`docs/PRODUCT_STRATEGY.md`](docs/PRODUCT_STRATEGY.md) — positioning and the validation plan
+- [`docs/MONETIZATION.md`](docs/MONETIZATION.md) — plans, pricing, Stripe setup
+- [`docs/LAUNCH.md`](docs/LAUNCH.md) — go-live checklist (backend, web, stores, legal)
 
 ## Tech stack
 
 - **Client**: Expo (SDK 57) + React Native + TypeScript (strict) + Expo
   Router + React Native Web — one codebase for iOS, Android and Web.
 - **Backend**: Supabase — Postgres, Auth, Storage, Realtime, RLS, Edge
-  Functions. Project is live and the client is wired up; no tables/auth
-  flows built yet — see "Current status" below.
+  Functions. Project is live; the newest migrations still need applying
+  — see `docs/LAUNCH.md`.
+- **Data**: TanStack Query over supabase-js; zod for validation.
 - **Tooling**: ESLint 10 (flat config) + Prettier + TypeScript strict.
 
 ## Project structure
 
-| Path          | Contents                                                                                                                                                |
-| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app/`        | Expo Router routes (file-based). Currently: root layout + tab shell only.                                                                               |
-| `components/` | Shared, feature-agnostic UI (`Button`, `Card`, `EmptyState`, `LoadingState`, `ErrorState`), styled from `lib/theme.ts`.                                 |
-| `features/`   | Empty so far. Feature-scoped logic (`api.ts`, `schemas.ts`, `hooks.ts`, `components/`) goes here per feature, starting with slice 2.                    |
-| `lib/`        | Cross-cutting infrastructure: `theme.ts` (design tokens), `env.ts` (env var access, will be zod-validated later), `supabase.ts` (once Supabase exists). |
-| `supabase/`   | Empty so far (`migrations/`, `functions/`) — populated once a Supabase project exists.                                                                  |
-| `docs/`       | Architecture, data model, access control, open product decisions.                                                                                       |
-| `assets/`     | App icon/splash/favicon (Expo defaults — not final branding).                                                                                           |
+| Path          | Contents                                                                                                                         |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`        | Expo Router routes — see the route map in `docs/ARCHITECTURE.md`.                                                                |
+| `components/` | Shared UI primitives and the visual language — see `components/README.md`.                                                       |
+| `features/`   | `auth`, `profile`, `listings`, `applications`, `billing`, `admin` — each with `api.ts`, `hooks.ts`, `schemas.ts`, `components/`. |
+| `lib/`        | Theme, validated env, Supabase + query clients, Edge Function caller.                                                            |
+| `supabase/`   | Migrations, Edge Functions, and the PGlite database test suite.                                                                  |
+| `docs/`       | Strategy, architecture, data model, access control, monetization, launch.                                                        |
+| `scripts/`    | `generate-route-types.js` (typed routes without a dev server, for CI).                                                           |
+| `assets/`     | Brand icon, adaptive icon, splash and favicon (rendered from the ConnectMark).                                                   |
 
 ## Getting started (macOS or Windows)
 
@@ -70,12 +75,17 @@ npm install
 ### 3. Verify your setup
 
 ```bash
-npm run typecheck
-npm run lint
-npm run format:check
+npm run check   # lint + typecheck + format:check + unit + database tests
 ```
 
-All three should pass with no errors on a clean checkout.
+Should pass with no errors on a clean checkout. The test suites:
+
+| Command                  | What it covers                                                                     |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `npm run test:unit`      | 232 Jest tests: logic, components and screens (React Native Testing Library)       |
+| `npm run test:db`        | 43 tests: migrations, RLS, transitions and schema guardrails in PGlite (no Docker) |
+| `npm run test:functions` | Edge Function middleware (Deno, fetched via npx)                                   |
+| `npm run test:rls:live`  | End-to-end RLS check against a deployed project                                    |
 
 ## Running the app
 
@@ -118,19 +128,20 @@ of Expo Go or the browser.
 
 ## Current status
 
-Implemented so far (see `docs/ARCHITECTURE.md` for the full slice order):
+Slices 1–8 are built (see `docs/ARCHITECTURE.md`): auth, a 3-step
+onboarding, profiles with a mutually confirmed track record, curated
+listings with partner admission criteria and an operator review queue,
+Discover with skill-match highlighting, apply / accept / decline, contact
+reveal on acceptance, and outcome confirmation. Owner-side Pro billing is
+built and switched off until Stripe is configured
+(`docs/MONETIZATION.md`).
 
-1. ✅ Repo, tooling, and docs foundation
-2. ✅ Expo scaffold (Expo Router + React Native Web) + a basic design
-   system and placeholder tab navigation shell — no feature logic yet
-3. ✅ Supabase project created and client wired up (`lib/supabase.ts`)
-4. ✅ Authentication — sign up, sign in, sign out, password reset request,
-   session persistence, and route gating between `(auth)` and `(tabs)`
-   (`features/auth/`, `app/(auth)/`). Email confirmation is required
-   (Supabase default), so sign-up shows a "check your email" state rather
-   than logging straight in.
-5. ⬜ Profiles, listings, and everything after — not started; each
-   remaining tab screen currently states which slice will build it
+Not built: the partner agreement flow (waits on real legal text),
+messaging and notifications (Phase 3).
+
+Before real users: work through `docs/LAUNCH.md`. The newest migration
+isn't applied to the hosted project yet, and a privacy policy and terms
+are needed before launch.
 
 ## Supabase access
 
@@ -213,9 +224,9 @@ guessing.
 
 ## Deployment
 
-Not set up yet. Production web hosting and EAS builds/submission for
-iOS and Android are slice 11 in `docs/ARCHITECTURE.md`, after the core
-product slices are built.
+Config is in place (`eas.json`, bundle ids, CI in
+`.github/workflows/ci.yml`, web security headers in `public/_headers`).
+The step-by-step is in [`docs/LAUNCH.md`](docs/LAUNCH.md).
 
 ## Conventions
 

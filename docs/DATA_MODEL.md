@@ -62,3 +62,65 @@ with a DB check constraint.
 `project_outcomes.outcome`: `completed | abandoned`, written only once
 both `confirmed_by_owner_at` and `confirmed_by_member_at` are set —
 mutual confirmation, not self-declared.
+
+## As built (migration `20261104090000_listings_applications_outcomes.sql`)
+
+Where the implementation deliberately differs from the proposal above:
+
+- **`profiles.wants_to_hire`** added; the check is now
+  `seeking_paid or seeking_partner or wants_to_hire`. The original
+  constraint forced people who only post projects to claim they were
+  job-seeking.
+- **`projects.status`** adds `in_review` and `changes_requested` for
+  curation: `draft -> in_review -> published | changes_requested`, then
+  `published <-> paused`, `published/paused -> draft` (edit + re-review),
+  `-> completed | abandoned`. Owners can only edit columns while the
+  listing is `draft`/`changes_requested`, so a listing can't be changed
+  after approval without going back through review.
+- **Compensation shape** (was an open decision): `compensation_type`
+  (`fixed | hourly | daily`) + optional `compensation_min`/`max` +
+  `currency` (`GBP | EUR | USD`). Paid route only.
+- **`applications.status`** uses the trimmed slice-6 machine:
+  `submitted -> accepted | rejected`, `submitted -> withdrawn`. No
+  `under_review`, no `agreement_*` states yet (slice 9 not built). Closing a
+  listing auto-rejects anything still `submitted`.
+- **`project_memberships`** is created on acceptance (no agreement step
+  yet), keyed 1:1 to the application.
+- **`project_outcomes` is per membership, not per project.** Keyed by
+  `project_id` it couldn't represent more than one collaborator. Either
+  side proposes `completed | abandoned`; it only counts once both
+  `confirmed_by_*_at` are set to the same outcome. Proposing a different
+  outcome resets the other side's confirmation. Feeds
+  `public.get_track_record()`.
+- **`project_private_details`** not built yet — contact reveal covers the
+  Phase 1/2 need.
+- **New: `admins`** (operator/reviewer allow-list, seeded by hand) and
+  **`subscriptions`** (owner plan state, written only by the Stripe
+  webhook). See `docs/MONETIZATION.md`.
+- **`skills.created_by`** added for a 50-per-user-per-day insert cap.
+
+**Images** (migration `20261104120000_images_and_content_rules.sql`):
+`profiles.avatar_url` holds a path in the `avatars` bucket;
+`portfolio_images` (max 6), `listing_images` (max 4, editable only while
+the listing is), `application_attachments` (max 3, private bucket). Files
+are uploaded straight to Storage; rows record their paths.
+
+Abuse limits enforced in the database: 25 listings per owner, 20
+applications per applicant per 24h, 50 new skills per user per 24h, one
+live application per person per listing.
+
+## Trust and activity (migration `20261104230000_trust_and_activity.sql`)
+
+- `activity(user_id, kind, actor_id, project_id, application_id, membership_id, read_at)`
+  — written by AFTER triggers on applications, projects, project_outcomes,
+  work_references and application_questions, in the same transaction as the
+  event. Read on demand (unread count is a head-only query); no Realtime.
+- `work_references(membership_id, author_id, subject_id, project_title, body)`
+  — unique per (membership, author).
+- `application_questions(application_id, question, answer, asked_at, answered_at)`
+  — embedded in the applications select, so no extra request.
+- `reports(reporter_id, profile_id | project_id, reason, details, status)`
+  and `blocks(blocker_id, blocked_id)`.
+- `profiles.availability_confirmed_at` — the 30-day freshness clock.
+- `applications.closed_by_listing` (`20261104220000`) replaces matching on
+  the "Listing closed" note text.
