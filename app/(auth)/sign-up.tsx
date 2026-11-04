@@ -8,8 +8,10 @@ import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
 import { signUp } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
+import { CheckEmail } from "../../features/auth/components/CheckEmail";
 import { signUpSchema } from "../../features/auth/schemas";
-import { colors, spacing, typography } from "../../lib/theme";
+import { colors, shadow, spacing, typography } from "../../lib/theme";
+import { errorMessage } from "../../lib/functions";
 import { fieldErrors } from "../../lib/validation";
 
 export default function SignUpScreen() {
@@ -34,7 +36,7 @@ export default function SignUpScreen() {
       await signUp(result.data);
       setSubmitted(true);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Something went wrong");
+      setFormError(errorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -51,12 +53,7 @@ export default function SignUpScreen() {
             {submitted ? (
               <View style={styles.group}>
                 <AuthHeader title="Check your email" />
-                <Text style={styles.description}>
-                  We sent a confirmation link to {email}. Click it, then come back and sign in.
-                </Text>
-                <Link href="/sign-in" style={styles.link}>
-                  Back to sign in
-                </Link>
+                <CheckEmail email={email.trim()} onChangeEmail={() => setSubmitted(false)} />
               </View>
             ) : (
               <View style={styles.group}>
@@ -67,20 +64,27 @@ export default function SignUpScreen() {
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
+                    autoComplete="email"
+                    textContentType="emailAddress"
                     error={errors.email}
                   />
                   <TextField
                     label="Password"
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry
+                    secureToggle
+                    autoComplete="new-password"
+                    textContentType="newPassword"
+                    hint="At least 8 characters."
                     error={errors.password}
                   />
                   <TextField
                     label="Confirm password"
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
-                    secureTextEntry
+                    secureToggle
+                    autoComplete="new-password"
+                    textContentType="newPassword"
                     error={errors.confirmPassword}
                   />
                 </View>
@@ -101,7 +105,7 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   scrollContent: {
     flexGrow: 1,
@@ -109,6 +113,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   card: {
+    ...shadow.raised,
     width: "100%",
     maxWidth: 420,
     alignSelf: "center",
@@ -119,10 +124,6 @@ const styles = StyleSheet.create({
   },
   fields: {
     gap: spacing.md,
-  },
-  description: {
-    fontSize: typography.size.md,
-    color: colors.textSecondary,
   },
   formError: {
     color: colors.danger,

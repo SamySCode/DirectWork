@@ -8,7 +8,7 @@ module.exports = tseslint.config(
   ...tseslint.configs.recommended,
   eslintConfigPrettier,
   {
-    ignores: ["node_modules", "dist", "web-build", ".expo"],
+    ignores: ["node_modules", "dist", "web-build", ".expo", "supabase/functions"],
   },
   {
     rules: {
@@ -35,10 +35,15 @@ module.exports = tseslint.config(
     },
   },
   {
-    files: ["*.config.js", "*.config.cjs"],
+    files: ["*.config.js", "*.config.cjs", "scripts/**/*.js"],
     languageOptions: {
       sourceType: "commonjs",
-      globals: { require: "readonly", module: "writable", __dirname: "readonly" },
+      globals: {
+        require: "readonly",
+        module: "writable",
+        __dirname: "readonly",
+        process: "writable",
+      },
     },
     rules: {
       "@typescript-eslint/no-require-imports": "off",
@@ -55,6 +60,24 @@ module.exports = tseslint.config(
     languageOptions: {
       sourceType: "module",
       globals: { process: "readonly", console: "readonly" },
+    },
+  },
+  {
+    // jest.mock() factories are hoisted above imports, so they must use
+    // require(); the setup/config files are CommonJS. Scoped to tests only.
+    files: ["**/__tests__/**/*.{ts,tsx}", "test/**/*.{js,ts,tsx}", "jest.config.js"],
+    languageOptions: {
+      sourceType: "commonjs",
+      globals: { jest: "readonly", require: "readonly", module: "writable", process: "writable" },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
+  {
+    files: ["supabase/tests/db/**/*.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", console: "readonly", Buffer: "readonly" },
     },
   },
 );

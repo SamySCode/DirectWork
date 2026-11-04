@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CONTACT_DETAILS_MESSAGE, hasContactDetails, plainText } from "../../lib/validation";
 
 export const remotePrefOptions = ["remote", "hybrid", "onsite", "flexible"] as const;
 
@@ -13,20 +14,28 @@ export const profileSchema = z
       .string()
       .trim()
       .min(1, "Enter your name")
-      .max(200, "Keep this under 200 characters"),
+      .max(200, "Keep this under 200 characters")
+      .refine((value) => !hasContactDetails(value), CONTACT_DETAILS_MESSAGE),
     headline: z
       .string()
       .trim()
       .min(1, "Enter a short professional headline")
-      .max(200, "Keep this under 200 characters"),
-    bio: z.string().trim().max(1000, "Keep your bio under 1000 characters").optional(),
-    location: z.string().trim().max(200, "Keep this under 200 characters").optional(),
+      .max(200, "Keep this under 200 characters")
+      .refine((value) => !hasContactDetails(value), CONTACT_DETAILS_MESSAGE),
+    bio: z
+      .string()
+      .trim()
+      .max(1000, "Keep your bio under 1000 characters")
+      .refine((value) => !hasContactDetails(value), CONTACT_DETAILS_MESSAGE)
+      .optional(),
+    location: plainText(200).optional(),
     remotePref: z.enum(remotePrefOptions).optional(),
-    availability: z.string().trim().max(200, "Keep this under 200 characters").optional(),
-    currentRole: z.string().trim().max(200, "Keep this under 200 characters").optional(),
-    experienceLevel: z.string().trim().max(200, "Keep this under 200 characters").optional(),
+    availability: plainText(200).optional(),
+    currentRole: plainText(200).optional(),
+    experienceLevel: plainText(200).optional(),
     seekingPaid: z.boolean(),
     seekingPartner: z.boolean(),
+    wantsToHire: z.boolean(),
     portfolioUrl: z
       .string()
       .trim()
@@ -36,11 +45,18 @@ export const profileSchema = z
       })
       .transform((value) => (value === "" ? undefined : value)),
     skills: z
-      .array(z.string().trim().min(1).max(100, "Keep skill names under 100 characters"))
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1)
+          .max(100, "Keep skill names under 100 characters")
+          .refine((value) => !hasContactDetails(value), CONTACT_DETAILS_MESSAGE),
+      )
       .min(1, "Add at least one skill"),
   })
-  .refine((data) => data.seekingPaid || data.seekingPartner, {
-    message: "Select at least one: paid work or partnership",
+  .refine((data) => data.seekingPaid || data.seekingPartner || data.wantsToHire, {
+    message: "Pick at least one reason you're here",
     path: ["seekingPaid"],
   });
 

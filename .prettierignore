@@ -1,0 +1,3 @@
+# claude-mem-lite rewrites its managed block in CLAUDE.md at every session
+# start (unformatted) - checking it would fail CI for anyone using the plugin.
+CLAUDE.md

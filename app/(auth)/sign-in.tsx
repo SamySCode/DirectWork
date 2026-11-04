@@ -8,8 +8,10 @@ import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
 import { signIn } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
+import { CheckEmail } from "../../features/auth/components/CheckEmail";
 import { signInSchema } from "../../features/auth/schemas";
-import { colors, spacing, typography } from "../../lib/theme";
+import { colors, shadow, spacing, typography } from "../../lib/theme";
+import { errorMessage } from "../../lib/functions";
 import { fieldErrors } from "../../lib/validation";
 
 export default function SignInScreen() {
@@ -18,9 +20,12 @@ export default function SignInScreen() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Signing in before confirming is common; turn the raw error into a fix.
+  const [unconfirmed, setUnconfirmed] = useState(false);
 
   const handleSubmit = async () => {
     setFormError(null);
+    setUnconfirmed(false);
     const result = signInSchema.safeParse({ email, password });
     if (!result.success) {
       setErrors(fieldErrors(result.error));
@@ -32,7 +37,14 @@ export default function SignInScreen() {
       await signIn(result.data);
       // Session change is picked up by the root layout's auth listener, which redirects.
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Something went wrong");
+      const code = (error as { code?: string } | null)?.code;
+      if (code === "email_not_confirmed") {
+        setUnconfirmed(true);
+      } else if (code === "invalid_credentials") {
+        setFormError("That email and password don't match. Check both, or reset your password.");
+      } else {
+        setFormError(errorMessage(error));
+      }
     } finally {
       setLoading(false);
     }
@@ -53,17 +65,32 @@ export default function SignInScreen() {
                 value={email}
                 onChangeText={setEmail}
                 keyboardType="email-address"
+                autoComplete="email"
+                textContentType="emailAddress"
                 error={errors.email}
               />
               <TextField
                 label="Password"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
+                secureToggle
+                autoComplete="current-password"
+                textContentType="password"
+                onSubmitEditing={handleSubmit}
                 error={errors.password}
               />
             </View>
-            {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+            {formError ? (
+              <Text style={styles.formError} accessibilityLiveRegion="polite">
+                {formError}
+              </Text>
+            ) : null}
+            {unconfirmed ? (
+              <View style={styles.unconfirmed}>
+                <Text style={styles.unconfirmedTitle}>Confirm your email first</Text>
+                <CheckEmail email={email.trim()} onChangeEmail={() => setUnconfirmed(false)} />
+              </View>
+            ) : null}
             <Button label="Sign in" onPress={handleSubmit} loading={loading} />
             <View style={styles.footer}>
               <Link href="/forgot-password" style={styles.link}>
@@ -83,7 +110,7 @@ export default function SignInScreen() {
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.ink,
   },
   scrollContent: {
     flexGrow: 1,
@@ -91,6 +118,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   card: {
+    ...shadow.raised,
     width: "100%",
     maxWidth: 420,
     alignSelf: "center",
@@ -102,6 +130,14 @@ const styles = StyleSheet.create({
   },
   footer: {
     gap: spacing.sm,
+  },
+  unconfirmed: {
+    gap: spacing.sm,
+  },
+  unconfirmedTitle: {
+    fontSize: typography.size.md,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
   },
   formError: {
     color: colors.danger,

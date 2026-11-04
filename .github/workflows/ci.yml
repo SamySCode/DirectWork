@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Placeholder values so lib/env.ts validation passes during the web
+      # export. Never real credentials - the bundle built here is discarded.
+      EXPO_PUBLIC_SUPABASE_URL: https://example.supabase.co
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run format:check
+      # Unit + component tests (jest-expo + React Native Testing Library).
+      - run: npm run test:unit -- --ci
+      # Migrations + RLS + transition rules + schema guardrails against real
+      # Postgres (PGlite) - no Docker or Supabase project needed.
+      - run: npm run test:db
+      # Edge Functions: Deno type-check + middleware tests.
+      - run: npm run check:functions
+      - run: npm run test:functions
+      # Proves the app still bundles for web.
+      - run: npx expo export --platform web
