@@ -90,9 +90,15 @@ export default function EditProfileScreen() {
       footer={
         <View style={styles.footer}>
           {form.hasErrors ? (
-            <Text style={styles.formError}>Fix the highlighted fields to save.</Text>
+            <Text style={styles.formError} accessibilityLiveRegion="polite">
+              Fix the highlighted fields to save.
+            </Text>
           ) : null}
-          {save.isError ? <Text style={styles.formError}>{errorMessage(save.error)}</Text> : null}
+          {save.isError ? (
+            <Text style={styles.formError} accessibilityLiveRegion="polite">
+              {errorMessage(save.error)}
+            </Text>
+          ) : null}
           <Button label="Save profile" onPress={handleSave} loading={save.isPending} />
         </View>
       }

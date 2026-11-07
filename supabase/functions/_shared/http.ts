@@ -55,28 +55,108 @@ export function serviceClient(): SupabaseClient {
   });
 }
 
-export type AuthedUser = { id: string; email?: string };
+/** One `amr` (authentication methods reference) entry from the Supabase JWT. */
+export type AuthMethod = { method: string; timestamp: number };
+
+export type AuthedUser = {
+  id: string;
+  email?: string;
+  /**
+   * How and when *this session* was authenticated, from the verified
+   * access token. Token refreshes keep the original entries, so a recent
+   * "password" timestamp proves a recent password entry on this session.
+   */
+  amr: AuthMethod[];
+};
+
+/** Everything a handler needs from the outside world - swapped for fakes in tests. */
+export type Deps = {
+  /** Service-role Supabase client. */
+  admin: () => SupabaseClient;
+  env: (name: string) => string | undefined;
+};
+
+export const defaultDeps: Deps = {
+  admin: serviceClient,
+  env: (name) => Deno.env.get(name),
+};
+
+/** Decodes a JWT payload. Only call this on a token Supabase Auth has already verified. */
+export function jwtPayload(token: string): Record<string, unknown> | null {
+  const part = token.split(".")[1];
+  if (!part) return null;
+  try {
+    const base64 = part.replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const bytes = Uint8Array.from(atob(padded), (char) => char.charCodeAt(0));
+    const payload = JSON.parse(new TextDecoder().decode(bytes));
+    return payload && typeof payload === "object" ? payload : null;
+  } catch {
+    return null;
+  }
+}
+
+function amrOf(payload: Record<string, unknown> | null): AuthMethod[] {
+  const amr = payload?.amr;
+  if (!Array.isArray(amr)) return [];
+  return amr.filter(
+    (entry): entry is AuthMethod =>
+      !!entry &&
+      typeof entry.method === "string" &&
+      typeof entry.timestamp === "number" &&
+      Number.isFinite(entry.timestamp),
+  );
+}
 
 /**
  * Resolves the caller from their bearer token via Supabase Auth - never
- * from any user id in the request body.
+ * from any user id in the request body. getUser() verifies the token, so
+ * its payload (for `amr`) is trusted only after that succeeds.
  */
-async function authenticate(req: Request): Promise<AuthedUser | null> {
+async function authenticate(req: Request, admin: SupabaseClient): Promise<AuthedUser | null> {
   const header = req.headers.get("Authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return null;
-  const { data, error } = await serviceClient().auth.getUser(token);
+  const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return null;
-  return { id: data.user.id, email: data.user.email };
+  const payload = jwtPayload(token);
+  if (payload?.sub !== data.user.id) return null;
+  return { id: data.user.id, email: data.user.email, amr: amrOf(payload) };
 }
 
 /**
  * Maps a Postgres error raised by a private.* function to an HttpError.
  * Those raise P0001 with a user-facing message for rule violations and
- * P0002 for not-found/not-yours; anything else is unexpected and must not
- * leak internals.
+ * P0002 for not-found/not-yours; 23514 (contact rule) and 23505 (unique)
+ * get fixed messages; anything else is unexpected and must not leak
+ * internals.
  */
-export function fromDbError(error: { code?: string; message: string }): HttpError {
+export const CONTACT_DETAILS_MESSAGE =
+  "Leave out emails, phone numbers and links. Contact details are shared automatically once you both accept.";
+
+export function fromDbError(error: {
+  code?: string;
+  message: string;
+  hint?: string | null;
+  details?: string | null;
+}): HttpError {
+  // The contact rule (no emails/phones/links in free text) raises
+  // check_violation from triggers with hint CONTACT_DETAILS. Other 23514s
+  // (length checks etc.) are not the user's contact details - keep them
+  // generic rather than telling people to remove an email they never typed.
+  if (
+    error.code === "23514" &&
+    (error.hint === "CONTACT_DETAILS" || error.details?.startsWith("no_contact:"))
+  ) {
+    return new HttpError(400, CONTACT_DETAILS_MESSAGE, "CONTACT_DETAILS");
+  }
+  if (error.code === "23514") {
+    return new HttpError(
+      400,
+      "Something in that doesn't fit our rules. Check the length and try again.",
+    );
+  }
+  if (error.code === "23505") return new HttpError(409, "That's already been done.", "DUPLICATE");
   if (error.code === "P0001") {
     const [code, ...rest] = error.message.split(": ");
     return rest.length > 0 && /^[A-Z_]+$/.test(code ?? "")
@@ -143,24 +223,29 @@ type Options = {
   cors?: boolean;
 };
 
-type Context<Authed extends boolean> = {
+export type Context<Authed extends boolean> = {
   req: Request;
   requestId: string;
   user: Authed extends true ? AuthedUser : AuthedUser | null;
   body: unknown;
   rawBody: string;
+  /** Service-role client for this request. */
+  admin: SupabaseClient;
+  env: Deps["env"];
 };
 
 /**
  * The middleware every function goes through: CORS allowlist, POST-only,
  * body size cap, JSON parsing, auth, rate limiting, security headers,
- * request ids, and uniform error responses.
+ * request ids, and uniform error responses. Returns a plain request
+ * handler so tests can call it without a server; `handle` serves it.
  */
-export function handle<A extends boolean = true>(
+export function createHandler<A extends boolean = true>(
   name: string,
   options: Options & { auth?: A },
   handler: (ctx: Context<A>) => Promise<unknown>,
-) {
+  deps: Deps = defaultDeps,
+): (req: Request) => Promise<Response> {
   const {
     auth = true,
     rateLimit,
@@ -169,7 +254,7 @@ export function handle<A extends boolean = true>(
     cors = true,
   } = options;
 
-  Deno.serve(async (req) => {
+  return async (req) => {
     const requestId = crypto.randomUUID();
     const origin = cors ? req.headers.get("Origin") : null;
     const headers = { ...SECURITY_HEADERS, ...corsHeaders(origin), "X-Request-Id": requestId };
@@ -196,13 +281,14 @@ export function handle<A extends boolean = true>(
         }
       }
 
-      const user = auth || req.headers.get("Authorization") ? await authenticate(req) : null;
+      const admin = deps.admin();
+      const user = auth || req.headers.get("Authorization") ? await authenticate(req, admin) : null;
       if (auth && !user) throw new HttpError(401, "Sign in again to continue.");
 
       if (rateLimit) {
         const who =
           user?.id ?? req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "anonymous";
-        const { data: allowed, error } = await serviceClient().rpc("svc_hit_rate_limit", {
+        const { data: allowed, error } = await admin.rpc("svc_hit_rate_limit", {
           p_key: `${name}:${who}`,
           p_max: rateLimit.max,
           p_window_seconds: rateLimit.windowSeconds,
@@ -230,6 +316,8 @@ export function handle<A extends boolean = true>(
         user: user as Context<A>["user"],
         body,
         rawBody: text,
+        admin,
+        env: deps.env,
       });
       return respond(200, result ?? { ok: true });
     } catch (error) {
@@ -240,5 +328,14 @@ export function handle<A extends boolean = true>(
       console.error(`[${requestId}] ${name} unhandled`, error);
       return respond(500, { error: "Something went wrong on our side. Try again.", requestId });
     }
-  });
+  };
+}
+
+/** Serves a function: `Deno.serve(createHandler(...))`. */
+export function handle<A extends boolean = true>(
+  name: string,
+  options: Options & { auth?: A },
+  handler: (ctx: Context<A>) => Promise<unknown>,
+) {
+  Deno.serve(createHandler(name, options, handler));
 }

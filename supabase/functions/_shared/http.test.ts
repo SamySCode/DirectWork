@@ -1,7 +1,16 @@
 // Run: npm run test:functions (Deno). ALLOWED_ORIGINS is unset here, so
 // these exercise the local-development default: localhost only.
 import { assertEquals } from "jsr:@std/assert@1";
-import { fromDbError, HttpError, isOriginAllowed, readBodyCapped } from "./http.ts";
+import {
+  CONTACT_DETAILS_MESSAGE,
+  createHandler,
+  fromDbError,
+  HttpError,
+  isOriginAllowed,
+  jwtPayload,
+  readBodyCapped,
+} from "./http.ts";
+import { amrAt, depsFor, fakeAdmin, fakeJwt, post, tokenFor, USER_ID } from "./testing.ts";
 
 Deno.test("CORS: requests without an Origin (native apps, servers) are allowed", () => {
   assertEquals(isOriginAllowed(null), true);
@@ -62,4 +71,82 @@ Deno.test("body cap: bodies over the limit are refused while streaming", async (
 
 Deno.test("body cap: an empty body reads as empty", async () => {
   assertEquals(await readBodyCapped(new Request("http://x", { method: "POST" }), 10), "");
+});
+
+Deno.test("DB errors: contact-rule violations are a 400 with the fixed contact message", () => {
+  const error = fromDbError({
+    code: "23514",
+    message: CONTACT_DETAILS_MESSAGE,
+    hint: "CONTACT_DETAILS",
+    details: "no_contact: profiles.bio",
+  });
+  assertEquals(
+    [error.status, error.code, error.message],
+    [400, "CONTACT_DETAILS", CONTACT_DETAILS_MESSAGE],
+  );
+  // Other check violations (lengths etc.) must not blame contact details.
+  const other = fromDbError({ code: "23514", message: 'violates check "profiles_bio_length"' });
+  assertEquals([other.status, other.code], [400, undefined]);
+  assertEquals(other.message === CONTACT_DETAILS_MESSAGE, false);
+  assertEquals(
+    CONTACT_DETAILS_MESSAGE,
+    "Leave out emails, phone numbers and links. Contact details are shared automatically once you both accept.",
+  );
+});
+
+Deno.test("DB errors: unique violations are a 409 that leaks nothing", () => {
+  const error = fromDbError({ code: "23505", message: 'duplicate key "applications_pkey"' });
+  assertEquals([error.status, error.message], [409, "That's already been done."]);
+});
+
+Deno.test("JWT payload: decodes base64url, rejects junk", () => {
+  assertEquals(jwtPayload(fakeJwt({ sub: "é-user" }))?.sub, "é-user");
+  assertEquals(jwtPayload("not-a-jwt"), null);
+  assertEquals(jwtPayload("a.!!!.c"), null);
+});
+
+const echo = createHandler(
+  "echo",
+  {},
+  async ({ user }) => ({ id: user.id, amr: user.amr }),
+  depsFor(fakeAdmin()),
+);
+
+Deno.test("middleware: OPTIONS is 204, non-POST is 405, bad JSON is 400", async () => {
+  const options = await echo(new Request("http://x", { method: "OPTIONS" }));
+  assertEquals(options.status, 204);
+  assertEquals((await echo(new Request("http://x"))).status, 405);
+  const token = tokenFor([amrAt("password", 5)]);
+  assertEquals((await echo(post({ Authorization: `Bearer ${token}` }, "{"))).status, 400);
+});
+
+Deno.test(
+  "middleware: disallowed origins are refused; responses carry security headers",
+  async () => {
+    const refused = await echo(
+      new Request("http://x", { method: "POST", headers: { Origin: "https://evil.example" } }),
+    );
+    assertEquals(refused.status, 403);
+    assertEquals(refused.headers.get("X-Content-Type-Options"), "nosniff");
+    assertEquals(refused.headers.get("Cache-Control"), "no-store");
+  },
+);
+
+Deno.test("middleware: the verified user and their token amr reach the handler", async () => {
+  const amr = [amrAt("password", 5)];
+  const response = await echo(post({ Authorization: `Bearer ${tokenFor(amr)}` }));
+  assertEquals(await response.json(), { id: USER_ID, amr });
+  assertEquals((await echo(post())).status, 401);
+});
+
+Deno.test("middleware: over the rate limit is 429 RATE_LIMITED", async () => {
+  const admin = fakeAdmin({ rpc: { svc_hit_rate_limit: () => ({ data: false }) } });
+  const limited = createHandler(
+    "x",
+    { rateLimit: { max: 1, windowSeconds: 60 } },
+    async () => ({}),
+    depsFor(admin),
+  );
+  const response = await limited(post({ Authorization: `Bearer ${tokenFor([])}` }));
+  assertEquals([response.status, (await response.json()).code], [429, "RATE_LIMITED"]);
 });

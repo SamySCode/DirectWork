@@ -3,9 +3,6 @@
 Genuine product decisions not yet made. Do not silently resolve these
 during implementation — surface them for a decision instead.
 
-- **Company/org entity**: does a small company get a distinct
-  organization account with multiple managers, or does one person's
-  profile own listings on the company's behalf for MVP?
 - **Messaging scope**: superseded for Phase 1/2 by contact-reveal-on-
   acceptance, see `docs/PRODUCT_STRATEGY.md`. Revisit real messaging scope
   (pre-acceptance DMs, etc.) only in Phase 3.
@@ -17,8 +14,9 @@ during implementation — surface them for a decision instead.
   load-bearing. Placeholder text stays clearly labelled non-production
   until then. Also now optional per listing and scoped to attached
   materials rather than "the idea" broadly — see `docs/PRODUCT_STRATEGY.md`.
-- **Professional search**: does a listing owner get to browse/search
-  professionals directly, or is discovery listing-first only? Downstream
+- **Professional search** (provisionally built listing-first, see below):
+  does a listing owner get to browse/search professionals directly, or is
+  discovery listing-first only? Downstream
   of Phase 1 (docs/PRODUCT_STRATEGY.md) — the operator matches by hand
   during validation, so this doesn't need answering until Phase 2/3.
 - **CV/document uploads**: images are built (see Resolved); PDFs/CVs are
@@ -26,10 +24,6 @@ during implementation — surface them for a decision instead.
 - **Social login (OAuth)**: v1 reference designs show Google/LinkedIn
   sign-in. No provider is configured in Supabase (email/password only) —
   decide if/which providers are worth the setup before building the UI.
-- **Terms of Service / Privacy Policy**: referenced in a reference
-  sign-up design; no such documents exist yet. Needed before any
-  required-acknowledgement checkbox can be built (same "not legal advice,
-  needs real review" caveat as the partner agreement template).
 - **Identity verification**: v1 reference designs show "Verified"
   badges/checks on profiles. Not in the current data model — whether/when
   to build it is still open, but the monetization direction is resolved
@@ -85,8 +79,86 @@ been validated with real users.
   working the queue, like curation.
 - **Blocks are silent**: the blocked person isn't told; a block shows up as
   "not accepting applications".
-- **Activity inbox has no retention job yet.** Rows are small, but add a
-  pg_cron cleanup (e.g. read items older than 180 days) before scale.
+- ~~Activity inbox has no retention job yet~~: resolved 2026-11-06, see
+  "Decided 2026-11-06" (retention).
+
+## Still open: owner decisions (raised by the 2026-11-05/06 review)
+
+Each has a recommendation from the review. `docs/NEXT_STEPS.md` step 1.2.
+
+- **Legal entity.** Recommended: a private limited company, before the ICO
+  fee, Stripe, Apple, Google and the domain (each is per legal person).
+  `docs/NEXT_STEPS.md` assumes Ltd.
+- **Production region.** Recommended: a new London (eu-west-2) production
+  project, with the current Ireland project as staging. Can't be changed
+  later without a new project and new app builds. `docs/NEXT_STEPS.md`
+  assumes London.
+- **Track record when the other person deletes their account.** Today the
+  remaining person's outcomes and references go with the deleted account.
+  The product review recommends keeping them with the other party
+  anonymised. Not changed in the data model; copy was fixed instead
+  ("confirmed by both sides", never "verified" or "can't fake").
+- **Apple 3.1.3(b).** Web-bought Pro can only be honoured in the iOS app if
+  Pro is also sold as an in-app purchase. Choose IAP on iOS, or submit with
+  billing off.
+- **Launch platforms.** Recommended: web first; stores within 90 days.
+- **Email notifications at launch** ("someone applied", "you were
+  accepted"). The product review recommends a minimal set at launch; today
+  they're deferred to Phase 3.
+- **Paid-route pay.** Recommended: a pay amount required, with an hourly
+  floor at the National Living Wage.
+- **Admin two-factor in the app.** TOTP is enabled; requiring it for admin
+  actions is a later build item.
+
+## Decided 2026-11-06
+
+Taken by the review lead with the owner's brief (minimal subscriptions and
+lock-in, the safest well-tested options, UK law compliance). Implemented in
+`20261105110000_privacy_fixes.sql`, `20261105120000_launch_hardening.sql`
+and the app, except where noted. Each is reversible.
+
+- **Minimum age: 18+**, self-declared with a required checkbox at sign-up
+  (no date of birth), together with Terms and Privacy acceptance. Versioned
+  and recorded in `legal_acceptances`; a re-acceptance screen appears when
+  the terms or privacy version changes. (Resolves "Minimum age" and "Terms
+  of Service / Privacy Policy": drafts now exist in `features/legal/`,
+  pending solicitor review.)
+- **Withdrawn applications:** owners still see them, marked withdrawn. The
+  withdraw dialog copy says so; access is unchanged.
+- **Reports survive account deletion, anonymised**: links to the reporter
+  and target are removed, the kind of target is kept. No email hash for now.
+  (Resolves "Reports when an account is deleted".)
+- **Retention:** read activity 180 days, any activity 365 days; rejected or
+  withdrawn applications 12 months after their last change (attachment files
+  removed via the storage cleanup queue); resolved reports 3 years if
+  actioned, 12 months if dismissed. Accepted applications, memberships,
+  outcomes and references are kept while both accounts exist. Runs nightly
+  (`pg_cron`); files need the `maintenance` function scheduled. (Resolves
+  "Retention periods" and the activity retention note.)
+- **Track record on counterpart deletion:** data model not changed now
+  (still open above); overclaiming copy fixed.
+- **One application per listing per person.** Re-applying only after a
+  withdrawal, never after a rejection unless the rejection was the listing
+  closing. (Resolves "Re-applying after rejection".)
+- **Live-listing limit also checked when resuming a paused listing**
+  (closes a downgrade loophole).
+- **Images:** bucket limit 2 MB; the app compresses in steps (0.8, 0.65,
+  0.5) to fit; per-user caps avatars 3, portfolio 8, listing images 40,
+  application attachments 15. (Resolves "Image size cap"; supersedes the
+  5 MB figure in "Image limits" below.)
+- **Blocks:** with a block in either direction, deciding an application
+  fails as "not found" and contact details aren't returned; creating a block
+  withdraws pending applications between the two people.
+- **Legal hold** for Online Safety Act CSEA reporting:
+  `private.legal_holds`; account deletion is refused while a hold exists
+  ("Your account can't be deleted right now. Contact support."). Admins add
+  holds in SQL (runbook: `docs/NEXT_STEPS.md` 2.20).
+- **Admin MFA:** TOTP stays enabled in config; enforcing it in the app is a
+  later item.
+- **Billing stays off** until legal advice (right-to-work "online matching
+  service" rules, Apple 3.1.3(b)). When it goes on: UK billing addresses only.
+- **Vendors:** Amazon SES (London) for email, Cloudflare for domain, DNS,
+  web hosting and email forwarding, Sentry EU optional. See `docs/STACK.md`.
 
 ## Recommendations flagged for reconsideration
 
@@ -94,7 +166,8 @@ been validated with real users.
 
 ## Resolved
 
-- **Image limits** (resolved 2026-11-04): JPEG/PNG/WebP, 5 MB per file
+- **Image limits** (resolved 2026-11-04; size and per-user caps superseded
+  2026-11-06, see above): JPEG/PNG/WebP, 5 MB per file
   (resized to <=1600px JPEG client-side first). Profile photo 1, portfolio
   6, listing images 4, application attachments 3. Enforced by Storage
   bucket limits, database caps, and per-user file caps.

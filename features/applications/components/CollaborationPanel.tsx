@@ -32,6 +32,10 @@ export function CollaborationPanel({ application, viewerIsOwner }: Collaboration
   const mine = viewerIsOwner ? outcome?.confirmed_by_owner_at : outcome?.confirmed_by_member_at;
   const theirs = viewerIsOwner ? outcome?.confirmed_by_member_at : outcome?.confirmed_by_owner_at;
   const settled = !!(mine && theirs);
+  const partner = application.application_type === "partner";
+  const title = application.project?.title;
+  const mailto = (email: string) =>
+    `mailto:${email}${title ? `?subject=${encodeURIComponent(`DirectWork: ${title}`)}` : ""}`;
 
   const recordOutcome = async (value: "completed" | "abandoned") => {
     const ok = await confirm({
@@ -66,13 +70,50 @@ export function CollaborationPanel({ application, viewerIsOwner }: Collaboration
             label={`Email ${contact.data.full_name.split(" ")[0]}`}
             icon="mail-outline"
             size="sm"
-            onPress={() => Linking.openURL(`mailto:${contact.data!.email}`).catch(() => {})}
+            onPress={() => Linking.openURL(mailto(contact.data!.email)).catch(() => {})}
             style={styles.emailButton}
           />
+          <Text style={styles.contactNote}>
+            We don't email them for you. Write first - they can see your details here too.
+          </Text>
         </View>
-      ) : contact.isPending ? null : (
+      ) : contact.isPending ? null : contact.isError ? (
+        <View style={styles.retryRow} accessibilityLiveRegion="polite">
+          <Text style={styles.muted}>Couldn't load contact details.</Text>
+          <Button
+            label="Try again"
+            variant="secondary"
+            size="sm"
+            onPress={() => contact.refetch()}
+            loading={contact.isRefetching}
+          />
+        </View>
+      ) : (
         <Text style={styles.muted}>Contact details aren't available.</Text>
       )}
+
+      {contact.data ? (
+        <View style={styles.safety} accessibilityRole="summary">
+          <View style={styles.contactHeader}>
+            <Ionicons name="shield-checkmark-outline" size={18} color={colors.textPrimary} />
+            <Text style={styles.safetyTitle}>Before you start</Text>
+          </View>
+          {[
+            "DirectWork never asks for money and isn't a party to your deal.",
+            'Never pay to get work - no "admin fees", deposits or paid "tests" - and don\'t send bank or ID documents before terms are agreed.',
+            partner
+              ? "Agree equity, vesting, IP and what happens if it ends in writing before you start."
+              : "Agree pay, scope, deadlines and who owns the work (IP) in writing before you start.",
+            "Working with a company? Check it on Companies House (find-and-update.company-information.service.gov.uk).",
+            "Something feels off? Report it from the listing or their profile.",
+          ].map((line) => (
+            <View key={line} style={styles.safetyLine}>
+              <Text style={styles.safetyBullet}>•</Text>
+              <Text style={styles.safetyText}>{line}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       {state ? (
         <View style={styles.outcome}>
@@ -163,6 +204,43 @@ const styles = StyleSheet.create({
   emailButton: {
     alignSelf: "flex-start",
     marginTop: spacing.sm,
+  },
+  contactNote: {
+    fontSize: typography.size.sm,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  retryRow: {
+    gap: spacing.sm,
+    alignItems: "flex-start",
+  },
+  safety: {
+    gap: spacing.xs,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  safetyTitle: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+  },
+  safetyLine: {
+    flexDirection: "row",
+    gap: spacing.xs,
+  },
+  safetyBullet: {
+    fontSize: typography.size.sm,
+    lineHeight: 20,
+    color: colors.textSecondary,
+  },
+  safetyText: {
+    flex: 1,
+    fontSize: typography.size.sm,
+    lineHeight: 20,
+    color: colors.textSecondary,
   },
   outcome: {
     gap: spacing.sm,

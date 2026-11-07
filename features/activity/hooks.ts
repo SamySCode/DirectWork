@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../auth/SessionProvider";
-import { getActivity, getUnreadCount, markAllRead } from "./api";
+import { getActivity, getUnreadCount, markRead } from "./api";
 
 export const activityKeys = {
   all: ["activity"] as const,
@@ -31,13 +31,17 @@ export function useActivity() {
   });
 }
 
-export function useMarkAllRead() {
+export function useMarkRead() {
   const queryClient = useQueryClient();
   const { session } = useAuth();
   const userId = session?.user.id;
   return useMutation({
-    mutationFn: markAllRead,
-    // Only the badge: the open list keeps its unread dots until next visit.
-    onSuccess: () => queryClient.setQueryData(activityKeys.unread(userId ?? ""), 0),
+    mutationFn: markRead,
+    // Only the badge, and only by what was marked (newer items still count):
+    // the open list keeps its unread dots until next visit.
+    onSuccess: (_data, ids) =>
+      queryClient.setQueryData<number>(activityKeys.unread(userId ?? ""), (count) =>
+        count === undefined ? count : Math.max(0, count - ids.length),
+      ),
   });
 }

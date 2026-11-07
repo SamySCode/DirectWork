@@ -32,11 +32,15 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<(PreparedImage & { key: string })[]>([]);
   const [picking, setPicking] = useState(false);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const form = useFormValidation(applicationSchema, { coverNote });
 
+  // One application per listing: a rejection is final (the database refuses a
+  // second try); only a withdrawal lets you apply again.
   const existing = mine.data?.find(
     (app) =>
-      app.project_id === projectId && (app.status === "submitted" || app.status === "accepted"),
+      app.project_id === projectId &&
+      (app.status === "submitted" || app.status === "accepted" || app.status === "rejected"),
   );
 
   if (existing) {
@@ -47,6 +51,17 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
           <Text style={styles.title}>You've applied</Text>
           <Badge label={status.label} tone={status.tone} />
         </View>
+        {existing.status === "submitted" ? (
+          <Text style={styles.hint}>
+            Sent. {ownerFirstName} has your note and profile, and you'll get their contact details
+            if they accept. We don't email you yet, so check Applied or Home for their reply.
+          </Text>
+        ) : null}
+        {attachmentError ? (
+          <Text style={styles.error} accessibilityLiveRegion="polite">
+            {attachmentError}
+          </Text>
+        ) : null}
         <Button
           label="View your application"
           variant="secondary"
@@ -82,7 +97,10 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
     setError(null);
     apply.mutate(
       { projectId, coverNote: data.coverNote, images },
-      { onError: (err) => setError(errorMessage(err)) },
+      {
+        onSuccess: (result) => setAttachmentError(result?.attachmentError ?? null),
+        onError: (err) => setError(errorMessage(err)),
+      },
     );
   };
 
@@ -98,7 +116,8 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
         <Text style={styles.title}>Tell {ownerFirstName} why you're a fit</Text>
         <Text style={styles.hint}>
           Point to something specific you've done that matches this work. Your profile is shared
-          with your note. Your email is only shared if you're accepted.
+          with your note. Your email is only shared if you're accepted. DirectWork never asks you to
+          pay to apply.
         </Text>
         <TextField
           label="Your note"
@@ -122,7 +141,11 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
           busy={picking}
           hint="Only the listing owner can see these."
         />
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error ? (
+          <Text style={styles.error} accessibilityLiveRegion="polite">
+            {error}
+          </Text>
+        ) : null}
         <View style={styles.buttons}>
           <Button
             label="Cancel"

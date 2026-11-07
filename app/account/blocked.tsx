@@ -14,7 +14,7 @@ export default function BlockedPeopleScreen() {
   const unblock = useUnblock();
 
   if (blocked.isPending) return <LoadingState />;
-  if (blocked.isError) return <ErrorState onRetry={() => blocked.refetch()} />;
+  if (blocked.data === undefined) return <ErrorState onRetry={() => blocked.refetch()} />;
   if (blocked.data.length === 0) {
     return (
       <EmptyState

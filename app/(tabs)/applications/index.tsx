@@ -95,7 +95,7 @@ export default function ApplicationsScreen() {
     <Screen onRefresh={() => refetch()} refreshing={isRefetching} header={hero}>
       {isPending ? (
         <LoadingState />
-      ) : isError ? (
+      ) : isError && data === undefined ? (
         <ErrorState title="Couldn't load your applications" onRetry={() => refetch()} />
       ) : all.length === 0 ? (
         <EmptyState

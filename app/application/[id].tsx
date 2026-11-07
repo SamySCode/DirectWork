@@ -28,7 +28,9 @@ export default function ApplicationScreen() {
   const [error, setError] = useState<string | null>(null);
 
   if (application.isPending) return <LoadingState />;
-  if (application.isError) return <ErrorState onRetry={() => application.refetch()} />;
+  // A failed background refresh keeps the cached data on screen; the
+  // error state is only for when there is nothing to show.
+  if (application.data === undefined) return <ErrorState onRetry={() => application.refetch()} />;
   if (!application.data) {
     return <EmptyState icon="document-outline" title="Application not found" />;
   }
@@ -39,7 +41,8 @@ export default function ApplicationScreen() {
   const onWithdraw = async () => {
     const ok = await confirm({
       title: "Withdraw your application?",
-      message: "The owner will no longer see it. You can apply again later.",
+      message:
+        "The owner will still see your application, marked as withdrawn, and can't accept it. You can apply to this listing again later.",
       confirmLabel: "Withdraw",
       destructive: true,
     });

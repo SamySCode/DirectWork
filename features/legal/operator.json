@@ -1,0 +1,14 @@
+{
+  "tradingName": "DirectWork",
+  "legalName": "[LEGAL NAME]",
+  "entityType": "[ENTITY TYPE, e.g. private limited company or sole trader]",
+  "companyNumber": "[COMPANY NUMBER or \"not applicable\"]",
+  "address": "[ADDRESS]",
+  "vatNumber": "[VAT NUMBER or \"not registered\"]",
+  "icoRegistrationNumber": "[ICO REG NO]",
+  "dataProtectionLead": "[NAME OR ROLE responsible for data protection]",
+  "supportEmail": "[SUPPORT EMAIL]",
+  "privacyEmail": "[PRIVACY EMAIL]",
+  "complaintsEmail": "[COMPLAINTS EMAIL]",
+  "governingLaw": "England and Wales"
+}

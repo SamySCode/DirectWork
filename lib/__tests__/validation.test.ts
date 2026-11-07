@@ -4,6 +4,7 @@ import {
   CONTACT_DETAILS_MESSAGE,
   fieldErrors,
   hasContactDetails,
+  normalizeForContactCheck,
   useFormValidation,
 } from "../validation";
 
@@ -19,6 +20,22 @@ describe("hasContactDetails", () => {
     "(020) 7946 0958",
     "FIRST.LAST+tag@Sub.Domain.co.uk",
     "http://insecure.example",
+    // Workarounds found in the 2026-11-05 adversarial pass.
+    "john @ gmail.com",
+    "message john@gmail",
+    "linkedin.com/in/johnsmith",
+    "t.me/johnsmith",
+    "calendly.com/john",
+    "john (at) gmail (dot) com",
+    "john at gmail dot com",
+    "０７７００９００１２３",
+    // 2026-11-06: invisible characters, other scripts' digits, more prefixes.
+    "077​00 900­123",
+    "07700⁠900123",
+    "٠٧٧٠٠٩٠٠١٢٣",
+    "0044 7700 900123",
+    "+1 (415) 555-0132",
+    "ring 020.7946.0958",
   ])("flags %p", (text) => {
     expect(hasContactDetails(text)).toBe(true);
   });
@@ -30,9 +47,23 @@ describe("hasContactDetails", () => {
     "Next.js and Vue.js experience preferred",
     "Budget £3,000 to £4,000",
     "Dates: 01/02/2026 - 15/03/2026",
+    "Product lead @ Monzo, previously at Google",
+    "ASP.NET/C# developer",
+    "React + TypeScript (at least 3 years)",
+    // Year ranges and figures without a dialling prefix aren't phone numbers.
+    "2015-2019 2020-2024",
+    "Worked there 2010 - 2015, then 2016 - 2020",
+    "Raised £1,500,000 in 2023",
+    "Rate 450-650 per day, 3-6 months",
     "",
   ])("allows %p", (text) => {
     expect(hasContactDetails(text)).toBe(false);
+  });
+
+  it("normalises invisible characters and non-ASCII digits before matching", () => {
+    expect(normalizeForContactCheck("0​7­7")).toBe("077");
+    expect(normalizeForContactCheck("०१९")).toBe("019");
+    expect(normalizeForContactCheck("０９")).toBe("09");
   });
 
   it("treats null and undefined as clean", () => {

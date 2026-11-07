@@ -91,7 +91,7 @@ export default function ListingsScreen() {
     >
       {listings.isPending ? (
         <LoadingState />
-      ) : listings.isError ? (
+      ) : listings.isError && listings.data === undefined ? (
         <ErrorState title="Couldn't load your listings" onRetry={() => listings.refetch()} />
       ) : mine.length === 0 ? (
         <View style={styles.list}>

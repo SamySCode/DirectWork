@@ -12,7 +12,7 @@ export default function EditListingScreen() {
   const { onSave, saving, error } = useListingEditor(id);
 
   if (listing.isPending) return <LoadingState />;
-  if (listing.isError) return <ErrorState onRetry={() => listing.refetch()} />;
+  if (listing.data === undefined) return <ErrorState onRetry={() => listing.refetch()} />;
   if (!listing.data || !["draft", "changes_requested"].includes(listing.data.status)) {
     return (
       <EmptyState

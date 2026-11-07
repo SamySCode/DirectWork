@@ -35,9 +35,22 @@ function ListingCardBase({ listing, onPress, mySkills, showStatus = false }: Lis
     listing.commitment ? commitmentLabels[listing.commitment] : null,
   ].filter(Boolean);
   const status = listingStatusMeta[listing.status];
+  // One label with the facts a sighted person scans for, so screen-reader
+  // users don't have to open every card to compare them.
+  const label = [
+    listing.title,
+    opportunityLabels[listing.opportunity_type],
+    listing.is_featured && !showStatus ? "Featured, paid placement" : null,
+    showStatus ? status.label : null,
+    pay,
+    ...meta,
+    matches.length > 0 ? `matches ${matches.length} of your skills` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
-    <PressableCard onPress={onPress} accessibilityLabel={listing.title} style={styles.card}>
+    <PressableCard onPress={onPress} accessibilityLabel={label} style={styles.card}>
       {listing.images[0] ? (
         <Image
           source={{ uri: listing.images[0].url }}
@@ -54,7 +67,9 @@ function ListingCardBase({ listing, onPress, mySkills, showStatus = false }: Lis
             label={opportunityLabels[listing.opportunity_type]}
             tone={listing.opportunity_type === "partner" ? "ink" : "accent"}
           />
-          {listing.is_featured && !showStatus ? <Badge label="Featured" tone="warning" /> : null}
+          {listing.is_featured && !showStatus ? (
+            <Badge label="Featured · paid" tone="warning" />
+          ) : null}
           {showStatus ? <Badge label={status.label} tone={status.tone} /> : null}
         </View>
         {listing.published_at && !showStatus ? (

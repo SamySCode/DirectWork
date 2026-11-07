@@ -10,11 +10,37 @@ import { signIn } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
 import { CheckEmail } from "../../features/auth/components/CheckEmail";
 import { signInSchema } from "../../features/auth/schemas";
-import { colors, shadow, spacing, typography } from "../../lib/theme";
+import { type AuthLinkState, useAuthLink } from "../../features/auth/useAuthLink";
+import { colors, radius, shadow, spacing, typography } from "../../lib/theme";
 import { errorMessage } from "../../lib/functions";
 import { fieldErrors } from "../../lib/validation";
 
+// The sign-up confirmation email links here (features/auth/api.ts). Say
+// what happened, so a confirmed person isn't left on a blank form.
+function linkNotice(link: AuthLinkState): { text: string; ok: boolean } | null {
+  switch (link.status) {
+    case "exchanging":
+      return { text: "Confirming your email…", ok: true };
+    case "signed_in":
+      return { text: "Email confirmed. Signing you in…", ok: true };
+    case "exchange_failed":
+      // The link was verified before it reached the app; only the sign-in
+      // part failed (e.g. opened on another device or browser).
+      return { text: "Your email is confirmed. Sign in to continue.", ok: true };
+    case "link_error":
+      return link.expired
+        ? { text: "That link has expired. Sign in and we'll send a new one.", ok: false }
+        : {
+            text: "That link didn't work - it may have been used already. Sign in, and if your email still needs confirming we'll send a new link.",
+            ok: false,
+          };
+    default:
+      return null;
+  }
+}
+
 export default function SignInScreen() {
+  const notice = linkNotice(useAuthLink());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -59,6 +85,14 @@ export default function SignInScreen() {
         <FadeIn>
           <Card style={styles.card}>
             <AuthHeader title="Sign in to your account" />
+            {notice ? (
+              <View
+                style={[styles.notice, notice.ok ? styles.noticeOk : styles.noticeWarning]}
+                accessibilityLiveRegion="polite"
+              >
+                <Text style={styles.noticeText}>{notice.text}</Text>
+              </View>
+            ) : null}
             <View style={styles.fields}>
               <TextField
                 label="Email"
@@ -88,7 +122,11 @@ export default function SignInScreen() {
             {unconfirmed ? (
               <View style={styles.unconfirmed}>
                 <Text style={styles.unconfirmedTitle}>Confirm your email first</Text>
-                <CheckEmail email={email.trim()} onChangeEmail={() => setUnconfirmed(false)} />
+                <CheckEmail
+                  email={email.trim()}
+                  onChangeEmail={() => setUnconfirmed(false)}
+                  justSent={false}
+                />
               </View>
             ) : null}
             <Button label="Sign in" onPress={handleSubmit} loading={loading} />
@@ -137,6 +175,21 @@ const styles = StyleSheet.create({
   unconfirmedTitle: {
     fontSize: typography.size.md,
     fontWeight: typography.weight.semibold,
+    color: colors.textPrimary,
+  },
+  notice: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+  },
+  noticeOk: {
+    backgroundColor: colors.mintMuted,
+  },
+  noticeWarning: {
+    backgroundColor: colors.warningMuted,
+  },
+  noticeText: {
+    fontSize: typography.size.sm,
+    lineHeight: 20,
     color: colors.textPrimary,
   },
   formError: {

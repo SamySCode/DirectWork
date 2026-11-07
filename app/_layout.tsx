@@ -9,6 +9,7 @@ import { AppLoadingScreen } from "../components/AppLoadingScreen";
 import { ErrorState } from "../components/ErrorState";
 import { SessionProvider, useAuth } from "../features/auth/SessionProvider";
 import { useProtectedRoute } from "../features/auth/hooks";
+import { useLegalStatus } from "../features/legal/hooks";
 import { useProfile } from "../features/profile/hooks";
 import { installWebFocusStyles } from "../lib/accessibility";
 import { useAppFonts } from "../lib/fonts";
@@ -33,15 +34,23 @@ function RootNavigator() {
   const { session, loading: sessionLoading } = useAuth();
   const { loaded: fontsLoaded } = useAppFonts();
   const profile = useProfile(session?.user.id);
-  const hasProfile = !session ? false : profile.isSuccess ? !!profile.data : undefined;
+  // Based on data, not status: a failed background refresh keeps the cached
+  // profile, so it mustn't bounce anyone back to onboarding or a spinner (F9).
+  const hasProfile = !session ? false : profile.data !== undefined ? !!profile.data : undefined;
+  // Terms/Privacy re-acceptance (fetched once per sign-in). A failed check
+  // counts as "settled, no gate" so a network error never locks anyone out.
+  const legal = useLegalStatus(session?.user.id);
+  const needsAcceptance = legal.isSuccess ? legal.data : undefined;
+  const legalSettled = !session || !legal.isPending;
 
   // Boot once. After that the Stack stays mounted for good: remounting it
   // (e.g. while a fresh sign-in's profile loads) would reset navigation to
   // the initial route and lose screens like update-password mid-flow.
-  const ready = fontsLoaded && !sessionLoading && (!session || hasProfile !== undefined);
+  const ready =
+    fontsLoaded && !sessionLoading && (!session || (hasProfile !== undefined && legalSettled));
   const booted = useRef(false);
   if (ready) booted.current = true;
-  useProtectedRoute(session, !booted.current, hasProfile);
+  useProtectedRoute(session, !booted.current, hasProfile, needsAcceptance);
 
   useEffect(() => {
     if (booted.current) SplashScreen.hideAsync().catch(() => {});
@@ -91,8 +100,15 @@ function RootNavigator() {
         <Stack.Screen name="moderation" options={{ title: "Reports" }} />
         <Stack.Screen name="review" options={{ title: "Review queue" }} />
         <Stack.Screen name="update-password" options={{ title: "New password" }} />
+        <Stack.Screen name="help" options={{ title: "Help & legal" }} />
+        <Stack.Screen name="legal/index" options={{ title: "Legal" }} />
+        <Stack.Screen name="legal/[doc]" options={{ title: "" }} />
+        <Stack.Screen
+          name="legal/accept"
+          options={{ title: "Updated terms", headerBackVisible: false, gestureEnabled: false }}
+        />
       </Stack>
-      {session && hasProfile === undefined ? (
+      {session && (hasProfile === undefined || !legalSettled) ? (
         <View style={StyleSheet.absoluteFill}>
           {profile.isError ? (
             <ErrorState

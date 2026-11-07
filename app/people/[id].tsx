@@ -24,7 +24,9 @@ export default function PersonScreen() {
   const references = useReferences(id);
 
   if (profile.isPending) return <LoadingState />;
-  if (profile.isError)
+  // A failed background refresh keeps the cached data on screen; the
+  // error state is only for when there is nothing to show.
+  if (profile.data === undefined)
     return <ErrorState title="Couldn't load this profile" onRetry={() => profile.refetch()} />;
   if (!profile.data) {
     return (

@@ -9,6 +9,7 @@ import { TextField } from "../../components/TextField";
 import { requestPasswordReset } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
 import { forgotPasswordSchema } from "../../features/auth/schemas";
+import { errorMessage } from "../../lib/functions";
 import { colors, shadow, spacing, typography } from "../../lib/theme";
 import { fieldErrors } from "../../lib/validation";
 
@@ -32,7 +33,7 @@ export default function ForgotPasswordScreen() {
       await requestPasswordReset(result.data);
       setSubmitted(true);
     } catch (error) {
-      setFormError(error instanceof Error ? error.message : "Something went wrong");
+      setFormError(errorMessage(error));
     } finally {
       setLoading(false);
     }
@@ -66,7 +67,11 @@ export default function ForgotPasswordScreen() {
                   keyboardType="email-address"
                   error={errors.email}
                 />
-                {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+                {formError ? (
+                  <Text style={styles.formError} accessibilityLiveRegion="polite">
+                    {formError}
+                  </Text>
+                ) : null}
                 <Button label="Send reset link" onPress={handleSubmit} loading={loading} />
                 <Link href="/sign-in" style={styles.link}>
                   Back to sign in

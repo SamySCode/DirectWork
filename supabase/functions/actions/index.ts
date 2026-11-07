@@ -4,7 +4,7 @@
 // authorization and the transition atomically. One function rather than one
 // per action keeps cold starts and deploy surface down.
 
-import { z } from "npm:zod@4.4.3";
+import { z } from "npm:zod@4.6.7";
 import { fromDbError, handle, HttpError, serviceClient } from "../_shared/http.ts";
 
 const note = z.string().max(1000).optional();

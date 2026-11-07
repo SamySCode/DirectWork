@@ -33,7 +33,9 @@ export default function ListingScreen() {
   const mySkills = useMemo(() => new Set(skills.map((s) => s.toLowerCase())), [skills]);
 
   if (listing.isPending) return <LoadingState />;
-  if (listing.isError) return <ErrorState onRetry={() => listing.refetch()} />;
+  // A failed background refresh keeps the cached data on screen; the
+  // error state is only for when there is nothing to show.
+  if (listing.data === undefined) return <ErrorState onRetry={() => listing.refetch()} />;
   if (!listing.data) {
     return (
       <EmptyState
@@ -58,6 +60,7 @@ export default function ListingScreen() {
         listing.refetch();
         if (isOwner) applications.refetch();
       }}
+      refreshing={listing.isRefetching || (isOwner && applications.isRefetching)}
       footer={
         !isOwner && acceptingApplications ? (
           <ApplyPanel

@@ -5,7 +5,7 @@
 // Requires STRIPE_SECRET_KEY, STRIPE_PRICE_PRO and APP_URL; returns 503 if
 // billing isn't configured so the client can hide it.
 
-import { z } from "npm:zod@4.4.3";
+import { z } from "npm:zod@4.6.7";
 import { handle, HttpError, serviceClient } from "../_shared/http.ts";
 import { isActive, stripeRequest } from "../_shared/stripe.ts";
 

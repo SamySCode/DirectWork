@@ -15,7 +15,7 @@ type ReferenceComposerProps = { membershipId: string; otherName: string };
 /**
  * One line about what the other person delivered, offered once both sides
  * have confirmed the work was completed. It shows on their profile, marked
- * as coming from a verified collaboration, and can't be edited afterwards.
+ * as coming from a collaboration both sides confirmed, and can't be edited afterwards.
  */
 export function ReferenceComposer({ membershipId, otherName }: ReferenceComposerProps) {
   const written = useHasWrittenReference(membershipId, true);
@@ -50,8 +50,8 @@ export function ReferenceComposer({ membershipId, otherName }: ReferenceComposer
       <Text style={styles.title}>Write {firstName} a reference</Text>
       <Text style={styles.hint}>
         One or two sentences on what they actually delivered. It appears on their profile as a
-        verified reference - only people who completed work together can write one - and can't be
-        edited later.
+        reference from a collaboration you both confirmed - only people who completed work together
+        can write one - and can't be edited later.
       </Text>
       <TextField
         label="Reference"

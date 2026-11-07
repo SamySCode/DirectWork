@@ -94,7 +94,9 @@ export default function DiscoverScreen() {
               size={18}
               color={colors.textMuted}
               onPress={() => setSearch("")}
+              accessibilityRole="button"
               accessibilityLabel="Clear search"
+              hitSlop={12}
             />
           ) : null}
         </View>

@@ -26,7 +26,7 @@ export default function ModerationScreen() {
   if (isAdmin.isPending) return <LoadingState />;
   if (!isAdmin.data) return <EmptyState icon="lock-closed-outline" title="Reviewers only" />;
   if (reports.isPending) return <LoadingState />;
-  if (reports.isError) return <ErrorState onRetry={() => reports.refetch()} />;
+  if (reports.data === undefined) return <ErrorState onRetry={() => reports.refetch()} />;
   if (reports.data.length === 0) {
     return (
       <EmptyState
@@ -52,8 +52,14 @@ function ReportItem({ report }: { report: OpenReport }) {
   const resolve = useResolveReport();
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const isListing = !!report.project;
-  const targetLabel = report.project?.title ?? report.profile?.full_name ?? "Deleted";
+  // The target can be gone (account or listing deleted): reports are kept,
+  // anonymised, so the label comes from target_kind and there is nothing to open.
+  const isListing = report.target_kind ? report.target_kind === "project" : !!report.project;
+  const targetId = isListing ? report.project?.id : report.profile?.id;
+  const targetLabel =
+    report.project?.title ??
+    report.profile?.full_name ??
+    (isListing ? "Deleted listing" : "Deleted account");
 
   const decide = (takeAction: boolean) => {
     if (takeAction && isListing && !note.trim()) {
@@ -76,18 +82,16 @@ function ReportItem({ report }: { report: OpenReport }) {
       <Text style={styles.kind}>{isListing ? "Listing" : "Profile"}</Text>
       <Text style={styles.target}>{targetLabel}</Text>
       {report.details ? <Text style={styles.details}>{report.details}</Text> : null}
-      <Button
-        label={isListing ? "Open listing" : "Open profile"}
-        variant="ghost"
-        size="sm"
-        icon="open-outline"
-        onPress={() =>
-          router.push(
-            isListing ? `/listing/${report.project!.id}` : `/people/${report.profile!.id}`,
-          )
-        }
-        style={styles.open}
-      />
+      {targetId ? (
+        <Button
+          label={isListing ? "Open listing" : "Open profile"}
+          variant="ghost"
+          size="sm"
+          icon="open-outline"
+          onPress={() => router.push(isListing ? `/listing/${targetId}` : `/people/${targetId}`)}
+          style={styles.open}
+        />
+      ) : null}
       {isListing ? (
         <TextField
           label="Note to the owner (needed to take it down)"

@@ -28,7 +28,7 @@ export default function ReviewScreen() {
     return <EmptyState icon="lock-closed-outline" title="Reviewers only" />;
   }
   if (queue.isPending) return <LoadingState />;
-  if (queue.isError) return <ErrorState onRetry={() => queue.refetch()} />;
+  if (queue.data === undefined) return <ErrorState onRetry={() => queue.refetch()} />;
   if (queue.data.length === 0) {
     return (
       <EmptyState
@@ -48,6 +48,19 @@ export default function ReviewScreen() {
     </Screen>
   );
 }
+
+// Mirrors the Community & Listing Guidelines (features/legal). Request
+// changes - or decline and report - when any of these fail.
+const REVIEW_CHECKLIST = [
+  "It's real work with a clear outcome, not a vague idea",
+  'No scam signs: upfront fees, "admin"/training/equipment charges, deposits, paid tests, or pay that\'s too good to be true',
+  "Paid work states pay that's plausible and at least the National Minimum Wage for the hours implied",
+  "A partnership is a genuine partnership (shared ownership and say), not an equity-only job with set hours or a boss",
+  'No discriminatory wording - age ("young", "recent graduate", "digital native"), sex, race, religion, disability, pregnancy, sexual orientation',
+  "No health or disability questions before an offer",
+  "No contact details, links or off-platform payment requests",
+  "Nothing illegal: no unlicensed or prohibited work, no right-to-work dodges, nothing adult or harmful",
+];
 
 function ReviewItem({ listing }: { listing: ListingDetail }) {
   const review = useReviewListing();
@@ -72,13 +85,11 @@ function ReviewItem({ listing }: { listing: ListingDetail }) {
       <ListingDetailView listing={listing} />
       <View style={styles.checklist}>
         <Text style={styles.checklistTitle}>Before approving, check</Text>
-        <Text style={styles.checklistItem}>
-          • It's real work with a clear outcome, not a vague idea
-        </Text>
-        <Text style={styles.checklistItem}>• Pay or terms are stated and plausible</Text>
-        <Text style={styles.checklistItem}>
-          • No contact details, links to off-platform payment, or discriminatory requirements
-        </Text>
+        {REVIEW_CHECKLIST.map((item) => (
+          <Text key={item} style={styles.checklistItem}>
+            • {item}
+          </Text>
+        ))}
       </View>
       <TextField
         label="Note to the owner (required to request changes)"

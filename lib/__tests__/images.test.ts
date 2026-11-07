@@ -130,10 +130,33 @@ describe("uploadImage", () => {
     });
   });
 
-  it("refuses files still over the limit after compression", async () => {
+  it("refuses files still over the limit after every compression step", async () => {
     mockFetch(MAX_UPLOAD_BYTES + 1);
-    await expect(uploadImage("avatars", "user-1", image)).rejects.toThrow(/over 5 MB/);
+    await expect(uploadImage("avatars", "user-1", image)).rejects.toThrow(/over 2 MB/);
     expect(upload).not.toHaveBeenCalled();
+    const saves = (await context.renderAsync.mock.results[0]!.value).saveAsync as jest.Mock;
+    expect(saves.mock.calls.map((call) => call[0].compress)).toEqual([0.65, 0.5]);
+  });
+
+  it("re-encodes at lower quality until it fits", async () => {
+    const sizes = [MAX_UPLOAD_BYTES + 1, 1000];
+    global.fetch = jest
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve({ arrayBuffer: () => Promise.resolve(new ArrayBuffer(sizes.shift()!)) }),
+      ) as unknown as typeof fetch;
+    upload.mockResolvedValue({ error: null });
+    await uploadImage("avatars", "user-1", image);
+    expect(manipulate).toHaveBeenCalledTimes(1);
+    expect(upload).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ byteLength: 1000 }),
+      expect.any(Object),
+    );
+  });
+
+  it("caps uploads at the 2 MB bucket limit", () => {
+    expect(MAX_UPLOAD_BYTES).toBe(2 * 1024 * 1024);
   });
 
   it("propagates storage errors", async () => {

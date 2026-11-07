@@ -1,0 +1,38 @@
+# Monthly, grouped dependency PRs so updates arrive as a couple of reviewable
+# PRs, not a stream. CI runs the full check on each one.
+#
+# Expo-managed packages are ignored: their versions must match the Expo SDK
+# and are upgraded with `npx expo install --fix` (CLAUDE.md), not one by one.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 3
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "expo"
+      - dependency-name: "expo-*"
+      - dependency-name: "@expo/*"
+      - dependency-name: "react"
+      - dependency-name: "react-dom"
+      - dependency-name: "react-native"
+      - dependency-name: "react-native-*"
+      - dependency-name: "@react-native/*"
+      - dependency-name: "@react-native-async-storage/*"
+      - dependency-name: "@types/react"
+      - dependency-name: "jest-expo"
+      # Major versions need a deliberate upgrade.
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]

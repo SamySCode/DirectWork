@@ -21,13 +21,21 @@ const SUPABASE_STUB = `
   create schema auth;
   grant usage on schema auth to anon, authenticated, service_role;
   grant usage on schema public to anon, authenticated, service_role;
-  create table auth.users (id uuid primary key, email text);
+  create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
   -- Mirrors Supabase's auth.uid(): a custom GUC reads back as '' (not null)
   -- once it has been set in any earlier transaction, so guard both levels.
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(nullif(current_setting('request.jwt.claims', true), '')::json ->> 'sub', '')::uuid
   $$;
   grant execute on function auth.uid() to anon, authenticated, service_role;
+
+  -- Hosted projects still auto-grant every new public table, sequence and
+  -- function to the Data API roles (checked against the live project on
+  -- 2026-11-05). Mirror it, so a migration that forgets to revoke fails the
+  -- privilege tests here instead of shipping broad grants.
+  alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+  alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
 
   -- Just enough of Supabase Storage for the bucket inserts and
   -- storage.objects policies to apply and be exercised.
@@ -89,9 +97,13 @@ export function asService(db, sql, params = []) {
   return inRole(db, "service_role", null, (tx) => tx.query(sql, params));
 }
 
-export async function createUser(db, { profile = true, ...fields } = {}) {
+export async function createUser(db, { profile = true, meta = null, ...fields } = {}) {
   const id = randomUUID();
-  await db.query(`insert into auth.users (id, email) values ($1, $2)`, [id, `${id}@example.com`]);
+  await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [
+    id,
+    `${id}@example.com`,
+    meta,
+  ]);
   if (profile) {
     await db.query(
       `insert into public.profiles (id, full_name, headline, seeking_paid, wants_to_hire)

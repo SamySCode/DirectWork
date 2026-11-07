@@ -65,6 +65,8 @@ export type OpenReport = {
   reason: ReportReason;
   details: string | null;
   created_at: string;
+  /** Set when the report was filed; survives the target being deleted. */
+  target_kind: "profile" | "project" | null;
   profile: { id: string; full_name: string; headline: string } | null;
   project: { id: string; title: string; status: string } | null;
 };
@@ -74,7 +76,7 @@ export async function getOpenReports(): Promise<OpenReport[]> {
   const { data, error } = await supabase
     .from("reports")
     .select(
-      `id, reason, details, created_at,
+      `id, reason, details, created_at, target_kind,
        profile:profiles!reports_profile_id_fkey(id, full_name, headline),
        project:projects(id, title, status)`,
     )

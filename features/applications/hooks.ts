@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { runAction } from "../../lib/functions";
+import { errorMessage, runAction } from "../../lib/functions";
 import type { PreparedImage } from "../../lib/images";
 import { useAuth } from "../auth/SessionProvider";
 import {
@@ -81,10 +81,23 @@ export function useApply() {
   const invalidate = useInvalidateApplications();
   const { session } = useAuth();
   return useMutation({
-    mutationFn: async (vars: { projectId: string; coverNote: string; images: PreparedImage[] }) => {
+    mutationFn: async (vars: {
+      projectId: string;
+      coverNote: string;
+      images: PreparedImage[];
+    }): Promise<{ id: string; attachmentError: string | null }> => {
       const id = await applyToListing(vars.projectId, vars.coverNote);
-      if (vars.images.length > 0) await attachImages(id, session!.user.id, vars.images);
-      return id;
+      // The application exists from here on, so an attachment failure is a
+      // warning on success - not an error the "You've applied" card hides.
+      let attachmentError: string | null = null;
+      if (vars.images.length > 0) {
+        try {
+          await attachImages(id, session!.user.id, vars.images);
+        } catch (err) {
+          attachmentError = errorMessage(err);
+        }
+      }
+      return { id, attachmentError };
     },
     // Settled, not success: a partial attachment failure still created the application.
     onSettled: invalidate,

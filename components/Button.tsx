@@ -61,6 +61,8 @@ const hoverStyles: Record<ButtonVariant, ViewStyle> = {
 const PRESS_IN = { toValue: 0.97, duration: 90, easing: Easing.out(Easing.quad) };
 const PRESS_OUT = { toValue: 1, duration: 140, easing: Easing.out(Easing.cubic) };
 
+const SMALL_HIT_SLOP = { top: 4, bottom: 4, left: 0, right: 0 };
+
 export function Button({
   label,
   variant = "primary",
@@ -90,6 +92,9 @@ export function Button({
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
+      // Small buttons are 36px tall; the slop makes the touch target 44px
+      // (WCAG 2.5.8 / platform guidance) without changing the layout.
+      hitSlop={size === "sm" ? SMALL_HIT_SLOP : undefined}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       onPressIn={(event) => {

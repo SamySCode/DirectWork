@@ -40,7 +40,11 @@ export const listingStatusMeta: Record<
     hint: "A reviewer asked for changes before this can go live.",
   },
   published: { label: "Live", tone: "mint", hint: "Visible in Discover and open to applications." },
-  paused: { label: "Paused", tone: "neutral", hint: "Hidden from Discover. Resume any time." },
+  paused: {
+    label: "Paused",
+    tone: "neutral",
+    hint: "Hidden from Discover. Still uses a live slot on your plan.",
+  },
   completed: { label: "Completed", tone: "accent", hint: "Closed - the work got done." },
   abandoned: { label: "Closed", tone: "neutral", hint: "Closed without completing." },
 };

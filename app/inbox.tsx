@@ -7,7 +7,7 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
 import { Text } from "../components/Text";
-import { useActivity, useMarkAllRead } from "../features/activity/hooks";
+import { useActivity, useMarkRead } from "../features/activity/hooks";
 import { describeActivity, type ActivityTone } from "../features/activity/describe";
 import { useAuth } from "../features/auth/SessionProvider";
 import { timeAgo } from "../features/listings/labels";
@@ -24,17 +24,23 @@ export default function InboxScreen() {
   const router = useRouter();
   const { session } = useAuth();
   const activity = useActivity();
-  const markAllRead = useMarkAllRead();
-  const hasUnread = !!activity.data?.some((item) => !item.read_at);
+  const { mutate: markRead } = useMarkRead();
+  // Wait for a fetch made on this visit: a cached list from earlier would
+  // mark nothing new, but the fresh one is what's actually on screen.
+  const fresh = activity.isFetchedAfterMount && !activity.isFetching;
+  const unreadIds = fresh
+    ? (activity.data ?? []).filter((item) => !item.read_at).map((item) => item.id)
+    : [];
+  const unreadKey = unreadIds.join(",");
 
-  // Opening the inbox reads it. The rows keep their dots until next visit.
-  const { mutate } = markAllRead;
+  // Opening the inbox reads what it shows. The rows keep their dots until next visit.
   useEffect(() => {
-    if (hasUnread) mutate();
-  }, [hasUnread, mutate]);
+    if (unreadKey) markRead(unreadKey.split(","));
+  }, [unreadKey, markRead]);
 
   if (activity.isPending) return <LoadingState />;
-  if (activity.isError) {
+  // A failed background refresh keeps the list already on screen.
+  if (activity.data === undefined) {
     return <ErrorState title="Couldn't load activity" onRetry={() => activity.refetch()} />;
   }
 

@@ -51,7 +51,7 @@ export function ListingDetailView({ listing, mySkills, afterHeader }: ListingDet
             label={opportunityLabels[listing.opportunity_type]}
             tone={listing.opportunity_type === "partner" ? "ink" : "accent"}
           />
-          {listing.is_featured ? <Badge label="Featured" tone="warning" /> : null}
+          {listing.is_featured ? <Badge label="Featured · paid placement" tone="warning" /> : null}
         </View>
         <Text style={styles.title}>{listing.title}</Text>
         {listing.owner ? (

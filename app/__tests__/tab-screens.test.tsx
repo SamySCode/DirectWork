@@ -44,6 +44,7 @@ jest.mock("../../features/profile/hooks", () => ({
   useTrackRecord: jest.fn(),
   usePortfolio: jest.fn(),
   useReferences: jest.fn(() => ({ data: [] })),
+  useRefreshProfile: jest.fn(() => jest.fn()),
   useConfirmAvailability: jest.fn(() => ({ mutate: jest.fn(), isPending: false })),
 }));
 jest.mock("../../features/safety/hooks", () => ({
@@ -322,10 +323,9 @@ describe("Discover", () => {
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "pay" }));
     fireEvent.press(screen.getByRole("button", { name: "Best match" }));
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "newest" }));
-    const titles = screen
-      .getAllByRole("button", { name: /^(Strong|Weak) match$/ })
-      .map((node) => node.props.accessibilityLabel);
-    expect(titles[0]).toBe("Strong match");
+    // Order of the rendered titles - independent of the cards' accessibility labels.
+    const titles = screen.getAllByText(/^(Strong|Weak) match$/).map((node) => node.props.children);
+    expect(titles).toEqual(["Strong match", "Weak match"]);
   });
 
   it("can show only listings that need my skills", () => {
@@ -428,6 +428,12 @@ describe("Profile tab", () => {
     render(<ProfileScreen />);
     fireEvent.press(screen.getByRole("button", { name: "Add a profile photo" }));
     expect(mockPush).toHaveBeenCalledWith("/account/edit");
+  });
+
+  it("links to Help & legal", () => {
+    render(<ProfileScreen />);
+    fireEvent.press(screen.getByRole("button", { name: "Help & legal" }));
+    expect(mockPush).toHaveBeenCalledWith("/help");
   });
 
   it("puts your name and headline in the header", () => {

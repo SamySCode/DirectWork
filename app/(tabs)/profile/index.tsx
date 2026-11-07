@@ -21,6 +21,7 @@ import {
   useMyProfile,
   usePortfolio,
   useReferences,
+  useRefreshProfile,
   useTrackRecord,
 } from "../../../features/profile/hooks";
 import { billingAvailable } from "../../../features/billing/availability";
@@ -36,14 +37,25 @@ type Row = {
 export default function ProfileScreen() {
   const router = useRouter();
   const { session } = useAuth();
-  const { profile, skills, loading, error, refetch, userId } = useMyProfile();
+  const { profile, skills, loading, refetch, isRefetching, userId } = useMyProfile();
   const trackRecord = useTrackRecord(userId);
   const portfolio = usePortfolio(userId);
   const references = useReferences(userId);
   const isAdmin = useIsAdmin();
+  // Pull-to-refresh reloads every profile section and keeps the spinner up
+  // until they're done, like the other tabs.
+  const refresh = useRefreshProfile(userId);
+  const refreshing =
+    isRefetching ||
+    !!trackRecord.isRefetching ||
+    !!portfolio.isRefetching ||
+    !!references.isRefetching;
 
-  if (loading) return <LoadingState />;
-  if (error || !profile) return <ErrorState title="Couldn't load your profile" onRetry={refetch} />;
+  // Cached data wins over a failed background refresh (F10).
+  if (!profile) {
+    if (loading) return <LoadingState />;
+    return <ErrorState title="Couldn't load your profile" onRetry={refetch} />;
+  }
 
   const go = (href: Href) => () => router.push(href);
 
@@ -52,6 +64,7 @@ export default function ProfileScreen() {
     { icon: "eye-outline", label: "See your public profile", onPress: go(`/people/${profile.id}`) },
     { icon: "notifications-outline", label: "Activity", onPress: go("/inbox") },
     { icon: "bulb-outline", label: "Guide & tips", onPress: go("/guide") },
+    { icon: "help-circle-outline", label: "Help & legal", onPress: go("/help") },
     ...(billingAvailable
       ? [{ icon: "card-outline" as const, label: "Plans & billing", onPress: go("/billing") }]
       : []),
@@ -81,7 +94,8 @@ export default function ProfileScreen() {
 
   return (
     <Screen
-      onRefresh={refetch}
+      onRefresh={refresh}
+      refreshing={refreshing}
       header={
         <PageHero
           theme={tabThemes.profile}

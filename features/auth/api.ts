@@ -1,6 +1,7 @@
 import * as Linking from "expo-linking";
 import { invokeFunction } from "../../lib/functions";
 import { supabase } from "../../lib/supabase";
+import { PRIVACY_VERSION, TERMS_VERSION } from "../legal/versions";
 import type { ForgotPasswordInput, SignInInput, SignUpInput } from "./schemas";
 
 export async function signUp({ email, password }: SignUpInput) {
@@ -9,7 +10,12 @@ export async function signUp({ email, password }: SignUpInput) {
     password,
     // Send people back into the app (web origin or the directwork:// scheme)
     // after confirming, rather than to the Supabase Site URL default.
-    options: { emailRedirectTo: Linking.createURL("/sign-in") },
+    options: {
+      emailRedirectTo: Linking.createURL("/sign-in"),
+      // Read by the auth.users AFTER INSERT trigger, which records the
+      // acceptance in public.legal_acceptances (the form requires the box).
+      data: { terms_version: TERMS_VERSION, privacy_version: PRIVACY_VERSION, age_confirmed: true },
+    },
   });
   if (error) throw error;
   return data;
@@ -45,8 +51,12 @@ export async function requestPasswordReset({ email }: ForgotPasswordInput) {
 
 /**
  * Permanently deletes the account and everything it owns. Re-checks the
- * password first: the server only accepts deletion right after a fresh
- * sign-in (see supabase/functions/delete-account).
+ * password first: the server only accepts deletion within minutes of a
+ * password sign-in (the JWT `amr` claim - see supabase/functions/delete-account),
+ * so the function is called straight after, with the new session's token
+ * (supabase-js reads the current session for every request). Server
+ * refusals (DELETION_UNAVAILABLE under a legal hold, REAUTH_REQUIRED) come
+ * back as FunctionErrors carrying the server's message.
  */
 export async function deleteAccount(email: string, password: string) {
   const { error } = await supabase.auth.signInWithPassword({ email, password });

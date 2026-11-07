@@ -9,7 +9,8 @@ import { TextField } from "../../components/TextField";
 import { signUp } from "../../features/auth/api";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
 import { CheckEmail } from "../../features/auth/components/CheckEmail";
-import { signUpSchema } from "../../features/auth/schemas";
+import { MIN_PASSWORD_LENGTH, signUpSchema } from "../../features/auth/schemas";
+import { LegalConsent } from "../../features/legal/components/LegalConsent";
 import { colors, shadow, spacing, typography } from "../../lib/theme";
 import { errorMessage } from "../../lib/functions";
 import { fieldErrors } from "../../lib/validation";
@@ -18,6 +19,7 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,12 @@ export default function SignUpScreen() {
 
   const handleSubmit = async () => {
     setFormError(null);
-    const result = signUpSchema.safeParse({ email, password, confirmPassword });
+    const result = signUpSchema.safeParse({
+      email,
+      password,
+      confirmPassword,
+      acceptedTerms,
+    });
     if (!result.success) {
       setErrors(fieldErrors(result.error));
       return;
@@ -75,7 +82,7 @@ export default function SignUpScreen() {
                     secureToggle
                     autoComplete="new-password"
                     textContentType="newPassword"
-                    hint="At least 8 characters."
+                    hint={`At least ${MIN_PASSWORD_LENGTH} characters.`}
                     error={errors.password}
                   />
                   <TextField
@@ -88,7 +95,19 @@ export default function SignUpScreen() {
                     error={errors.confirmPassword}
                   />
                 </View>
-                {formError ? <Text style={styles.formError}>{formError}</Text> : null}
+                <LegalConsent
+                  checked={acceptedTerms}
+                  onChange={(next) => {
+                    setAcceptedTerms(next);
+                    if (next) setErrors(({ acceptedTerms: _, ...rest }) => rest);
+                  }}
+                  error={errors.acceptedTerms}
+                />
+                {formError ? (
+                  <Text style={styles.formError} accessibilityLiveRegion="polite">
+                    {formError}
+                  </Text>
+                ) : null}
                 <Button label="Create account" onPress={handleSubmit} loading={loading} />
                 <Link href="/sign-in" style={styles.link}>
                   Already have an account? Sign in

@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useRef } from "react";
 import { runAction } from "../../lib/functions";
 import { useAuth } from "../auth/SessionProvider";
 import {
@@ -79,18 +80,24 @@ function useInvalidateListings() {
 export function useSaveListing(id?: string) {
   const invalidate = useInvalidateListings();
   const { session } = useAuth();
+  // Set once the first attempt has inserted the row: if skills or images
+  // failed after that, the retry updates this draft rather than adding a twin.
+  const createdId = useRef<string | undefined>(undefined);
   return useMutation({
     mutationFn: async ({ input, images }: { input: ListingInput; images: ImageDraft }) => {
-      let projectId = id;
+      let projectId = id ?? createdId.current;
       if (projectId) {
         await updateListing(projectId, input);
       } else {
-        projectId = await createListing(input);
+        projectId = await createListing(input, (newId) => {
+          createdId.current = newId;
+        });
       }
       await syncListingImages(projectId, session!.user.id, images);
       return projectId;
     },
-    onSuccess: invalidate,
+    // Settled: a half-finished create still left a draft in My listings.
+    onSettled: invalidate,
   });
 }
 
@@ -110,7 +117,8 @@ export function useSetListingStatus() {
       projectId: string;
       status: "draft" | "published" | "paused" | "completed" | "abandoned";
     }) => runAction({ action: "set_listing_status", ...vars }),
-    onSuccess: () => {
+    // Settled: a refusal usually means the state moved on elsewhere - redraw it.
+    onSettled: () => {
       invalidate();
       // Closing a listing auto-rejects pending applicants.
       queryClient.invalidateQueries({ queryKey: ["applications"] });
@@ -129,5 +137,5 @@ export function useReviewListing() {
 
 export function useDeleteDraft() {
   const invalidate = useInvalidateListings();
-  return useMutation({ mutationFn: deleteDraft, onSuccess: invalidate });
+  return useMutation({ mutationFn: deleteDraft, onSettled: invalidate });
 }

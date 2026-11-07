@@ -7,7 +7,12 @@ import { supabase } from "./supabase";
 // Storage enforces them server-side; these checks just fail fast with a
 // clear message instead of an upload error.
 export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"] as const;
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+// Bucket file_size_limit (2 MB). A 1600px JPEG at 0.8 is usually well
+// under; busy, detailed photos get re-encoded at the lower steps below.
+export const MAX_UPLOAD_BYTES = 2 * 1024 * 1024;
+const FIRST_QUALITY = 0.8;
+const FALLBACK_QUALITIES = [0.65, 0.5] as const;
+// Later: 480px thumbnails for list views would cut egress further (not built yet).
 // Originals above this are rejected before we even try to resize - phones
 // produce 3-12MB photos, so this only catches genuinely odd files.
 const MAX_SOURCE_BYTES = 25 * 1024 * 1024;
@@ -62,7 +67,7 @@ async function prepare(
     );
   }
   const rendered = await context.renderAsync();
-  const result = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.8 });
+  const result = await rendered.saveAsync({ format: SaveFormat.JPEG, compress: FIRST_QUALITY });
   return { uri: result.uri, width: result.width, height: result.height };
 }
 
@@ -86,17 +91,37 @@ export async function pickImages({
   return Promise.all(result.assets.slice(0, limit).map((asset) => prepare(asset, square)));
 }
 
+const readBytes = async (uri: string) => (await fetch(uri)).arrayBuffer();
+
+/**
+ * The prepared JPEG's bytes, re-encoded at lower quality steps only when it's
+ * over the limit - most photos never pay for the extra encode.
+ */
+async function fitUploadLimit(image: PreparedImage): Promise<ArrayBuffer> {
+  let body = await readBytes(image.uri);
+  for (const compress of FALLBACK_QUALITIES) {
+    if (body.byteLength <= MAX_UPLOAD_BYTES) return body;
+    const rendered = await ImageManipulator.manipulate(image.uri).renderAsync();
+    const smaller = await rendered.saveAsync({ format: SaveFormat.JPEG, compress });
+    body = await readBytes(smaller.uri);
+  }
+  if (body.byteLength > MAX_UPLOAD_BYTES) {
+    throw new ImageValidationError("That image is still over 2 MB after compressing. Try another.");
+  }
+  return body;
+}
+
 /** Uploads into the caller's own folder: `<userId>/[...subfolders/]<uuid>.jpg`. */
 export async function uploadImage(
   bucket: ImageBucket,
   folder: string,
   image: PreparedImage,
 ): Promise<string> {
-  const body = await (await fetch(image.uri)).arrayBuffer();
-  if (body.byteLength > MAX_UPLOAD_BYTES) {
-    throw new ImageValidationError("That image is still over 5 MB after compressing. Try another.");
-  }
+  const body = await fitUploadLimit(image);
   const path = `${folder}/${Crypto.randomUUID()}.jpg`;
+  // Keep Storage's default 1-hour cache. A longer one would cut egress, but
+  // deleted photos (removed images, deleted accounts) would stay reachable
+  // from CDN and browser caches until it expired.
   const { error } = await supabase.storage
     .from(bucket)
     .upload(path, body, { contentType: "image/jpeg", upsert: false });
