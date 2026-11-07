@@ -4,6 +4,7 @@ import { ErrorState } from "../../components/ErrorState";
 import { LoadingState } from "../../components/LoadingState";
 import { Screen } from "../../components/Screen";
 import { useAuth } from "../../features/auth/SessionProvider";
+import { PayRecordLine } from "../../features/deals/components/PayRecordLine";
 import { ProfileView } from "../../features/profile/components/ProfileView";
 import {
   usePortfolio,
@@ -46,6 +47,7 @@ export default function PersonScreen() {
         trackRecord={trackRecord.data}
         portfolio={portfolio.data}
         references={references.data}
+        afterHeader={<PayRecordLine ownerId={profile.data.id} />}
       />
       {session?.user.id !== profile.data.id ? (
         <SafetyActions

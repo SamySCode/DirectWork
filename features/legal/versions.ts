@@ -16,13 +16,13 @@ import { env } from "../../lib/env";
  * everyone see the updated notice again. Before switching billing on, also
  * publish Pro subscription terms (see docs/LAUNCH.md).
  */
-export const TERMS_VERSION = "2026-11-06";
+export const TERMS_VERSION = "2026-11-07";
 export const PRIVACY_VERSION = env.EXPO_PUBLIC_BILLING_ENABLED
-  ? "2026-11-06+billing"
-  : "2026-11-06";
+  ? "2026-11-07+billing"
+  : "2026-11-07";
 
 /** Shown as "Last updated" on the documents. */
-export const LEGAL_UPDATED = "6 November 2026";
+export const LEGAL_UPDATED = "7 November 2026";
 
 export type LegalStatus = { terms_version: string | null; privacy_version: string | null };
 

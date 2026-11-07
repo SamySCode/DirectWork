@@ -51,9 +51,9 @@ describe("SkillsField", () => {
   it("offers the typed text as a new skill and adds it", () => {
     (searchSkills as jest.Mock).mockResolvedValue([]);
     render(<Harness />);
-    fireEvent.changeText(screen.getByLabelText("Skills"), "Rust");
-    fireEvent.press(screen.getByRole("button", { name: "Add “Rust”" }));
-    expect(screen.getByText("Rust")).toBeTruthy();
+    fireEvent.changeText(screen.getByLabelText("Skills"), "Basket weaving");
+    fireEvent.press(screen.getByRole("button", { name: "Add “Basket weaving”" }));
+    expect(screen.getByText("Basket weaving")).toBeTruthy();
     expect(screen.getByLabelText("Skills").props.value).toBe("");
   });
 
@@ -78,6 +78,35 @@ describe("SkillsField", () => {
     expect(screen.queryByRole("button", { name: /Add “typescript”/ })).toBeNull();
     fireEvent(screen.getByLabelText("Skills"), "submitEditing");
     expect(screen.getAllByText("TypeScript")).toHaveLength(1);
+  });
+
+  it("ignores a slow answer for an older query and reuses answers it already has", async () => {
+    let resolveOld: (names: string[]) => void = () => {};
+    (searchSkills as jest.Mock)
+      .mockReset()
+      .mockImplementationOnce(() => new Promise((resolve) => (resolveOld = resolve)))
+      .mockResolvedValueOnce(["Kotlin Multiplatform"]);
+    render(<Harness />);
+    fireEvent.changeText(screen.getByLabelText("Skills"), "kot");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin m");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    await waitFor(() => expect(screen.getByText("Kotlin Multiplatform")).toBeTruthy());
+    await act(async () => resolveOld(["Kotlin stale answer"]));
+    expect(screen.queryByText("Kotlin stale answer")).toBeNull();
+
+    // Back to a query already answered: no new request.
+    fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin");
+    fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin m");
+    await act(async () => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(searchSkills).toHaveBeenCalledTimes(2);
+    expect(screen.getByText("Kotlin Multiplatform")).toBeTruthy();
   });
 
   it("removes a skill when its chip is pressed", () => {

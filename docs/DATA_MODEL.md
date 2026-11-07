@@ -174,3 +174,45 @@ reason, created_at)`. Added by admins in SQL; while a row exists the account
 - **Contact rule**: the `*_no_contact` CHECK constraints are replaced by
   BEFORE INSERT/UPDATE triggers that test only new or changed columns, so
   older rows stay updatable. See `docs/ACCESS_CONTROL.md`.
+
+## Deal Sheets and payment records (`20261107090000`–`20261107092000`; not yet applied to any hosted project)
+
+Spec: `docs/specs/deal-sheet.md`. Access rules: `docs/ACCESS_CONTROL.md`.
+
+- **`deal_sheets`**: one per collaboration (`membership_id` unique, cascades
+  with the membership). Holds the terms (`scope`, `pay_basis`, `amount`,
+  `currency`, `payment_terms_days` 0–120 (default 14), `milestones` jsonb array of up to
+  12 `{title, due_date, amount}`, `ip_terms` + `ip_notes`, the partner-only
+  `equity_percent` / `vesting_months` / `cliff_months` / `decision_rights`),
+  each side's "acting in the course of business" flag (`owner_business`,
+  `member_business`), and `version`, `proposed_by`,
+  `owner_confirmed_version`, `member_confirmed_version` and `agreed_at`.
+  **Agreed** = both confirmed versions equal `version` (CHECK-enforced);
+  `agreed_at` is set the moment that happens.
+- **`payment_reports`**: the professional's report per milestone, or one per
+  deal when it has no milestones (unique on
+  `(deal_sheet_id, coalesce(milestone_index, -1))`). `outcome` is
+  `on_time | late | unpaid`, with `paid_on` required for `late` and absent for
+  `unpaid`. Disputes live on the row: `dispute_status`
+  `none → disputed → upheld | rejected`, `dispute_reason`, `disputed_at`,
+  `resolved_at`.
+- **`private.payment_dispute_resolutions`**: the reviewer, the decision and
+  an optional note. Never readable by clients, and left out of the data
+  export.
+- **`private.payment_due_notices`**: one row per (deal, milestone) once its
+  `payment_due` notice has gone out, so it goes out only once. Cleared when
+  a new version is proposed.
+- **Due date**: the milestone's `due_date`, or for no milestones the
+  `agreed_at` date in UK time (Europe/London) plus `payment_terms_days`. A
+  report is allowed only when today (UK) is strictly after the due date.
+- **Activity kinds**: `deal_proposed` (to the other party), `deal_agreed`
+  (both), `payment_due` (professional, from the daily
+  `private.emit_payment_due()`, scheduled by pg_cron as
+  `directwork-payment-due` at 06:07 UTC; looks back 7 days in case a run
+  was missed and skips anything already reported), `payment_reported`
+  (owner), `payment_disputed` (professional) and `payment_dispute_resolved`
+  (both, with no actor, so the reviewer stays anonymous).
+- **Deletion and export**: everything cascades with the collaboration.
+  `export_my_data()` (schema_version 2) adds `deal_sheets`,
+  `payment_reports` and `payment_disputes_raised` for the caller's own
+  collaborations.

@@ -10,7 +10,7 @@ export const guidelines: LegalDocument = {
   version: TERMS_VERSION,
   updated: LEGAL_UPDATED,
   intro: [
-    "DirectWork works when people can trust what they read. These guidelines are part of our Terms of Service and apply to profiles, listings, questions, answers, applications, images and references.",
+    "DirectWork works when people can trust what they read. These guidelines are part of our Terms of Service and apply to profiles, listings, questions, answers, applications, images, references, Deal Sheets and payment reports.",
   ],
   sections: [
     section(
@@ -61,6 +61,17 @@ export const guidelines: LegalDocument = {
         "Write only about work you actually did together, honestly.",
         "Don't offer, ask for or accept anything in return for a reference, and don't swap references.",
         "Keep personal details out, including health and contact details.",
+      ),
+    ),
+    section(
+      "Deal Sheets and payment reports",
+      list(
+        "Write Deal Sheet terms you both understand, and confirm only what you've actually agreed.",
+        "Report payments honestly: on time, late (with the date you were paid) or not paid yet. Report what happened, not how you feel about it.",
+        "Correct a report straight away if you got it wrong. Don't report payments that weren't due under the Deal Sheet.",
+        "Never use a payment report to pressure, punish or harass someone, and never offer or accept anything to make, change or withdraw one.",
+        "Owners: dispute a report only if it's wrong, and say why.",
+        "Keep contact details, bank details and personal information out of Deal Sheets and disputes.",
       ),
     ),
     section(

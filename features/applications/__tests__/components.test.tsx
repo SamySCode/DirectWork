@@ -16,6 +16,10 @@ import {
 } from "../hooks";
 
 const mockPush = jest.fn();
+jest.mock("../../deals/hooks", () => ({
+  useDealSheet: jest.fn(() => ({ data: null, isPending: false })),
+  usePayRecord: jest.fn(() => ({ data: null })),
+}));
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("../../../lib/supabase", () => ({
   supabase: { storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: "" } }) }) } },

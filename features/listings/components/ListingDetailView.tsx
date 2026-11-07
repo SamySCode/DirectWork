@@ -8,6 +8,7 @@ import { Card } from "../../../components/Card";
 import { Gallery } from "../../../components/Gallery";
 import { Text } from "../../../components/Text";
 import { colors, radius, spacing, typography } from "../../../lib/theme";
+import { PayRecordLine } from "../../deals/components/PayRecordLine";
 import { avatarUrl } from "../../profile/api";
 import { ReplyRecord } from "../../profile/components/ReplyRecord";
 import { useReplyRecord } from "../../profile/hooks";
@@ -75,6 +76,7 @@ export function ListingDetailView({ listing, mySkills, afterHeader }: ListingDet
           </Pressable>
         ) : null}
         {replyRecord.data ? <ReplyRecord record={replyRecord.data} /> : null}
+        <PayRecordLine ownerId={listing.owner?.id} />
       </View>
 
       {afterHeader}

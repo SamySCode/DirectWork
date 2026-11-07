@@ -48,6 +48,13 @@ to private project data are never enforced solely by the client.
   `auth.uid()` gets re-evaluated per row instead of hoisted into a single
   InitPlan — invisible at low row counts, real cost once tables grow. See
   Supabase's RLS performance guidance.
+- **No per-row helper calls in SELECT policies.** A SECURITY DEFINER
+  function or correlated sub-select per row makes an unfiltered
+  `GET /rest/v1/<table>` from any account cost O(whole table). Write
+  "visible to me" as `col in (select private.<my>_ids((select auth.uid())))`
+  with a `rows 20` set-returning helper: one small indexed lookup per query
+  (`20261107100000_abuse_hardening.sql`; the db suite fails on
+  `owns_project` / `has_applied` / `is_membership_party` in a SELECT policy).
 - **Revoke, then grant exactly, on every new table, function and
   sequence.** Our hosted project (checked 2026-11-05) still auto-grants
   ALL on new `public` tables, functions and sequences to `anon` and
@@ -351,3 +358,64 @@ reachable by clients; `svc_has_legal_hold()` is service-role only.
 (`information_schema.column_privileges`) on protected tables, and `admins`,
 `project_memberships`, `project_outcomes`, `application_status_history` and
 `legal_acceptances` are on the no-client-write lists.
+
+## Deal Sheets and payment records (`20261107090000`–`20261107092000`; not yet applied to any hosted project)
+
+| Table / function                                                     | Read                                                                 | Write                                                                                                     |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `deal_sheets`                                                        | the two parties to the collaboration (`private.is_membership_party`) | `actions` → `propose_deal` / `confirm_deal`                                                               |
+| `payment_reports`                                                    | the two parties (via deal sheet visibility)                          | `actions` → `report_payment` (professional), `dispute_payment` (owner), `resolve_payment_dispute` (admin) |
+| `private.payment_dispute_resolutions`, `private.payment_due_notices` | nobody (no client grants)                                            | the functions above / the daily job                                                                       |
+| `get_pay_record(p_owner)`                                            | any signed-in user                                                   | n/a                                                                                                       |
+| `get_deal_for_dispute(p_report)`                                     | admins only (returns `{deal, report}` jsonb, null otherwise)         | n/a                                                                                                       |
+
+Clients have SELECT only, with no INSERT, UPDATE or DELETE on either table (on
+the guardrail lists). Even admins read deal sheets only through
+`get_deal_for_dispute`. Free text skips the contact rule (contacts are
+already shared once accepted) but has length and blank checks.
+
+**Actions** (zod in `supabase/functions/actions/schema.ts`, re-checked in
+SQL):
+
+- `propose_deal`: either party. Inserts version 1 or bumps the version,
+  replaces the terms, clears both confirmations and counts the proposer as
+  confirmed.
+- `confirm_deal`: either party, for the current `version` only (a stale
+  version gives `DEAL_CHANGED`). Agreed once both sides confirm the same
+  version.
+- `report_payment`: the professional only, on an agreed deal, after the due
+  date (otherwise `NOT_DUE_YET`). One report per milestone. The professional
+  can correct it within 14 days of making it while it is undisputed.
+- `dispute_payment`: the owner only, once, within 14 days, with a reason of
+  20–500 characters.
+- `resolve_payment_dispute`: admins only. Upheld removes the report from
+  the record; rejected makes it count again.
+
+**`get_pay_record` counting**: counts reports by the collaboration's
+professional on agreed deals, with `dispute_status` `none` or `rejected`
+(disputed and upheld are excluded), whose reporter profile was at least 14
+days old when the deal was agreed (sock-puppet resistance). Returns
+`(counted, on_time, late, unpaid)` only when `counted >= 3`, otherwise no
+rows. The figures are counts only: no scores or labels.
+
+**Rules added in the build, beyond the spec** (accepted 2026-11-07):
+
+1. A deal sheet can't be re-proposed once any payment is reported on it
+   (reports point at milestones by position).
+2. Equity-only deals can't have payments reported and get no due notices.
+3. Equity %, vesting, cliff and decision rights are accepted only on
+   partner collaborations.
+4. IP terms of `other` require notes.
+5. Field limits: milestone titles 1–120 characters, amounts 0–100,000,000,
+   vesting and cliff 0–120 months, and the cliff can't be longer than the
+   vesting period.
+6. Paid dates must be consistent: `late` needs a paid date after the due
+   date, `on_time` can't have one after it, `unpaid` has none, and none can
+   be in the future.
+7. The 14-day dispute window runs from the report's last correction. The
+   professional can't edit a report while it is disputed.
+8. The 14-day account-age check uses `profiles.created_at`. Profiles are
+   created after the auth account, so this is no looser.
+9. Once either person blocks the other, neither can propose or confirm.
+   Reports and disputes still work, so an owner can't avoid a report by
+   blocking.

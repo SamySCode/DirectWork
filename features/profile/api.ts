@@ -1,5 +1,6 @@
 import { PreparedImage, publicImageUrl, removeImages, uploadImage } from "../../lib/images";
 import { supabase } from "../../lib/supabase";
+import { isUuid } from "../../lib/validation";
 import type { ProfileInput } from "./schemas";
 
 export type Profile = {
@@ -25,6 +26,7 @@ export type Profile = {
 };
 
 export async function getProfile(userId: string): Promise<Profile | null> {
+  if (!isUuid(userId)) return null;
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
@@ -37,6 +39,7 @@ export async function getProfile(userId: string): Promise<Profile | null> {
 type SkillJoinRow = { skills: { name: string } | { name: string }[] | null };
 
 export async function getProfileSkills(userId: string): Promise<string[]> {
+  if (!isUuid(userId)) return [];
   const { data, error } = await supabase
     .from("profile_skills")
     .select("skills(name)")
@@ -53,6 +56,7 @@ export type TrackRecord = { completed: number; total: number };
 
 /** Mutually confirmed outcomes only - see private.record_outcome. */
 export async function getTrackRecord(userId: string): Promise<TrackRecord> {
+  if (!isUuid(userId)) return { completed: 0, total: 0 };
   const { data, error } = await supabase.rpc("get_track_record", { p_user: userId }).single();
   if (error) throw error;
   return data as TrackRecord;
@@ -68,13 +72,11 @@ export function escapeLikePattern(value: string): string {
 export async function searchSkills(query: string): Promise<string[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
-  const { data, error } = await supabase
-    .from("skills")
-    .select("name")
-    .ilike("name", `%${escapeLikePattern(trimmed)}%`)
-    .limit(10);
+  // Ranked server-side (exact, then starts-with, then most used): see
+  // search_skills() in 20261107094000_skills_seed_search.sql.
+  const { data, error } = await supabase.rpc("search_skills", { p_query: trimmed.slice(0, 60) });
   if (error) throw error;
-  return (data ?? []).map((row) => row.name);
+  return ((data ?? []) as { name: string }[]).map((row) => row.name);
 }
 
 /**
@@ -154,6 +156,7 @@ export type PortfolioImage = {
 };
 
 export async function getPortfolio(userId: string): Promise<PortfolioImage[]> {
+  if (!isUuid(userId)) return [];
   const { data, error } = await supabase
     .from("portfolio_images")
     .select("id, storage_path, caption, position")
@@ -212,6 +215,7 @@ export type WorkReference = {
 
 /** Written only from mutually confirmed completed collaborations (private.write_reference). */
 export async function getReferences(userId: string): Promise<WorkReference[]> {
+  if (!isUuid(userId)) return [];
   const { data, error } = await supabase
     .from("work_references")
     .select(

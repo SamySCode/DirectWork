@@ -13,7 +13,7 @@ export const terms: LegalDocument = {
     section(
       "1. About these terms",
       p(
-        `These terms are a contract between you and ${operatorIdentity} ("DirectWork", "we", "us"). They apply whenever you use the DirectWork apps or website. Our Community & Listing Guidelines and References Policy are part of these terms. Our Privacy Notice explains how we use your personal data.`,
+        `These terms are a contract between you and ${operatorIdentity} ("DirectWork", "we", "us"). They apply whenever you use the DirectWork apps or website. Our Community & Listing Guidelines and Reviews, References & Payment Records Policy are part of these terms. Our Privacy Notice explains how we use your personal data.`,
       ),
       p("Please read them. If you don't agree, don't use DirectWork."),
     ),
@@ -114,17 +114,45 @@ export const terms: LegalDocument = {
     section(
       "11. References and track records",
       p(
-        "References can be written only after both people confirm a collaboration was completed. \"Confirmed by both sides\" means both of you said the work was completed; it doesn't mean we checked the work or the reference. References can't be bought, swapped or edited. Our References Policy has the details.",
+        "References can be written only after both people confirm a collaboration was completed. \"Confirmed by both sides\" means both of you said the work was completed; it doesn't mean we checked the work or the reference. References can't be bought, swapped or edited. Our Reviews, References & Payment Records Policy has the details.",
       ),
     ),
     section(
-      "12. Ending your account",
+      "12. Deal Sheets and payment records",
+      p(
+        "After an application is accepted, either of you can propose a Deal Sheet: a written note of the scope, pay, payment terms, milestones, who owns the work and, for partnerships, equity terms. You write the terms. DirectWork doesn't draft them, check them or give legal, tax or financial advice, and isn't a party to your deal. Whether a Deal Sheet is a binding contract depends on what you agree and the law, so take your own advice if you need it.",
+      ),
+      list(
+        "A Deal Sheet is agreed only when both of you confirm the same version. Any change makes a new version, which you both confirm again.",
+        "Each of you confirms for yourself whether you are acting in the course of business. Be truthful: it decides whether the late payment letter is offered. The letter is a template, not legal advice.",
+        "DirectWork never handles money, invoices or payments.",
+      ),
+      p("Consent to payment records (owners)"),
+      p(
+        'By confirming a Deal Sheet, you agree that the professional can report whether each payment due under it was paid on time, paid late or not paid, and that payment outcomes reported on agreed Deal Sheets are shown to signed-in users, with dispute rights. They appear as a count on your profile and listings, for example "Paid on time on 4 of 5 reported payments · reported by professionals", only once there are at least 3 reports that count. We don\'t add labels, scores or rankings, and the record is never sold, shared outside DirectWork or used for credit decisions.',
+      ),
+      p("Reporting accurately (professionals)"),
+      list(
+        "You can report a payment only on an agreed Deal Sheet, only after its due date, and once per milestone (or once for the deal). You can correct your own report within 14 days.",
+        "You promise that every report you make is true, accurate and about a payment due under that Deal Sheet.",
+        "A report you know, or should know, is false is a serious breach of these terms. We may remove it and restrict, suspend or close your account.",
+        "To the extent the law allows, you agree to cover DirectWork's losses, and reasonable legal costs, that result from a false report you make, including claims by the person it was about.",
+      ),
+      p("Disputes"),
+      list(
+        "The owner can dispute a report within 14 days of it being made, giving a reason. A disputed report isn't counted while a moderator reviews it.",
+        "If the dispute is upheld, the report is removed from the record. If it's rejected, the report counts. Both of you are told the outcome in your Activity inbox.",
+        "Anyone can also complain about a payment record at any time under our Complaints & Appeals procedure. We act promptly on credible complaints that a report is false or defamatory.",
+      ),
+    ),
+    section(
+      "13. Ending your account",
       p(
         "You can delete your account at any time in the app (Profile, then Delete account). We may suspend or close your account if you seriously or repeatedly break these terms, if we must for legal reasons, or to protect other members. Where it's reasonable, we'll warn you first and give you our reasons. If you think we got it wrong, you can appeal.",
       ),
     ),
     section(
-      "13. Our responsibility to you",
+      "14. Our responsibility to you",
       list(
         "We provide DirectWork with reasonable care and skill. We'll try to keep it running, but we can't promise it will always be available or free of faults.",
         "We're not responsible for what other members say or do, for the work you agree with them, or for whether you're paid. Those are between you and the other member.",
@@ -134,19 +162,19 @@ export const terms: LegalDocument = {
       ),
     ),
     section(
-      "14. Changes",
+      "15. Changes",
       p(
         "We may change DirectWork and these terms, for example to add features, reflect changes in the law, or improve safety. If we make a significant change to these terms, we'll tell you in the app before it takes effect and ask you to accept the new version. If you don't agree, you can delete your account.",
       ),
     ),
     section(
-      "15. Law and disputes",
+      "16. Law and disputes",
       p(
         `These terms are governed by the law of ${operator.governingLaw}. If you have a problem, please use our Complaints & Appeals procedure first. Disputes go to the courts of ${operator.governingLaw}, but if you live in Scotland or Northern Ireland you can also bring proceedings in your home courts.`,
       ),
     ),
     section(
-      "16. Contact",
+      "17. Contact",
       p(
         `Questions about these terms: ${operator.supportEmail}. Complaints and appeals: ${operator.complaintsEmail}. Post: ${operator.address}.`,
       ),

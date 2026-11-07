@@ -3,7 +3,7 @@ import { companyNumber, operator, vatNumber } from "../operator";
 import { LEGAL_UPDATED } from "../versions";
 import { list, p, rows, section, type LegalDocument } from "./types";
 
-const VERSION = "2026-11-06";
+const VERSION = "2026-11-07";
 const billing = env.EXPO_PUBLIC_BILLING_ENABLED;
 
 /** What account deletion removes - shared with the in-app delete screen. */
@@ -11,7 +11,7 @@ export const DELETED_ON_ACCOUNT_DELETION = [
   "Your profile, photo, skills and portfolio",
   "Your listings, their images and the applications to them",
   "Your applications, answers and work samples",
-  "Your collaborations, outcomes and references, on both sides, so they disappear from the other person's profile too",
+  "Your collaborations, outcomes, references, Deal Sheets and payment reports, on both sides, so they disappear from the other person's profile too",
   "The people you've blocked",
   "Any Pro subscription, cancelled straight away",
 ];

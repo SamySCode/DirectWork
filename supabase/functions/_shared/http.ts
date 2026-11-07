@@ -108,6 +108,22 @@ function amrOf(payload: Record<string, unknown> | null): AuthMethod[] {
   );
 }
 
+/** Allowance for clock differences between this function and Auth. */
+const EXPIRY_LEEWAY_SECONDS = 60;
+
+/** Unverified shape check of a user access token (see authenticate). */
+export function looksLikeUserToken(
+  payload: Record<string, unknown> | null,
+  nowSeconds = Date.now() / 1000,
+): boolean {
+  if (!payload || payload.role !== "authenticated") return false;
+  if (typeof payload.sub !== "string" || payload.sub === "") return false;
+  if (typeof payload.exp === "number" && payload.exp + EXPIRY_LEEWAY_SECONDS < nowSeconds) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Resolves the caller from their bearer token via Supabase Auth - never
  * from any user id in the request body. getUser() verifies the token, so
@@ -117,9 +133,14 @@ async function authenticate(req: Request, admin: SupabaseClient): Promise<Authed
   const header = req.headers.get("Authorization") ?? "";
   const token = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (!token) return null;
+  const payload = jwtPayload(token);
+  // Free pre-check, before the Auth round trip: the public anon key, a
+  // service key, junk and long-expired tokens can never be a signed-in user,
+  // so a flood of them costs no Auth API call. This only ever *rejects*;
+  // getUser() below is still what accepts.
+  if (!looksLikeUserToken(payload)) return null;
   const { data, error } = await admin.auth.getUser(token);
   if (error || !data.user) return null;
-  const payload = jwtPayload(token);
   if (payload?.sub !== data.user.id) return null;
   return { id: data.user.id, email: data.user.email, amr: amrOf(payload) };
 }

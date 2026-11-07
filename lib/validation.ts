@@ -102,3 +102,14 @@ export function useFormValidation<T>(schema: z.ZodType<T>, values: unknown) {
     allErrors: all,
   };
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Route params come from links anyone can type. Ids that can't be a uuid
+ * are "not found" without a request (Postgres would answer 400, which the
+ * screen would show as a connection problem and offer to retry).
+ */
+export function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID.test(value);
+}

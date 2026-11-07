@@ -11,7 +11,13 @@ export type ActivityKind =
   | "outcome_confirmed"
   | "reference_received"
   | "question_asked"
-  | "question_answered";
+  | "question_answered"
+  | "deal_proposed"
+  | "deal_agreed"
+  | "payment_due"
+  | "payment_reported"
+  | "payment_disputed"
+  | "payment_dispute_resolved";
 
 export type ActivityItem = {
   id: string;

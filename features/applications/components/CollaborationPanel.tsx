@@ -10,6 +10,7 @@ import { colors, radius, spacing, typography } from "../../../lib/theme";
 import type { Application } from "../api";
 import { useContact, useRecordOutcome } from "../hooks";
 import { collaborationState } from "../labels";
+import { DealSheetEntry } from "../../deals/components/DealSheetEntry";
 import { ReferenceComposer } from "./ReferenceComposer";
 
 type CollaborationPanelProps = {
@@ -114,6 +115,12 @@ export function CollaborationPanel({ application, viewerIsOwner }: Collaboration
           ))}
         </View>
       ) : null}
+
+      <DealSheetEntry
+        applicationId={application.id}
+        membershipId={membership.id}
+        side={viewerIsOwner ? "owner" : "member"}
+      />
 
       {state ? (
         <View style={styles.outcome}>

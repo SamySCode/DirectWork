@@ -71,6 +71,43 @@ describe("legal documents", () => {
     expect(privacy).toMatch(/still see it, marked as withdrawn/);
   });
 
+  it("covers Deal Sheets and payment records", () => {
+    expect(TERMS_VERSION).toBe("2026-11-07");
+    expect(PRIVACY_VERSION).toBe("2026-11-07");
+    const headings = (slug: string) => getLegalDocument(slug)!.sections.map((s) => s.heading);
+
+    expect(headings("terms")).toContain("12. Deal Sheets and payment records");
+    const terms = allText("terms");
+    expect(terms).toMatch(
+      /payment outcomes reported on agreed Deal Sheets are shown to signed-in users, with dispute rights/,
+    );
+    expect(terms).toMatch(/true, accurate/);
+    expect(terms).toMatch(/cover DirectWork's losses/);
+    expect(terms).toMatch(/dispute a report within 14 days/);
+    expect(terms).toMatch(/isn't a party to your deal/);
+    expect(terms).toMatch(/legal, tax or financial advice/);
+
+    const privacy = allText("privacy");
+    expect(privacy).toMatch(/Deal Sheets: the terms you propose/);
+    expect(privacy).toMatch(/Contract: it's a feature of the service/);
+    expect(privacy).toMatch(/Legitimate interests: helping professionals choose owners who pay/);
+    expect(privacy).toMatch(/Deal Sheets, payment reports and disputes/);
+    expect(privacy).toMatch(/your payment record/);
+
+    const policy = getLegalDocument("references")!;
+    expect(policy.title).toBe("Reviews, References & Payment Records Policy");
+    expect(headings("references")).toEqual(
+      expect.arrayContaining([
+        "How payment records are collected",
+        "How we check them",
+        "Disputing a payment record",
+        "Never paid for, never suppressed",
+      ]),
+    );
+    expect(headings("community-guidelines")).toContain("Deal Sheets and payment reports");
+    expect(allText("community-guidelines")).toMatch(/Report payments honestly/);
+  });
+
   it("reads operator details from operator.json", () => {
     expect(allText("contact")).toContain("[LEGAL NAME]");
     expect(allText("privacy")).toContain("[PRIVACY EMAIL]");

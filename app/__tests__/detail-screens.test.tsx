@@ -30,6 +30,10 @@ import { makeApplication, makeListing, makeProfile } from "../../test/fixtures";
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+jest.mock("../../features/deals/hooks", () => ({
+  useDealSheet: jest.fn(() => ({ data: null, isPending: false })),
+  usePayRecord: jest.fn(() => ({ data: null })),
+}));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn() }),
   useLocalSearchParams: jest.fn(),

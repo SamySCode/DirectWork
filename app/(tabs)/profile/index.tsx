@@ -14,6 +14,7 @@ import { useIsAdmin } from "../../../features/admin/hooks";
 import { signOut } from "../../../features/auth/api";
 import { useAuth } from "../../../features/auth/SessionProvider";
 import { ProfileStrengthCard } from "../../../features/profile/components/ProfileStrengthCard";
+import { PayRecordLine } from "../../../features/deals/components/PayRecordLine";
 import { ProfileView } from "../../../features/profile/components/ProfileView";
 import { profileStrength } from "../../../features/profile/strength";
 import { avatarUrl } from "../../../features/profile/api";
@@ -123,6 +124,7 @@ export default function ProfileScreen() {
         portfolio={portfolio.data}
         references={references.data}
         showHeader={false}
+        afterHeader={<PayRecordLine ownerId={profile.id} />}
       />
 
       <Card style={styles.menu}>

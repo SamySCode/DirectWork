@@ -11,6 +11,7 @@ import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { TextField } from "../components/TextField";
 import { useIsAdmin } from "../features/admin/hooks";
+import { PaymentDisputes } from "../features/deals/components/PaymentDisputes";
 import { timeAgo } from "../features/listings/labels";
 import { reportReasons, type OpenReport } from "../features/safety/api";
 import { useOpenReports, useResolveReport } from "../features/safety/hooks";
@@ -27,22 +28,22 @@ export default function ModerationScreen() {
   if (!isAdmin.data) return <EmptyState icon="lock-closed-outline" title="Reviewers only" />;
   if (reports.isPending) return <LoadingState />;
   if (reports.data === undefined) return <ErrorState onRetry={() => reports.refetch()} />;
-  if (reports.data.length === 0) {
-    return (
-      <EmptyState
-        icon="shield-checkmark-outline"
-        title="No open reports"
-        description="Reports from people show up here, oldest first."
-      />
-    );
-  }
 
   return (
     <Screen onRefresh={() => reports.refetch()} refreshing={reports.isRefetching}>
-      <Text style={styles.count}>{reports.data.length} open · oldest first</Text>
-      {reports.data.map((report) => (
-        <ReportItem key={report.id} report={report} />
-      ))}
+      {reports.data.length === 0 ? (
+        <Text style={styles.count}>
+          No open reports. Reports from people show up here, oldest first.
+        </Text>
+      ) : (
+        <>
+          <Text style={styles.count}>{reports.data.length} open · oldest first</Text>
+          {reports.data.map((report) => (
+            <ReportItem key={report.id} report={report} />
+          ))}
+        </>
+      )}
+      <PaymentDisputes enabled={!!isAdmin.data} />
     </Screen>
   );
 }

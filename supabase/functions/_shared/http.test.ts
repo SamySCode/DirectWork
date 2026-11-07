@@ -8,6 +8,7 @@ import {
   HttpError,
   isOriginAllowed,
   jwtPayload,
+  looksLikeUserToken,
   readBodyCapped,
 } from "./http.ts";
 import { amrAt, depsFor, fakeAdmin, fakeJwt, post, tokenFor, USER_ID } from "./testing.ts";
@@ -149,4 +150,39 @@ Deno.test("middleware: over the rate limit is 429 RATE_LIMITED", async () => {
   );
   const response = await limited(post({ Authorization: `Bearer ${tokenFor([])}` }));
   assertEquals([response.status, (await response.json()).code], [429, "RATE_LIMITED"]);
+});
+
+Deno.test(
+  "auth: tokens that can't be a signed-in user are refused before the Auth call",
+  async () => {
+    const admin = fakeAdmin();
+    const handler = createHandler(
+      "echo",
+      {},
+      async ({ user }) => ({ id: user.id }),
+      depsFor(admin),
+    );
+    const now = Math.floor(Date.now() / 1000);
+    for (const token of [
+      "junk",
+      fakeJwt({ role: "anon", iss: "supabase" }),
+      fakeJwt({ role: "service_role" }),
+      fakeJwt({ role: "authenticated" }),
+      fakeJwt({ role: "authenticated", sub: USER_ID, exp: now - 3600 }),
+    ]) {
+      assertEquals((await handler(post({ Authorization: `Bearer ${token}` }))).status, 401);
+    }
+    assertEquals(admin.calls.filter((c) => c === "auth.getUser").length, 0);
+
+    const fresh = fakeJwt({ role: "authenticated", sub: USER_ID, exp: now + 3600 });
+    assertEquals((await handler(post({ Authorization: `Bearer ${fresh}` }))).status, 200);
+    assertEquals(admin.calls.filter((c) => c === "auth.getUser").length, 1);
+  },
+);
+
+Deno.test("auth pre-check allows a minute of clock skew on expiry", () => {
+  const base = { role: "authenticated", sub: USER_ID };
+  assertEquals(looksLikeUserToken({ ...base, exp: 1000 }, 1030), true);
+  assertEquals(looksLikeUserToken({ ...base, exp: 1000 }, 1100), false);
+  assertEquals(looksLikeUserToken(null), false);
 });

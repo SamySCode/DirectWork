@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import type { ReactNode } from "react";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { Avatar } from "../../../components/Avatar";
 import { Badge } from "../../../components/Badge";
@@ -26,6 +27,8 @@ type ProfileViewProps = {
   references?: WorkReference[];
   /** False when the screen already shows name/photo in its own header. */
   showHeader?: boolean;
+  /** Rendered under the header - the owner's payment record on other people's profiles. */
+  afterHeader?: ReactNode;
 };
 
 export function ProfileView({
@@ -35,6 +38,7 @@ export function ProfileView({
   portfolio = [],
   references = [],
   showHeader = true,
+  afterHeader,
 }: ProfileViewProps) {
   const freshness = availabilityFreshness(profile);
   const fresh = freshnessLabel(freshness);
@@ -64,6 +68,8 @@ export function ProfileView({
           ) : null}
         </Card>
       ) : null}
+
+      {afterHeader}
 
       {trackRecord ? <OutcomeChain record={trackRecord} /> : null}
 

@@ -52,3 +52,5 @@ coverage/
 
 expo-env.d.ts
 # @end expo-cli
+# Local design-hook cache (impeccable plugin)
+.impeccable/

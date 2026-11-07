@@ -162,7 +162,9 @@ describe("listings", () => {
     );
     const {
       rows: [skill],
-    } = await db.query(`insert into public.skills (name) values ('Fintech') returning id`);
+    } = await db.query(
+      `insert into public.skills (name) values ('Open banking APIs') returning id`,
+    );
     await asUser(
       db,
       owner,
@@ -923,6 +925,8 @@ describe("schema guardrails", () => {
       "project_outcomes",
       "application_status_history",
       "legal_acceptances",
+      "deal_sheets",
+      "payment_reports",
     ]) {
       for (const privilege of ["INSERT", "UPDATE"]) {
         assert.equal(await has("authenticated", table, privilege), false, `${privilege} ${table}`);
@@ -944,6 +948,8 @@ describe("schema guardrails", () => {
       "project_outcomes",
       "application_status_history",
       "legal_acceptances",
+      "deal_sheets",
+      "payment_reports",
     ]) {
       assert.equal(await has("authenticated", table, "DELETE"), false, `DELETE ${table}`);
     }
@@ -1030,6 +1036,8 @@ describe("schema guardrails", () => {
           "project_outcomes",
           "application_status_history",
           "legal_acceptances",
+          "deal_sheets",
+          "payment_reports",
         ],
       ],
     );
@@ -2512,5 +2520,720 @@ describe("legal holds and retention", () => {
     await db.query(`select private.apply_retention(now() + interval '2 years')`);
     const gone = await db.query(`select id from public.applications where id = $1`, [appId]);
     assert.equal(gone.rows.length, 0, "once the hold is lifted, normal retention applies");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Deal Sheets and the pays-on-time record (20261107090000)
+// ---------------------------------------------------------------------------
+
+const SHEET = {
+  scope: "Build the booking flow screens and the payment step in React Native.",
+  pay_basis: "fixed",
+  amount: 2400,
+  currency: "GBP",
+  payment_terms_days: 14,
+  milestones: [],
+  ip_terms: "client_owns_on_payment",
+};
+
+/** YYYY-MM-DD, days from today (UTC; tests stay a few days clear of UK midnight). */
+function day(offset) {
+  return new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+}
+
+function milestone(offset, title = "Milestone") {
+  return { title, due_date: day(offset), amount: 500 };
+}
+
+async function propose(actor, membershipId, sheet = {}, business = false) {
+  const {
+    rows: [row],
+  } = await asService(db, `select public.svc_propose_deal($1, $2, $3, $4::jsonb) as id`, [
+    actor,
+    membershipId,
+    business,
+    JSON.stringify({ ...SHEET, ...sheet }),
+  ]);
+  return row.id;
+}
+
+function confirm(actor, dealId, version, business = false) {
+  return asService(db, `select public.svc_confirm_deal($1, $2, $3, $4)`, [
+    actor,
+    dealId,
+    version,
+    business,
+  ]);
+}
+
+async function reportPayment(actor, dealId, index, outcome, paidOn = null) {
+  const {
+    rows: [row],
+  } = await asService(db, `select public.svc_report_payment($1, $2, $3, $4, $5) as id`, [
+    actor,
+    dealId,
+    index,
+    outcome,
+    paidOn,
+  ]);
+  return row.id;
+}
+
+function disputePayment(actor, reportId, reason) {
+  return asService(db, `select public.svc_dispute_payment($1, $2, $3)`, [actor, reportId, reason]);
+}
+
+function resolveDispute(actor, reportId, uphold, note = null) {
+  return asService(db, `select public.svc_resolve_payment_dispute($1, $2, $3, $4)`, [
+    actor,
+    reportId,
+    uphold,
+    note,
+  ]);
+}
+
+async function dealRow(id) {
+  return (await db.query(`select * from public.deal_sheets where id = $1`, [id])).rows[0];
+}
+
+async function kinds(userId, membershipId) {
+  const { rows } = await asUser(
+    db,
+    userId,
+    `select kind from public.activity where membership_id = $1 order by kind`,
+    [membershipId],
+  );
+  return rows.map((r) => r.kind);
+}
+
+/** An accepted pair whose professional account is old enough to count. */
+async function agreedDeal(sheet = {}, { memberAgeDays = 30 } = {}) {
+  const pair = await acceptedPair();
+  await db.query(
+    `update public.profiles set created_at = now() - make_interval(days => $2) where id = $1`,
+    [pair.member, memberAgeDays],
+  );
+  const dealId = await propose(pair.owner, pair.membershipId, sheet);
+  await confirm(pair.member, dealId, 1);
+  return { ...pair, dealId };
+}
+
+async function partnerPair() {
+  const owner = await createUser(db);
+  const partner = await createUser(db);
+  const projectId = await createDraft(db, owner, { type: "partner" });
+  await publish(db, owner, admin, projectId);
+  const appId = await apply(partner, projectId);
+  await asService(db, `select public.svc_decide_application($1, $2, true, null)`, [owner, appId]);
+  const {
+    rows: [m],
+  } = await db.query(`select id from public.project_memberships where application_id = $1`, [
+    appId,
+  ]);
+  return { owner, partner, membershipId: m.id };
+}
+
+async function payRecord(ownerId, viewer = admin) {
+  const { rows } = await asUser(db, viewer, `select * from public.get_pay_record($1)`, [ownerId]);
+  return rows;
+}
+
+function inAnon(sql, params = []) {
+  return db.transaction(async (tx) => {
+    await tx.exec(`set local role anon`);
+    return tx.query(sql, params);
+  });
+}
+
+const DISPUTE_REASON = "We paid this by bank transfer on the due date.";
+
+describe("deal sheets", () => {
+  test("only the two parties read it, nobody writes it directly, outsiders can't propose", async () => {
+    const { owner, member, membershipId } = await acceptedPair();
+    const outsider = await createUser(db);
+    const dealId = await propose(owner, membershipId);
+
+    for (const [who, count] of [
+      [owner, 1],
+      [member, 1],
+      [outsider, 0],
+      [admin, 0],
+    ]) {
+      const { rows } = await asUser(db, who, `select id from public.deal_sheets where id = $1`, [
+        dealId,
+      ]);
+      assert.equal(rows.length, count);
+    }
+    await assert.rejects(
+      asUser(db, member, `update public.deal_sheets set amount = 1 where id = $1`, [dealId]),
+      { code: "42501" },
+    );
+    await assert.rejects(
+      asUser(
+        db,
+        owner,
+        `insert into public.deal_sheets (membership_id, proposed_by, scope, pay_basis, ip_terms)
+         values ($1, $2, 'Twenty characters of scope here', 'fixed', 'joint')`,
+        [membershipId, owner],
+      ),
+      { code: "42501" },
+    );
+    await assert.rejects(propose(outsider, membershipId), { code: "P0002" });
+    await assert.rejects(confirm(outsider, dealId, 1), { code: "P0002" });
+    await assert.rejects(
+      asUser(db, owner, `select public.svc_propose_deal($1, $2, false, '{}'::jsonb)`, [
+        owner,
+        membershipId,
+      ]),
+      { code: "42501" },
+    );
+  });
+
+  test("a new version clears both confirmations; agreed only when both confirm the same one", async () => {
+    const { owner, member, membershipId } = await acceptedPair();
+    const dealId = await propose(owner, membershipId);
+    let row = await dealRow(dealId);
+    assert.equal(row.version, 1);
+    assert.equal(row.owner_confirmed_version, 1);
+    assert.equal(row.member_confirmed_version, null);
+    assert.equal(row.agreed_at, null);
+    assert.deepEqual(await kinds(member, membershipId), ["deal_proposed"]);
+    assert.ok(!(await kinds(owner, membershipId)).includes("deal_proposed"));
+
+    await confirm(member, dealId, 1, true);
+    row = await dealRow(dealId);
+    assert.notEqual(row.agreed_at, null);
+    assert.equal(row.member_business, true);
+    assert.ok((await kinds(owner, membershipId)).includes("deal_agreed"));
+    assert.ok((await kinds(member, membershipId)).includes("deal_agreed"));
+    // Changing the business flag after agreement needs a new version.
+    await assert.rejects(confirm(member, dealId, 1, false), { code: "P0001" });
+
+    // Any edit (even after agreement) bumps the version and clears both.
+    await propose(member, membershipId, { amount: 2600 });
+    row = await dealRow(dealId);
+    assert.equal(row.version, 2);
+    assert.equal(row.proposed_by, member);
+    assert.equal(row.member_confirmed_version, 2);
+    assert.equal(row.owner_confirmed_version, null);
+    assert.equal(row.agreed_at, null);
+    assert.ok((await kinds(owner, membershipId)).includes("deal_proposed"));
+
+    await assert.rejects(confirm(owner, dealId, 1), { code: "P0001", message: /^DEAL_CHANGED: / });
+    assert.equal((await dealRow(dealId)).agreed_at, null);
+    await confirm(owner, dealId, 2, true);
+    row = await dealRow(dealId);
+    assert.notEqual(row.agreed_at, null);
+    assert.equal(row.owner_business, true);
+  });
+
+  test("fields are checked: lengths, blanks, milestones, IP notes, partner-only equity", async () => {
+    const { owner, membershipId } = await acceptedPair();
+    const bad = [
+      { scope: "Too short" },
+      { scope: "​ ".repeat(30) },
+      { scope: "x".repeat(2001) },
+      { pay_basis: "barter" },
+      { currency: "JPY" },
+      { payment_terms_days: 121 },
+      { amount: -1 },
+      { amount: "lots" },
+      { milestones: Array.from({ length: 13 }, () => milestone(10)) },
+      { milestones: [{ title: "Design", due_date: "2026-02-30" }] },
+      { milestones: [{ title: "Design", due_date: "next week" }] },
+      { milestones: [{ title: "  ", due_date: day(10) }] },
+      { ip_terms: "other" },
+      { ip_notes: "n".repeat(501) },
+      { equity_percent: 5 },
+      { vesting_months: 48 },
+    ];
+    for (const sheet of bad) {
+      await assert.rejects(
+        propose(owner, membershipId, sheet),
+        { code: "22023" },
+        JSON.stringify(sheet),
+      );
+    }
+    const { rows: none } = await db.query(
+      `select id from public.deal_sheets where membership_id = $1`,
+      [membershipId],
+    );
+    assert.equal(none.length, 0);
+
+    const dealId = await propose(owner, membershipId, {
+      milestones: [{ title: "  Design  ", dueDate: "ignored", due_date: day(10), amount: 1200 }],
+      ip_terms: "other",
+      ip_notes: "Creator keeps the component library.",
+    });
+    const row = await dealRow(dealId);
+    assert.deepEqual(row.milestones, [{ title: "Design", due_date: day(10), amount: 1200 }]);
+
+    // Partner collaborations can carry equity terms.
+    const { partner, membershipId: partnerMembership } = await partnerPair();
+    const equity = { pay_basis: "equity", amount: null, equity_percent: 10, vesting_months: 48 };
+    await assert.rejects(propose(partner, partnerMembership, { ...equity, cliff_months: 60 }), {
+      code: "22023",
+    });
+    const partnerDeal = await propose(partner, partnerMembership, { ...equity, cliff_months: 12 });
+    assert.equal(Number((await dealRow(partnerDeal)).equity_percent), 10);
+  });
+
+  test("blocked pairs can't propose or confirm", async () => {
+    const { owner, member, membershipId } = await acceptedPair();
+    const dealId = await propose(owner, membershipId);
+    await asUser(db, member, `insert into public.blocks (blocked_id) values ($1)`, [owner]);
+    await assert.rejects(confirm(member, dealId, 1), { code: "P0002" });
+    await assert.rejects(propose(owner, membershipId), { code: "P0002" });
+  });
+});
+
+describe("payment reports", () => {
+  test("professional only, agreed deals only, after the due date, one per milestone", async () => {
+    const { owner, member, membershipId } = await acceptedPair();
+    const outsider = await createUser(db);
+    const dealId = await propose(owner, membershipId, {
+      milestones: [milestone(-5, "Design"), milestone(5, "Build")],
+    });
+    await assert.rejects(reportPayment(member, dealId, 0, "on_time"), { code: "P0001" });
+    await confirm(member, dealId, 1);
+
+    await assert.rejects(reportPayment(owner, dealId, 0, "on_time"), { code: "42501" });
+    await assert.rejects(reportPayment(outsider, dealId, 0, "on_time"), { code: "P0002" });
+    await assert.rejects(reportPayment(member, dealId, 1, "unpaid"), {
+      code: "P0001",
+      message: /^NOT_DUE_YET: /,
+    });
+    await assert.rejects(reportPayment(member, dealId, null, "on_time"), { code: "22023" });
+    await assert.rejects(reportPayment(member, dealId, 2, "on_time"), { code: "22023" });
+    await assert.rejects(reportPayment(member, dealId, 0, "late"), { code: "22023" });
+    await assert.rejects(reportPayment(member, dealId, 0, "late", day(-6)), { code: "22023" });
+    await assert.rejects(reportPayment(member, dealId, 0, "on_time", day(-2)), { code: "22023" });
+    await assert.rejects(reportPayment(member, dealId, 0, "unpaid", day(-6)), { code: "22023" });
+    await assert.rejects(reportPayment(member, dealId, 0, "late", day(3)), { code: "22023" });
+
+    const reportId = await reportPayment(member, dealId, 0, "unpaid");
+    assert.ok((await kinds(owner, membershipId)).includes("payment_reported"));
+    // A second report for the same milestone corrects the first.
+    assert.equal(await reportPayment(member, dealId, 0, "late", day(-2)), reportId);
+    const { rows } = await db.query(
+      `select outcome, paid_on::text from public.payment_reports where deal_sheet_id = $1`,
+      [dealId],
+    );
+    assert.deepEqual(rows, [{ outcome: "late", paid_on: day(-2) }]);
+
+    // Parties read reports; outsiders and admins (outside the RPC) don't.
+    for (const [who, count] of [
+      [owner, 1],
+      [member, 1],
+      [outsider, 0],
+      [admin, 0],
+    ]) {
+      const { rows: seen } = await asUser(
+        db,
+        who,
+        `select id from public.payment_reports where id = $1`,
+        [reportId],
+      );
+      assert.equal(seen.length, count);
+    }
+    await assert.rejects(
+      asUser(db, member, `update public.payment_reports set outcome = 'on_time' where id = $1`, [
+        reportId,
+      ]),
+      { code: "42501" },
+    );
+
+    // Corrections close after 14 days.
+    await db.query(
+      `update public.payment_reports set created_at = now() - interval '15 days' where id = $1`,
+      [reportId],
+    );
+    await assert.rejects(reportPayment(member, dealId, 0, "on_time"), { code: "P0001" });
+
+    // Terms can't be rewritten under a report.
+    await assert.rejects(propose(owner, membershipId, { amount: 1 }), { code: "P0001" });
+  });
+
+  test("without milestones the due date is the agreed date plus the payment terms", async () => {
+    const { member, dealId } = await agreedDeal({ payment_terms_days: 14 });
+    await assert.rejects(reportPayment(member, dealId, null, "unpaid"), {
+      code: "P0001",
+      message: /^NOT_DUE_YET: /,
+    });
+    await assert.rejects(reportPayment(member, dealId, 0, "unpaid"), { code: "22023" });
+    await db.query(
+      `update public.deal_sheets set agreed_at = now() - interval '20 days' where id = $1`,
+      [dealId],
+    );
+    assert.ok(await reportPayment(member, dealId, null, "unpaid"));
+  });
+
+  test("equity-only deals have nothing to report", async () => {
+    const { owner, partner, membershipId } = await partnerPair();
+    const dealId = await propose(owner, membershipId, {
+      pay_basis: "equity",
+      amount: null,
+      equity_percent: 5,
+      milestones: [milestone(-5)],
+    });
+    await confirm(partner, dealId, 1);
+    await assert.rejects(reportPayment(partner, dealId, 0, "unpaid"), { code: "P0001" });
+  });
+});
+
+describe("payment disputes", () => {
+  test("owner only, once, within 14 days, with a 20-500 character reason", async () => {
+    const { owner, member, membershipId, dealId } = await agreedDeal({
+      milestones: [milestone(-5), milestone(-4)],
+    });
+    const outsider = await createUser(db);
+    const reportId = await reportPayment(member, dealId, 0, "unpaid");
+
+    await assert.rejects(disputePayment(member, reportId, DISPUTE_REASON), { code: "42501" });
+    await assert.rejects(disputePayment(outsider, reportId, DISPUTE_REASON), { code: "P0002" });
+    await assert.rejects(disputePayment(admin, reportId, DISPUTE_REASON), { code: "P0002" });
+    await assert.rejects(disputePayment(owner, reportId, "Not true"), { code: "22023" });
+    await assert.rejects(disputePayment(owner, reportId, "​".repeat(40)), { code: "22023" });
+    await assert.rejects(disputePayment(owner, reportId, "r".repeat(501)), { code: "22023" });
+
+    await disputePayment(owner, reportId, DISPUTE_REASON);
+    assert.ok((await kinds(member, membershipId)).includes("payment_disputed"));
+    await assert.rejects(disputePayment(owner, reportId, DISPUTE_REASON), { code: "P0001" });
+    // A disputed report waits for a reviewer; the reporter can't edit it.
+    await assert.rejects(reportPayment(member, dealId, 0, "on_time"), { code: "P0001" });
+
+    // The window runs from when the report was made (or last corrected).
+    const stale = await reportPayment(member, dealId, 1, "unpaid");
+    await db.transaction(async (tx) => {
+      await tx.exec(`set local session_replication_role = replica`);
+      await tx.query(
+        `update public.payment_reports set updated_at = now() - interval '15 days' where id = $1`,
+        [stale],
+      );
+    });
+    await assert.rejects(disputePayment(owner, stale, DISPUTE_REASON), { code: "P0001" });
+  });
+
+  test("only admins resolve; both parties hear the outcome; admins read the deal via RPC", async () => {
+    const { owner, member, membershipId, dealId } = await agreedDeal({
+      milestones: [milestone(-5)],
+    });
+    const reportId = await reportPayment(member, dealId, 0, "unpaid");
+    await assert.rejects(resolveDispute(admin, reportId, true), { code: "P0001" });
+    await disputePayment(owner, reportId, DISPUTE_REASON);
+
+    await assert.rejects(resolveDispute(owner, reportId, true), { code: "42501" });
+    await assert.rejects(resolveDispute(member, reportId, false), { code: "42501" });
+    await assert.rejects(
+      asUser(db, admin, `select public.svc_resolve_payment_dispute($1, $2, true, null)`, [
+        admin,
+        reportId,
+      ]),
+      { code: "42501" },
+    );
+
+    const read = async (who) =>
+      (await asUser(db, who, `select public.get_deal_for_dispute($1) as v`, [reportId])).rows[0].v;
+    assert.equal(await read(owner), null);
+    assert.equal(await read(member), null);
+    const view = await read(admin);
+    assert.equal(view.deal.id, dealId);
+    assert.equal(view.report.id, reportId);
+    assert.equal(view.report.dispute_status, "disputed");
+
+    await resolveDispute(admin, reportId, true, "Bank statement shows payment on time.");
+    const {
+      rows: [row],
+    } = await db.query(
+      `select r.dispute_status, r.resolved_at is not null as resolved, x.note, x.resolved_by
+       from public.payment_reports r join private.payment_dispute_resolutions x on x.report_id = r.id
+       where r.id = $1`,
+      [reportId],
+    );
+    assert.deepEqual(row, {
+      dispute_status: "upheld",
+      resolved: true,
+      note: "Bank statement shows payment on time.",
+      resolved_by: admin,
+    });
+    await assert.rejects(resolveDispute(admin, reportId, false), { code: "P0001" });
+    for (const who of [owner, member]) {
+      const { rows } = await asUser(
+        db,
+        who,
+        `select actor_id from public.activity
+         where membership_id = $1 and kind = 'payment_dispute_resolved'`,
+        [membershipId],
+      );
+      assert.deepEqual(rows, [{ actor_id: null }]);
+    }
+  });
+});
+
+describe("pays-on-time record", () => {
+  test("counts agreed, undisputed reports and shows nothing below 3", async () => {
+    const { owner, member, dealId } = await agreedDeal({
+      milestones: [milestone(-9), milestone(-8), milestone(-7), milestone(-6)],
+    });
+    const viewer = await createUser(db);
+    await reportPayment(member, dealId, 0, "on_time");
+    await reportPayment(member, dealId, 1, "late", day(-3));
+    assert.deepEqual(await payRecord(owner, viewer), []);
+    await reportPayment(member, dealId, 2, "on_time");
+    assert.deepEqual(await payRecord(owner, viewer), [
+      { counted: 3, on_time: 2, late: 1, unpaid: 0 },
+    ]);
+
+    const disputed = await reportPayment(member, dealId, 3, "unpaid");
+    assert.equal((await payRecord(owner, viewer))[0].unpaid, 1);
+    await disputePayment(owner, disputed, DISPUTE_REASON);
+    assert.equal((await payRecord(owner, viewer))[0].counted, 3);
+    await resolveDispute(admin, disputed, false);
+    assert.deepEqual(await payRecord(owner, viewer), [
+      { counted: 4, on_time: 2, late: 1, unpaid: 1 },
+    ]);
+    // Only about owners: the professional has no pay record of their own.
+    assert.deepEqual(await payRecord(member, viewer), []);
+    await assert.rejects(inAnon(`select * from public.get_pay_record($1)`, [owner]), {
+      code: "42501",
+    });
+  });
+
+  test("an upheld dispute removes the report from the record", async () => {
+    const { owner, member, dealId } = await agreedDeal({
+      milestones: [milestone(-9), milestone(-8), milestone(-7)],
+    });
+    const ids = [];
+    for (const i of [0, 1, 2]) ids.push(await reportPayment(member, dealId, i, "unpaid"));
+    assert.equal((await payRecord(owner))[0].counted, 3);
+    await disputePayment(owner, ids[0], DISPUTE_REASON);
+    await resolveDispute(admin, ids[0], true);
+    assert.deepEqual(await payRecord(owner), []);
+  });
+
+  test("reports from accounts under 14 days old at agreement don't count (sock puppets)", async () => {
+    const { owner, member, dealId } = await agreedDeal(
+      { milestones: [milestone(-9), milestone(-8), milestone(-7)] },
+      { memberAgeDays: 13 },
+    );
+    for (const i of [0, 1, 2]) await reportPayment(member, dealId, i, "unpaid");
+    assert.deepEqual(await payRecord(owner), []);
+    // The same reports count once the account was old enough at agreement.
+    await db.query(
+      `update public.profiles set created_at = now() - interval '30 days' where id = $1`,
+      [member],
+    );
+    assert.equal((await payRecord(owner))[0].counted, 3);
+  });
+});
+
+describe("payment due notices", () => {
+  test("go to the professional on the due date, once, only for agreed deals", async () => {
+    const due = "2031-03-10";
+    const { owner, member, membershipId } = await agreedDeal({
+      milestones: [{ title: "Design", due_date: due, amount: 500 }],
+    });
+    const pending = await acceptedPair();
+    await propose(pending.owner, pending.membershipId, {
+      milestones: [{ title: "Design", due_date: due }],
+    });
+    const dueCount = async (who, m) =>
+      (await kinds(who, m)).filter((k) => k === "payment_due").length;
+
+    await db.query(`select private.emit_payment_due('2031-03-09')`);
+    assert.equal(await dueCount(member, membershipId), 0);
+    await db.query(`select private.emit_payment_due('2031-03-10')`);
+    assert.equal(await dueCount(member, membershipId), 1);
+    assert.equal(await dueCount(owner, membershipId), 0);
+    assert.equal(await dueCount(pending.member, pending.membershipId), 0);
+
+    // Read it, run again the next day: no second notice.
+    await db.query(`update public.activity set read_at = now() where user_id = $1`, [member]);
+    await db.query(`select private.emit_payment_due('2031-03-11')`);
+    assert.equal(await dueCount(member, membershipId), 1);
+
+    await assert.rejects(asUser(db, member, `select private.emit_payment_due(null)`), {
+      code: "42501",
+    });
+  });
+});
+
+describe("data export: deal sheets", () => {
+  test("includes your deals, their reports and your disputes; never a stranger's", async () => {
+    const mine = await agreedDeal({ milestones: [milestone(-5)] });
+    const theirs = await agreedDeal({ milestones: [milestone(-5)] });
+    const myReport = await reportPayment(mine.member, mine.dealId, 0, "unpaid");
+    const theirReport = await reportPayment(theirs.member, theirs.dealId, 0, "unpaid");
+    await disputePayment(mine.owner, myReport, DISPUTE_REASON);
+    await disputePayment(theirs.owner, theirReport, DISPUTE_REASON);
+    await resolveDispute(admin, myReport, false, "Reviewer-only note");
+
+    const exportFor = async (who) =>
+      (await asUser(db, who, `select public.export_my_data() as data`)).rows[0].data;
+    const owner = await exportFor(mine.owner);
+    const member = await exportFor(mine.member);
+
+    for (const data of [owner, member]) {
+      assert.deepEqual(
+        data.deal_sheets.map((d) => d.id),
+        [mine.dealId],
+      );
+      assert.deepEqual(
+        data.payment_reports.map((r) => r.id),
+        [myReport],
+      );
+      assert.ok(!JSON.stringify(data).includes(theirs.dealId));
+      assert.ok(!JSON.stringify(data).includes(theirReport));
+      assert.ok(!JSON.stringify(data).includes("Reviewer-only note"));
+    }
+    assert.deepEqual(
+      owner.payment_disputes_raised.map((d) => [d.report_id, d.status]),
+      [[myReport, "rejected"]],
+    );
+    assert.deepEqual(member.payment_disputes_raised, []);
+
+    const stranger = await exportFor(await createUser(db));
+    assert.deepEqual(stranger.deal_sheets, []);
+    assert.deepEqual(stranger.payment_reports, []);
+    assert.deepEqual(stranger.payment_disputes_raised, []);
+  });
+});
+
+describe("payment dispute moderation access", () => {
+  test("admins can list disputed payment reports; other outsiders can't", async () => {
+    const outsider = await createUser(db);
+    const visible = (who) =>
+      asUser(
+        db,
+        who,
+        `select count(*)::int as n from public.payment_reports where dispute_status <> 'none'`,
+      ).then((r) => r.rows[0].n);
+    const total = (
+      await db.query(
+        `select count(*)::int as n from public.payment_reports where dispute_status <> 'none'`,
+      )
+    ).rows[0].n;
+    assert.equal(await visible(admin), total, "admins see every disputed report");
+    assert.equal(await visible(outsider), 0, "a non-party, non-admin sees none");
+  });
+});
+
+describe("skills search", () => {
+  test("starter skills are there and matches are ranked", async () => {
+    const user = await createUser(db);
+    const search = async (q) =>
+      (await asUser(db, user, `select name from public.search_skills($1)`, [q])).rows.map(
+        (r) => r.name,
+      );
+    const design = await search("design");
+    assert.equal(design.length, 10, "typing 'design' fills the suggestion list");
+    assert.equal(design[0], "Design systems", "names starting with the query come first");
+    const marketing = await search("Marketing");
+    assert.equal(marketing[0], "Marketing", "an exact match comes first");
+    const ux = await search("ux");
+    assert.equal(ux[0], "UX design", "names starting with the query beat other matches");
+    assert.deepEqual(await search("   "), [], "blank queries return nothing");
+    assert.deepEqual(await search("%"), [], "% is matched literally, not as a wildcard");
+    const { rows } = await db.query(
+      `select has_function_privilege('anon', 'public.search_skills(text)', 'execute') as ok`,
+    );
+    assert.equal(rows[0].ok, false, "signed-out visitors can't search skills");
+  });
+});
+
+describe("abuse hardening (20261107100000)", () => {
+  test("read policies don't run a per-row helper over the whole table", async () => {
+    // owns_project / has_applied / is_membership_party per row made an
+    // unfiltered read cost O(platform). Policies must use the set helpers.
+    const { rows } = await db.query(
+      `select tablename, policyname from pg_policies
+       where schemaname = 'public' and cmd = 'SELECT'
+         and qual ~ '(owns_project|has_applied|is_membership_party)[(]'`,
+    );
+    assert.deepEqual(rows, []);
+  });
+
+  test("an outsider's unfiltered reads still return nothing private", async () => {
+    const owner = await createUser(db);
+    const pro = await createUser(db);
+    const outsider = await createUser(db);
+    const project = await createDraft(db, owner);
+    await publish(db, owner, admin, project);
+    const application = await apply(pro, project);
+    await asService(db, `select public.svc_decide_application($1, $2, true, null)`, [
+      owner,
+      application,
+    ]);
+    const count = async (who, table) =>
+      (await asUser(db, who, `select count(*)::int as n from public.${table}`)).rows[0].n;
+    for (const table of ["applications", "project_memberships", "application_status_history"]) {
+      assert.equal(await count(outsider, table), 0, `${table}: outsider sees none`);
+      assert.ok((await count(owner, table)) >= 1, `${table}: owner sees theirs`);
+      assert.ok((await count(pro, table)) >= 1, `${table}: applicant sees theirs`);
+    }
+  });
+
+  test("skills search needs 2+ characters and stays ranked with many matches", async () => {
+    const user = await createUser(db);
+    const search = async (q) =>
+      (await asUser(db, user, `select name from public.search_skills($1)`, [q])).rows.map(
+        (r) => r.name,
+      );
+    assert.deepEqual(await search("a"), [], "one character is not searched");
+    await db.query(
+      `insert into public.skills (name) select 'Zq filler ' || g from generate_series(1, 120) g
+       on conflict do nothing`,
+    );
+    await db.query(`insert into public.skills (name) values ('Zq') on conflict do nothing`);
+    const zq = await search("zq");
+    assert.equal(zq.length, 10);
+    assert.equal(zq[0], "Zq", "the exact match still comes first");
+  });
+
+  test("data export is limited per account per hour", async () => {
+    const user = await createUser(db);
+    for (let i = 0; i < 10; i++) {
+      await asUser(db, user, `select public.export_my_data()`);
+    }
+    await assert.rejects(asUser(db, user, `select public.export_my_data()`), {
+      code: "P0001",
+      message: /several times this hour/,
+    });
+    const other = await createUser(db);
+    await asUser(db, other, `select public.export_my_data()`);
+  });
+
+  test("marking read only touches unread rows, can't un-read, and uses server time", async () => {
+    const user = await createUser(db);
+    await db.query(
+      `insert into public.activity (user_id, kind) values ($1, 'listing_published'), ($1, 'listing_published')`,
+      [user],
+    );
+    const first = await asUser(
+      db,
+      user,
+      `update public.activity set read_at = '2001-01-01' where user_id = $1 returning read_at`,
+      [user],
+    );
+    assert.equal(first.rows.length, 2);
+    assert.ok(
+      first.rows.every((r) => r.read_at > new Date(Date.now() - 60_000)),
+      "server time",
+    );
+    const again = await asUser(
+      db,
+      user,
+      `update public.activity set read_at = now() where user_id = $1 returning id`,
+      [user],
+    );
+    assert.equal(again.rows.length, 0, "already-read rows aren't rewritten");
+    const unread = await asUser(
+      db,
+      user,
+      `update public.activity set read_at = null where user_id = $1 returning id`,
+      [user],
+    );
+    assert.equal(unread.rows.length, 0, "read rows can't be marked unread");
   });
 });

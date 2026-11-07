@@ -44,6 +44,9 @@ export const privacy: LegalDocument = {
         "Listings (if you post work): title, description, location, commitment, duration, pay range or partnership terms, required skills, questions for applicants and up to 4 images.",
         "Applications: your cover note, up to 3 work-sample images, and your answers to the owner's questions.",
         "Working together: whether a collaboration was completed or ended early, an optional summary, and references you write.",
+        "Deal Sheets: the terms you propose or confirm (scope, pay basis and amount, payment terms, milestones, intellectual property, and for partnerships equity, vesting and decision rights), whether you act in the course of business, and which version you confirmed and when.",
+        "Payment reports (professionals): whether each payment due under an agreed Deal Sheet was paid on time, paid late (and when) or not paid, and any correction.",
+        "Disputes (owners): your reason for disputing a payment report.",
         "Safety: reports you make (a reason and optional details) and people you block.",
         ...(billing
           ? ["Billing (Pro only): your subscription status. Card details go straight to Stripe."]
@@ -58,7 +61,8 @@ export const privacy: LegalDocument = {
       p("From other people and organisations:"),
       list(
         "Listing owners: questions they ask you and any note they add when deciding on your application.",
-        "People you worked with: their confirmation of how the work went, and references they write about you.",
+        "People you worked with: their confirmation of how the work went, references they write about you, Deal Sheet terms they propose, and (if you're the owner) payment reports they make about payments due from you.",
+        "Our moderators: the outcome of a payment dispute.",
         "Other members and our moderators: reports about you or your listings, and our decisions on them.",
         ...(billing ? ["Stripe: whether your subscription is active, and its renewal date."] : []),
       ),
@@ -85,6 +89,14 @@ export const privacy: LegalDocument = {
         [
           "Record collaboration outcomes; show references and track records to members",
           "Contract, and our legitimate interests in helping members judge who to work with",
+        ],
+        [
+          "Record Deal Sheets the two of you propose and confirm; let either of you save a PDF; take payment reports and disputes",
+          "Contract: it's a feature of the service you choose to use",
+        ],
+        [
+          "Show owners' payment records (a count of reported payments) to signed-in members, and decide disputes",
+          "Legitimate interests: helping professionals choose owners who pay as agreed, and keeping records accurate and fair. We've balanced this against owners' interests: only reports on Deal Sheets the owner confirmed count, disputed reports are excluded until a person decides, and only a count is shown",
         ],
         [
           "Show owners' reply records and members' availability dates",
@@ -127,7 +139,11 @@ export const privacy: LegalDocument = {
         "your skills and portfolio;",
         "references written about you, with the author's name and photo;",
         "your track record (how many different people you've completed work with, as confirmed by both sides);",
-        "your published listings and, if you post work, your reply record.",
+        "your published listings and, if you post work, your reply record;",
+        "if you're an owner with at least 3 counting payment reports, your payment record: how many reported payments were paid on time, out of how many, reported by professionals.",
+      ),
+      p(
+        "A Deal Sheet, and the individual payment reports and disputes on it, are seen only by the two people in that collaboration. Moderators see them only when handling a dispute or a complaint.",
       ),
       p(
         "Anyone who has an image link, signed in or not, can open profile photos, portfolio images and listing images. Links contain long random codes and your account ID, so they can't be guessed, but anyone a link is passed to can open it.",
@@ -173,6 +189,7 @@ export const privacy: LegalDocument = {
       list(
         "Reply record (owners): how many applications you received and replied to in the last 180 days, and your typical reply time. Withdrawn applications, ones under 7 days old, and ones declined automatically when a listing closed don't count against you.",
         "Track record: the number of different people you've completed work with, where both of you confirmed it was completed.",
+        "Payment record (owners): the number of payments professionals reported as paid on time, out of the reports that count. A report counts only if it's on an agreed Deal Sheet, isn't under dispute or upheld, and the professional's account was at least 14 days old when the Deal Sheet was agreed. It's shown only once at least 3 reports count. It isn't a credit reference: we don't sell it, share it outside DirectWork or use it to make decisions about you.",
         "Availability: if you're open to work and haven't confirmed it for 30 days, your profile says so and you're left out of \"available\" counts.",
       ),
       p('"Best match" ordering is worked out on your device from your own skills.'),
@@ -215,6 +232,10 @@ export const privacy: LegalDocument = {
           "While both people have accounts. If either of you deletes your account, the collaboration, its outcome and the references between you are deleted, so they disappear from the other person's profile too.",
         ],
         [
+          "Deal Sheets, payment reports and disputes",
+          "While both people have accounts, with the collaboration. If either of you deletes your account, they are deleted, and drop out of the owner's payment record. A report removed after an upheld dispute is deleted.",
+        ],
+        [
           "Activity notifications",
           "Read notifications for 180 days; any notification for at most 365 days.",
         ],
@@ -245,7 +266,7 @@ export const privacy: LegalDocument = {
     section(
       "10. When you delete your account",
       p(
-        `We delete your profile, photos and files, listings, applications, collaborations, references and blocks${billing ? ", and your Stripe customer record (which cancels any subscription)" : ""}. Reports you made, and reports about you, are kept without the link to your account, for the periods in Section 9. We keep only what that table says we must or may keep.`,
+        `We delete your profile, photos and files, listings, applications, collaborations, Deal Sheets, payment reports, references and blocks${billing ? ", and your Stripe customer record (which cancels any subscription)" : ""}. Reports you made, and reports about you, are kept without the link to your account, for the periods in Section 9. We keep only what that table says we must or may keep.`,
       ),
       p("Some copies outlast deletion for a short time:"),
       list(
@@ -262,7 +283,7 @@ export const privacy: LegalDocument = {
         "correct it;",
         "delete it;",
         "restrict how we use it;",
-        "object to processing based on legitimate interests, including the signals in Section 7;",
+        "object to processing based on legitimate interests, including the signals in Section 7 and your payment record;",
         "move data you gave us to another service, in a machine-readable format.",
       ),
       p("How to use them:"),
@@ -277,6 +298,7 @@ export const privacy: LegalDocument = {
         "We search for your information in ways that are reasonable and proportionate.",
         "It's free. We may refuse or charge for requests that are manifestly unfounded or excessive.",
         "Some rights have limits. For example, we keep records the law requires, and we won't reveal who reported you.",
+        "If a payment report about you is inaccurate, dispute it from the Deal Sheet within 14 days, or email us at any time. Disputing is also how you ask us to correct it.",
       ),
     ),
     section(

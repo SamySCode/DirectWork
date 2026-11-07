@@ -3,6 +3,24 @@
 Written 2026-11-07 for the owner. It assumes you have done nothing yet
 except push the code to GitHub and run `npx supabase login`.
 
+## Target timeline: Leeds launch, January 2027
+
+Decided 2026-11-07: launch in Leeds in the first full working week of
+January (new-year momentum), with Leeds Digital Festival's Mini-Fest
+(20–22 April 2027) as the second push. Plan detail: docs/marketing/city-launch.md.
+
+| Dates                   | Focus                    | Done when                                                                                                                                                                                                |
+| ----------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Now – 22 Nov 2026       | App complete             | Deal Sheet merged, staging deployed and smoke-tested, real-device builds, expo-updates + SDK 58, admin MFA, Sentry                                                                                       |
+| Now – 30 Nov 2026       | Legal (in parallel)      | Entity formed, ICO fee paid, operator.json filled, solicitor booked and reviewing (incl. trade mark clearance for "DirectWork"), immigration advice, OSA assessments signed, NCA registered, DPAs signed |
+| 23 Nov – 6 Dec 2026     | Production + closed beta | London Pro project live, SES + Cloudflare live, 10–20 Leeds beta users, fixes shipped                                                                                                                    |
+| 7 Dec 2026 – 3 Jan 2027 | Brand + campaign         | Brand identity, landing page + waitlist live, videos produced, 20 partners approached (expect a Christmas lull)                                                                                          |
+| 4–10 Jan 2027           | **Leeds launch**         | Waitlist invited, partner events, launch content out                                                                                                                                                     |
+| Apr 2027                | Second push              | Mini-Fest; then decide on Manchester                                                                                                                                                                     |
+
+Book the solicitor and start company formation / D-U-N-S this week: they
+have the longest lead times.
+
 How to read it:
 
 - Do the phases in order. Inside a phase, do the steps in order unless a

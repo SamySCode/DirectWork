@@ -12,6 +12,10 @@ import { useMyProfile, usePortfolio, useTrackRecord } from "../../features/profi
 import { makeApplication, makeListing, makeProfile, T } from "../../test/fixtures";
 
 const mockPush = jest.fn();
+jest.mock("../../features/deals/hooks", () => ({
+  useDealSheet: jest.fn(() => ({ data: null, isPending: false })),
+  usePayRecord: jest.fn(() => ({ data: null })),
+}));
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("../../lib/supabase", () => ({
   supabase: {

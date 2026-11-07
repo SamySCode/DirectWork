@@ -15,10 +15,10 @@ jest.mock("../../lib/images", () => ({
   removeImages: (...args: unknown[]) => mockRemove(...args),
 }));
 
-import { applyToListing, attachImages } from "../applications/api";
+import { applyToListing, attachImages, getApplication } from "../applications/api";
 import { markRead } from "../activity/api";
-import { deleteDraft, discoverListings, syncListingImages } from "../listings/api";
-import { ensureSkillIds, setAvatar } from "../profile/api";
+import { deleteDraft, discoverListings, getListing, syncListingImages } from "../listings/api";
+import { ensureSkillIds, getPortfolio, getProfile, setAvatar } from "../profile/api";
 
 const image = { uri: "file://x.jpg", width: 1, height: 1 };
 
@@ -256,5 +256,15 @@ describe("markRead", () => {
   it("skips the request when nothing new was shown", async () => {
     await markRead([]);
     expect(mock.callsTo("activity")).toHaveLength(0);
+  });
+});
+
+describe("malformed ids from links", () => {
+  it("are 'not found' without a request", async () => {
+    await expect(getListing("not-a-uuid")).resolves.toBeNull();
+    await expect(getApplication("<garbage>")).resolves.toBeNull();
+    await expect(getProfile("1 or 1=1")).resolves.toBeNull();
+    await expect(getPortfolio("x")).resolves.toEqual([]);
+    expect(mock.calls).toEqual([]);
   });
 });

@@ -4,12 +4,13 @@ import { LEGAL_UPDATED } from "../versions";
 import { list, p, rows, section, type LegalDocument } from "./types";
 
 // These documents aren't accepted at sign-up, so they version by date only.
-const VERSION = "2026-11-06";
+const VERSION = "2026-11-07";
 
 export const references: LegalDocument = {
   slug: "references",
-  title: "References Policy",
-  summary: "How references and track records work, and what to do about one that's wrong.",
+  title: "Reviews, References & Payment Records Policy",
+  summary:
+    "How references, track records and payment records are collected, checked and disputed, and what to do about one that's wrong.",
   version: VERSION,
   updated: LEGAL_UPDATED,
   sections: [
@@ -48,6 +49,40 @@ export const references: LegalDocument = {
         "If either person deletes their account, the collaboration and the references between them are deleted too.",
       ),
     ),
+    section(
+      "How payment records are collected",
+      list(
+        "Payment records come only from Deal Sheets that both the owner and the professional confirmed.",
+        "After each payment due date, the professional can report the payment as paid on time, paid late (with the date) or not paid yet. One report per milestone, or one for the deal.",
+        "The professional can correct their own report within 14 days.",
+        'Owners see a count on their profile and listings, such as "Paid on time on 4 of 5 reported payments · reported by professionals". It\'s shown only to signed-in users, only once at least 3 reports count, and never with labels, scores or rankings.',
+      ),
+    ),
+    section(
+      "How we check them",
+      list(
+        "A report counts only if it's on an agreed Deal Sheet, the payment's due date has passed, and the professional's account was at least 14 days old when the Deal Sheet was agreed.",
+        "The collaboration must also have a confirmed outcome, or a reported payment whose due date has passed.",
+        "We don't see your bank account or check whether money moved. A record is what professionals reported, not a finding by DirectWork.",
+      ),
+    ),
+    section(
+      "Disputing a payment record",
+      list(
+        "Owners can dispute a report from the Deal Sheet within 14 days of it being made, with a reason. While a moderator reviews it, it isn't counted.",
+        "A person decides every dispute. Upheld: the report is removed. Rejected: it counts. Both sides are told in their Activity inbox.",
+        `After 14 days, or if you aren't a member, email ${operator.complaintsEmail}. We act promptly on credible complaints that a record is false or defamatory, following our notice procedure.`,
+        "Disputing a record is also how you can ask us to correct personal data about you that's inaccurate.",
+      ),
+    ),
+    section(
+      "Never paid for, never suppressed",
+      list(
+        "Nobody can pay for, or be offered anything for, a reference, a payment report or a change to one. That includes discounts, favours and refunds.",
+        "We don't remove or hide genuine negative records, and we don't let anyone pay to improve their record.",
+        "Payment records aren't sold, shared outside DirectWork or offered through an API, and aren't for credit decisions.",
+      ),
+    ),
   ],
 };
 
@@ -65,6 +100,7 @@ export const complaints: LegalDocument = {
         "Content: something on DirectWork you think is illegal or breaks our Community & Listing Guidelines.",
         "Appeals: a decision we made about you, such as removing content, declining a listing, or restricting, suspending or closing your account.",
         "Data protection: how we've handled your personal data.",
+        "Payment records: a payment report you think is false. Dispute it from the Deal Sheet within 14 days, or complain here at any time.",
         "Anything else about our service, including how we meet our duties under the Online Safety Act.",
       ),
     ),
@@ -114,11 +150,11 @@ export const cookies: LegalDocument = {
       rows(
         [
           "Website",
-          "Your sign-in session, in your browser's local storage, so you stay signed in. It's removed when you sign out.",
+          "Your sign-in session, in your browser's local storage, so you stay signed in. It's removed when you sign out. A copy of Deal Sheet terms you proposed or confirmed, so we can show you what changed in a later version.",
         ],
         [
           "Apps",
-          "Your sign-in session, encrypted, with the key kept in your device's secure keychain or keystore. Images you view are cached on your device to make the app faster.",
+          "Your sign-in session, encrypted, with the key kept in your device's secure keychain or keystore. Images you view are cached on your device to make the app faster. A copy of Deal Sheet terms you proposed or confirmed, so we can show you what changed in a later version.",
         ],
       ),
     ),

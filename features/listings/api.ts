@@ -1,5 +1,6 @@
 import { PreparedImage, publicImageUrl, removeImages, uploadImage } from "../../lib/images";
 import { supabase } from "../../lib/supabase";
+import { isUuid } from "../../lib/validation";
 import { ensureSkillIds, escapeLikePattern } from "../profile/api";
 import type { ListingInput } from "./schemas";
 
@@ -172,6 +173,7 @@ export async function discoverListings(
 }
 
 export async function getListing(id: string): Promise<ListingDetail | null> {
+  if (!isUuid(id)) return null;
   const { data, error } = await supabase
     .from("projects")
     .select(DETAIL_SELECT)

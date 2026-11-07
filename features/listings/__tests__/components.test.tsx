@@ -10,6 +10,10 @@ import { useDeleteDraft, useSetListingStatus, useSubmitListing } from "../hooks"
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+jest.mock("../../deals/hooks", () => ({
+  useDealSheet: jest.fn(() => ({ data: null, isPending: false })),
+  usePayRecord: jest.fn(() => ({ data: null })),
+}));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn() }),
 }));

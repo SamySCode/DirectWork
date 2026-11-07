@@ -90,6 +90,7 @@ function RootNavigator() {
         <Stack.Screen name="listing/[id]/index" options={{ title: "Listing" }} />
         <Stack.Screen name="listing/[id]/edit" options={{ title: "Edit listing" }} />
         <Stack.Screen name="application/[id]" options={{ title: "Application" }} />
+        <Stack.Screen name="deal/[id]" options={{ title: "Deal Sheet" }} />
         <Stack.Screen name="people/[id]" options={{ title: "Profile" }} />
         <Stack.Screen name="account/edit" options={{ title: "Edit profile" }} />
         <Stack.Screen name="account/delete" options={{ title: "Delete account" }} />
@@ -97,7 +98,7 @@ function RootNavigator() {
         <Stack.Screen name="billing" options={{ title: "Plans" }} />
         <Stack.Screen name="guide" options={{ title: "Guide & tips" }} />
         <Stack.Screen name="inbox" options={{ title: "Activity" }} />
-        <Stack.Screen name="moderation" options={{ title: "Reports" }} />
+        <Stack.Screen name="moderation" options={{ title: "Moderation" }} />
         <Stack.Screen name="review" options={{ title: "Review queue" }} />
         <Stack.Screen name="update-password" options={{ title: "New password" }} />
         <Stack.Screen name="help" options={{ title: "Help & legal" }} />

@@ -1,9 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../../../components/Text";
 import { TextField } from "../../../components/TextField";
 import { colors, radius, spacing, typography } from "../../../lib/theme";
 import { searchSkills } from "../api";
+import { searchCatalog } from "../skillCatalog";
+
+const MAX_SUGGESTIONS = 8;
+
+// Server answers for this session: backspacing and retyping, or the same
+// word on another form, costs no request. Small and bounded (oldest out).
+const communityCache = new Map<string, string[]>();
+function rememberCommunity(key: string, names: string[]) {
+  communityCache.set(key, names);
+  if (communityCache.size > 100) {
+    communityCache.delete(communityCache.keys().next().value!);
+  }
+}
 
 type SkillsFieldProps = {
   value: string[];
@@ -21,21 +34,48 @@ export function SkillsField({
   placeholder = "Type a skill and press enter",
 }: SkillsFieldProps) {
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [community, setCommunity] = useState<string[]>([]);
 
+  // Instant, offline, free: the curated catalogue is searched on the device.
+  const local = useMemo(() => searchCatalog(query, { exclude: value }), [query, value]);
+
+  // Skills other people added aren't in the catalogue: ask the server, but
+  // only once 2+ characters have been typed and typing has paused.
   useEffect(() => {
     const trimmed = query.trim();
-    if (!trimmed) {
-      setSuggestions([]);
+    if (trimmed.length < 2) {
+      setCommunity([]);
       return;
     }
+    const key = trimmed.toLowerCase();
+    const cached = communityCache.get(key);
+    if (cached) {
+      setCommunity(cached);
+      return;
+    }
+    // A slow answer for "rea" must not overwrite the one for "react".
+    let current = true;
     const timeout = setTimeout(() => {
       searchSkills(trimmed)
-        .then((results) => setSuggestions(results.filter((s) => !value.includes(s))))
-        .catch(() => setSuggestions([]));
-    }, 250);
-    return () => clearTimeout(timeout);
-  }, [query, value]);
+        .then((names) => {
+          rememberCommunity(key, names);
+          if (current) setCommunity(names);
+        })
+        .catch(() => {
+          if (current) setCommunity([]);
+        });
+    }, 300);
+    return () => {
+      current = false;
+      clearTimeout(timeout);
+    };
+  }, [query]);
+
+  const suggestions = useMemo(() => {
+    const seen = new Set([...local, ...value].map((s) => s.toLowerCase()));
+    const extra = community.filter((s) => !seen.has(s.toLowerCase()));
+    return [...local, ...extra].slice(0, MAX_SUGGESTIONS);
+  }, [local, community, value]);
 
   const addSkill = (name: string) => {
     const trimmed = name.trim();
@@ -44,7 +84,7 @@ export function SkillsField({
       onChange([...value, trimmed]);
     }
     setQuery("");
-    setSuggestions([]);
+    setCommunity([]);
   };
 
   const removeSkill = (name: string) => {
