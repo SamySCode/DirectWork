@@ -14,10 +14,30 @@ rules that shaped everything here:
 That leaves charging owners for **reach**. What's built is one paid
 plan:
 
-| Plan | Price            | Live listings | Placement                       |
-| ---- | ---------------- | ------------- | ------------------------------- |
-| Free | £0               | 1             | Normal                          |
-| Pro  | £29/month (open) | 10            | Featured at the top of Discover |
+| Plan | Price                                  | Live listings | Placement                       |
+| ---- | -------------------------------------- | ------------- | ------------------------------- |
+| Free | £0                                     | 1             | Normal                          |
+| Pro  | £9–12/month or £99/year (to be tested) | 10            | Featured at the top of Discover |
+
+**Billing is off at launch** (decided 2026-11-08). It switches on only when
+the billing gate in docs/NEXT_STEPS.md Phase 5 is cleared: a written answer
+on the right-to-work "online matching service" rules, a consumer-compliant
+checkout, UK-only billing and the Apple decision.
+
+## Pricing to test (replaces the £29 placeholder)
+
+£29/month was too high for the first owners (solo founders and micro
+businesses comparing us with free routes). Test these with beta owners
+before choosing:
+
+1. **Pay per listing:** £9 to put an extra listing live for 30 days.
+2. **Pro:** £9–12/month or £99/year for owners who post often.
+3. **Founding members:** the first 50 owners get Pro free for 6 months.
+
+At £9 we keep about £8.35 after Stripe fees, so about 5 paying owners cover the
+~£34/month running cost (sole trader), or about 17 with limited-company
+overheads. During the January beta, ask 10 owners what they would pay for a
+listing that gets real applicants, and set the price from the answers.
 
 "Live" = `in_review`, `published` or `paused`. Drafts and closed listings
 don't count, so a free owner can still prepare their next listing.
@@ -35,10 +55,7 @@ don't count, so a free owner can still prepare their next listing.
 - **A subscription over per-listing fees.** It's predictable revenue, it's
   one Stripe Checkout integration with no metering, and it matches how
   agencies buy tools.
-- **£29 is a starting guess, not a researched number.** It sits below a
-  single job-board post (often £100+) and above "impulse". The Phase 1
-  commit-to-pay test (`docs/PRODUCT_STRATEGY.md`) should set the real
-  price. Change it in Stripe and in `features/billing/plans.ts`.
+- **The price is set by testing, not guessed.** See "Pricing to test" above. Change it in Stripe and in `features/billing/plans.ts`.
 
 ## How it's wired
 
@@ -92,7 +109,7 @@ APP_URL=https://<web origin> STRIPE_WEBHOOK_SECRET=whsec_...`
 
 ## Costs to cover
 
-- Stripe (UK cards): roughly 1.5% + 20p per charge, so about 64p on £29.
+- Stripe (UK cards): roughly 1.5% + 20p per charge, plus the 0.7% Stripe Billing fee, so about 54p on £9.
 - Supabase: the free tier works for validation. Move to Pro (about $25/mo)
   before launch for daily backups and no project pausing.
 - Apple Developer £79/yr, Google Play $25 once.

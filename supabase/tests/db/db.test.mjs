@@ -3026,6 +3026,83 @@ describe("pays-on-time record", () => {
     );
     assert.equal((await payRecord(owner))[0].counted, 3);
   });
+
+  test("the kill switch hides every record, and turning it back on restores them", async () => {
+    const { owner, member, dealId } = await agreedDeal({
+      milestones: [milestone(-9), milestone(-8), milestone(-7)],
+    });
+    for (const i of [0, 1, 2]) await reportPayment(member, dealId, i, "on_time");
+    const shown = [{ counted: 3, on_time: 3, late: 0, unpaid: 0 }];
+    assert.deepEqual(await payRecord(owner), shown);
+    // What the owner runs in the SQL editor.
+    const flip = (on) =>
+      db.query(`update private.feature_flags set enabled = $1 where key = 'pay_record_public'`, [
+        on,
+      ]);
+    try {
+      await flip(false);
+      assert.deepEqual(await payRecord(owner), []);
+      assert.deepEqual(await payRecord(owner, owner), []);
+    } finally {
+      await flip(true);
+    }
+    assert.deepEqual(await payRecord(owner), shown);
+  });
+
+  test("signed-in and anonymous users can't read or flip the flags", async () => {
+    const user = await createUser(db);
+    for (const sql of [
+      `select * from private.feature_flags`,
+      `update private.feature_flags set enabled = false`,
+    ]) {
+      await assert.rejects(asUser(db, user, sql), { code: "42501" });
+      await assert.rejects(inAnon(sql), { code: "42501" });
+    }
+  });
+});
+
+describe("database settings", () => {
+  test("Discover search has partial trigram indexes on published title and summary", async () => {
+    const { rows } = await db.query(
+      `select indexname, indexdef from pg_indexes
+       where schemaname = 'public' and tablename = 'projects' and indexname like '%_trgm'
+       order by indexname`,
+    );
+    assert.deepEqual(
+      rows.map((r) => r.indexname),
+      ["projects_published_summary_trgm", "projects_published_title_trgm"],
+    );
+    for (const { indexdef } of rows) {
+      assert.match(indexdef, /USING gin .*gin_trgm_ops/);
+      assert.match(indexdef, /WHERE \(status = 'published'/);
+    }
+    // The Discover query shape can use both. The test table is tiny, so the
+    // planner prefers the status btree; drop it (rolled back) and seq scans.
+    const plan = await db.transaction(async (tx) => {
+      await tx.exec(`drop index public.projects_discover_idx; set local enable_seqscan = off`);
+      const { rows: lines } = await tx.query(
+        `explain select id from public.projects
+         where status = 'published' and (title ilike '%react%' or public_summary ilike '%react%')`,
+      );
+      await tx.rollback();
+      return lines.map((line) => line["QUERY PLAN"]).join("\n");
+    });
+    const { rows: kept } = await db.query(
+      `select 1 from pg_indexes where indexname = 'projects_discover_idx'`,
+    );
+    assert.equal(kept.length, 1);
+    assert.match(plan, /projects_published_title_trgm/);
+    assert.match(plan, /projects_published_summary_trgm/);
+  });
+
+  test("signed-in requests time out after 3 seconds", async () => {
+    const { rows } = await db.query(
+      `select s.setconfig from pg_db_role_setting s
+       join pg_roles r on r.oid = s.setrole
+       where r.rolname = 'authenticated' and s.setdatabase = 0`,
+    );
+    assert.deepEqual(rows[0]?.setconfig, ["statement_timeout=3s"]);
+  });
 });
 
 describe("payment due notices", () => {

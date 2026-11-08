@@ -9,17 +9,30 @@ Decided 2026-11-07: launch in Leeds in the first full working week of
 January (new-year momentum), with Leeds Digital Festival's Mini-Fest
 (20–22 April 2027) as the second push. Plan detail: docs/marketing/city-launch.md.
 
-| Dates                   | Focus                    | Done when                                                                                                                                                                                                |
-| ----------------------- | ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Now – 22 Nov 2026       | App complete             | Deal Sheet merged, staging deployed and smoke-tested, real-device builds, expo-updates + SDK 58, admin MFA, Sentry                                                                                       |
-| Now – 30 Nov 2026       | Legal (in parallel)      | Entity formed, ICO fee paid, operator.json filled, solicitor booked and reviewing (incl. trade mark clearance for "DirectWork"), immigration advice, OSA assessments signed, NCA registered, DPAs signed |
-| 23 Nov – 6 Dec 2026     | Production + closed beta | London Pro project live, SES + Cloudflare live, 10–20 Leeds beta users, fixes shipped                                                                                                                    |
-| 7 Dec 2026 – 3 Jan 2027 | Brand + campaign         | Brand identity, landing page + waitlist live, videos produced, 20 partners approached (expect a Christmas lull)                                                                                          |
-| 4–10 Jan 2027           | **Leeds launch**         | Waitlist invited, partner events, launch content out                                                                                                                                                     |
-| Apr 2027                | Second push              | Mini-Fest; then decide on Manchester                                                                                                                                                                     |
+| Dates                   | Focus                    | Done when                                                                                                                                                                                                                           |
+| ----------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Now – 22 Nov 2026       | App complete             | Deal Sheet merged, staging deployed and smoke-tested, real-device builds, expo-updates + SDK 58, admin MFA, Sentry                                                                                                                  |
+| Now – 30 Nov 2026       | Legal (in parallel)      | Entity formed, ICO fee paid, operator.json filled, free checks done (trade mark at Business & IP Centre Leeds, Home Office helpline answer on billing, Fair Work Agency email), OSA assessments signed, NCA registered, DPAs signed |
+| 23 Nov – 6 Dec 2026     | Production + closed beta | London Pro project live, SES + Cloudflare live, 10–20 Leeds beta users, fixes shipped                                                                                                                                               |
+| 7 Dec 2026 – 3 Jan 2027 | Brand + campaign         | Brand identity, landing page + waitlist live, videos produced, 20 partners approached (expect a Christmas lull)                                                                                                                     |
+| 4–10 Jan 2027           | **Leeds launch**         | Waitlist invited, partner events, launch content out                                                                                                                                                                                |
+| Apr 2027                | Second push              | Mini-Fest; then decide on Manchester                                                                                                                                                                                                |
 
-Book the solicitor and start company formation / D-U-N-S this week: they
-have the longest lead times.
+Start company formation and the D-U-N-S number this week: they have the
+longest lead times.
+
+## Spending in stages
+
+Decided 2026-11-08: commit money one stage at a time, and only move on when
+the previous stage's numbers are met. If January is slow, total spend is
+about £300.
+
+| Stage                 | Spend                                                                                                | Move on when                                      |
+| --------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
+| Now – January         | About £150 one-off (Google Play, Apple, ICO, domain, company) + about £34/month; free marketing only | –                                                 |
+| Leeds launch, Jan–Mar | Up to £300–500 on targeted things (a meetup sponsorship, flyers, a few boosted posts)                | 100+ professionals and 20+ live listings          |
+| Revenue tests         | Pay-per-listing or a low-priced plan, only after the billing gate in Phase 5 is cleared              | 10+ real introductions and owners asking for more |
+| Scale, April onwards  | The fuller campaign in docs/marketing/city-launch.md (about £2–4k), then Manchester                  | Revenue covers the running costs                  |
 
 How to read it:
 
@@ -161,7 +174,7 @@ A few words used below:
   [docs/legal/online-safety-risk-assessment.md](legal/online-safety-risk-assessment.md)
   and [docs/legal/childrens-access-assessment.md](legal/childrens-access-assessment.md).
   You are the **named person accountable** for online safety: put your name
-  in both. Don't sign yet; the solicitor sees them first (step 2.9).
+  in both. Sign them yourself once read (step 2.21).
 - **Cost:** £0.
 - **Check it worked:** every `[ ]` blank in the two files is filled in.
 
@@ -179,7 +192,7 @@ be done first.
 - **Do:** register a private limited company at Companies House:
   <https://www.gov.uk/limited-company-formation>. Search the name first
   (Companies House and the UK trade mark register). Usually done within a day.
-- **Cost:** £100 online. An accountant is optional (£40–£250/month).
+- **Cost:** £100 online, then £50/year for the confirmation statement. You can file a micro-company's accounts yourself with low-cost software at first; an accountant is optional (£40–£250/month).
 - **Check it worked:** you have a certificate of incorporation and a
   company number.
 
@@ -260,23 +273,41 @@ be done first.
 - **Check it worked:** `npm run check` passes; the in-app Privacy page says
   London.
 
-### 2.9 Solicitor review of the in-app legal documents
+### 2.9 Free legal checks (a paid solicitor is optional)
 
-- **Who:** You (with a UK solicitor who knows tech platforms and employment
-  law).
-- **Do:** send them:
-  - the in-app documents in `features/legal/documents/` (Terms, Privacy,
-    Community & Listing Guidelines, References, Complaints, Cookies, Account
-    deletion, Contact);
-  - every draft in `docs/legal/`;
-  - the "Open questions for the solicitor" in
-    `docs/legal/uk-law-register.md` (employment agency scope, online matching
-    service, equity offers, who counts as a consumer, and so on).
-    Code applies their changes. Start this now; it must be finished before
-    public launch at the latest.
-- **Cost:** about £750–£3,000 (estimate).
-- **Check it worked:** each `docs/legal/` draft has the solicitor's name and
-  date in its sign-off lines, and the in-app documents carry their wording.
+Decided 2026-11-08: no paid solicitor before launch; use the free routes
+below, launch free (no billing), and get paid advice when one of the
+triggers in "When to pay for legal advice" happens.
+
+- **Who:** You.
+- **Do:**
+  1. **Trade mark:** book a free session at the **Business & IP Centre
+     Leeds** (Leeds Central Library, part of the British Library network)
+     and ask them to check "DirectWork" in classes 9, 35 and 42. Also search
+     the exact word yourself at <https://trademarks.ipo.gov.uk/ipo-tmcase>.
+  2. **Billing question:** call the **Home Office Employer Enquiry
+     Helpline** (search "Home Office employer enquiry helpline" on gov.uk for
+     the current number) and ask: "We run a UK marketplace where businesses
+     post listings and professionals apply. If we charge businesses a monthly
+     subscription or a per-listing fee, are we an 'online matching service'
+     for right-to-work checks?" Write down the answer, the date and the
+     adviser's reference. Save it in `docs/legal/`.
+  3. **Data protection:** use the ICO's free SME hub and helpline
+     (<https://ico.org.uk/for-organisations/advice-for-small-organisations/>)
+     for any question about the privacy notice or retention.
+  4. **Online safety:** run Ofcom's free online safety regulation checker
+     (<https://www.ofcom.org.uk/online-safety>) and keep the result with the
+     risk assessment.
+  5. **Optional:** ask whether a Leeds university law clinic takes
+     small-business questions.
+- **Cost:** £0.
+- **Check it worked:** the helpline answer and the trade mark check are saved
+  in `docs/legal/`.
+
+**When to pay for legal advice** (budget a fixed-fee review then):
+before switching billing on if the helpline answer is unclear; the first
+formal legal complaint (a defamation notice, an Ofcom or ICO letter); once
+revenue covers the cost; or before expanding outside the UK.
 
 ### 2.10 Amazon SES in London, with SPF, DKIM and DMARC
 
@@ -526,7 +557,7 @@ be done first.
   6. After the year: `delete from private.legal_holds where user_id = '<user id>';`
      **Gap:** there's no "preserve this file" switch yet, so a user or the
      nightly clean-up could still remove a held file. Ask Code to add file
-     preservation before relying on this, and ask the solicitor how evidence
+     preservation before relying on this, and check with the NCA guidance how evidence
      should be held.
 - **Cost:** £0.
 - **Check it worked:** in staging, add a hold for a test account and try
@@ -534,7 +565,7 @@ be done first.
 
 ### 2.21 Sign off the Online Safety Act assessments
 
-- **Who:** You (after the solicitor's comments in 2.9).
+- **Who:** You, as the named accountable person (no solicitor needed to sign).
 - **Do:** sign and date
   [the illegal-content risk assessment](legal/online-safety-risk-assessment.md)
   and [the children's access assessment](legal/childrens-access-assessment.md).
@@ -560,27 +591,27 @@ be done first.
 
 ## Phase 3: Before public launch
 
-### 3.1 Finish the solicitor's changes
+### 3.1 Apply anything the free checks changed
 
 - **Who:** You and Code.
-- **Do:** every point from step 2.9 is applied in the app. If the Terms or
-  Privacy wording changes materially, Code bumps `TERMS_VERSION` or
-  `PRIVACY_VERSION`, and existing users see the re-acceptance screen.
-- **Cost:** included in 2.9.
-- **Check it worked:** `npm run check:launch` and `npm run check` pass, and
-  the solicitor confirms in writing.
+- **Do:** if the trade mark check, the helpline or the ICO changed anything,
+  Code applies it. If the Terms or Privacy wording changes materially, Code
+  bumps `TERMS_VERSION` or `PRIVACY_VERSION`, and existing users see the
+  re-acceptance screen.
+- **Cost:** £0.
+- **Check it worked:** `npm run check:launch` and `npm run check` pass.
 
-### 3.2 Employment-agency scope
+### 3.2 Employment-agency scope (free)
 
-- **Who:** You (with the solicitor).
+- **Who:** You.
 - **Do:** DirectWork is probably an "employment agency" under the Employment
-  Agencies Act 1973. Ask the solicitor for a scope view, and optionally email
-  the Fair Work Agency (<contact@fairworkagency.gov.uk>) as its intermediary
-  note invites:
+  Agencies Act 1973. Email the Fair Work Agency
+  (<contact@fairworkagency.gov.uk>) as its intermediary note invites, with a
+  two-paragraph description of how DirectWork works:
   <https://www.gov.uk/government/publications/eas-note-acting-as-an-intermediary-between-persons-seeking-work-and-a-hirer/acting-as-an-intermediary-between-persons-seeking-work-and-a-hirer>.
   Keep professionals free (charging work-seekers is an offence).
-- **Cost:** included in 2.9 if you brief it together.
-- **Check it worked:** a written answer is saved in `docs/legal/`.
+- **Cost:** £0.
+- **Check it worked:** their reply is saved in `docs/legal/`.
 
 ### 3.3 Backups you control
 
@@ -678,19 +709,19 @@ be done first.
 
 ## Phase 5: After launch, or when something happens
 
-| When                                                  | What                                                                                                                                                                                                                                                                                                                                                                                                                                           | Who                        | Cost                 |
-| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- | -------------------- |
-| **Before charging anyone (billing on)**               | Get **immigration advice**: since 1 Oct 2026 an "online matching service" that charges a fee for matches can be treated as the employer of every worker matched (£45,000 per worker). Don't open any paid plan or concierge payment link until a solicitor has answered. Also: UK billing addresses only, consumer cancellation rules, Stripe receipts and policy pages, and the Apple decision (4.2). New subscription rules start 1 Jan 2027 | You + solicitor, then Code | solicitor's fee      |
-| First revenue                                         | Tell HMRC (company: within 3 months of starting to trade); keep billing records 6 years                                                                                                                                                                                                                                                                                                                                                        | You                        | accountant           |
-| Turnover near £90,000 a year                          | VAT registration; consider Stripe Tax                                                                                                                                                                                                                                                                                                                                                                                                          | You                        | 0.5% per transaction |
-| Each year, and before any big feature change          | Review the Online Safety Act risk assessment and children's access assessment                                                                                                                                                                                                                                                                                                                                                                  | You                        | £0                   |
-| Each new Expo SDK                                     | Upgrade within 6–8 weeks (as in 1.5)                                                                                                                                                                                                                                                                                                                                                                                                           | Code                       | £0                   |
-| More than 1,000 users getting updates, or slow builds | Expo Starter                                                                                                                                                                                                                                                                                                                                                                                                                                   | You                        | $19/month            |
-| More than 5,000 errors a month, or a second engineer  | Sentry Team                                                                                                                                                                                                                                                                                                                                                                                                                                    | You                        | $26/month            |
-| A second person on support, or 20+ emails a week      | Fastmail with EU data storage                                                                                                                                                                                                                                                                                                                                                                                                                  | You                        | £4.50/person/month   |
-| Losing a day's data becomes unacceptable              | Supabase point-in-time recovery                                                                                                                                                                                                                                                                                                                                                                                                                | You                        | about $100/month     |
-| Anyone in the EU targeted (EU stores, EU pricing)     | EU representative, EU VAT, Digital Services Act; stay UK-only until then                                                                                                                                                                                                                                                                                                                                                                       | You + solicitor            | varies               |
-| A personal-data breach                                | `docs/legal/breach-procedure.md` (ICO within 72 hours)                                                                                                                                                                                                                                                                                                                                                                                         | You                        | £0                   |
-| A data request or complaint                           | `docs/legal/subject-access-procedure.md`, `docs/legal/complaints-procedure.md`                                                                                                                                                                                                                                                                                                                                                                 | You                        | £0                   |
-| A defamation complaint                                | `docs/legal/defamation-notice-procedure.md` (48-hour steps)                                                                                                                                                                                                                                                                                                                                                                                    | You                        | £0                   |
-| Suspected CSEA                                        | Step 2.20                                                                                                                                                                                                                                                                                                                                                                                                                                      | You                        | £0                   |
+| When                                                  | What                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Who               | Cost                       |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------- | -------------------------- |
+| **Before charging anyone (billing on)**               | Billing gate: all must be true. (1) Written answer from the Home Office Employer Enquiry Helpline (step 2.9) that a subscription/per-listing fee does not make DirectWork an "online matching service" (since 1 Oct 2026 those can be treated as the employer, up to £60,000 per worker), or paid advice if it is unclear. (2) A compliant checkout built by Code: terms consent, price incl./excl. VAT stated, 14-day cancellation information and express request to start, receipts, one-step cancel, renewal reminders for the 1 Jan 2027 subscription rules. (3) UK billing addresses only. (4) The Apple decision (4.2). Start with a low price (see docs/MONETIZATION.md) | You, then Code    | £0 unless advice is needed |
+| First revenue                                         | Tell HMRC (company: within 3 months of starting to trade); keep billing records 6 years                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | You               | accountant                 |
+| Turnover near £90,000 a year                          | VAT registration; consider Stripe Tax                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | You               | 0.5% per transaction       |
+| Each year, and before any big feature change          | Review the Online Safety Act risk assessment and children's access assessment                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | You               | £0                         |
+| Each new Expo SDK                                     | Upgrade within 6–8 weeks (as in 1.5)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Code              | £0                         |
+| More than 1,000 users getting updates, or slow builds | Expo Starter                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | You               | $19/month                  |
+| More than 5,000 errors a month, or a second engineer  | Sentry Team                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | You               | $26/month                  |
+| A second person on support, or 20+ emails a week      | Fastmail with EU data storage                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | You               | £4.50/person/month         |
+| Losing a day's data becomes unacceptable              | Supabase point-in-time recovery                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | You               | about $100/month           |
+| Anyone in the EU targeted (EU stores, EU pricing)     | EU representative, EU VAT, Digital Services Act; stay UK-only until then                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | You + paid advice | varies                     |
+| A personal-data breach                                | `docs/legal/breach-procedure.md` (ICO within 72 hours)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | You               | £0                         |
+| A data request or complaint                           | `docs/legal/subject-access-procedure.md`, `docs/legal/complaints-procedure.md`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | You               | £0                         |
+| A defamation complaint                                | `docs/legal/defamation-notice-procedure.md` (48-hour steps)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | You               | £0                         |
+| Suspected CSEA                                        | Step 2.20                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | You               | £0                         |

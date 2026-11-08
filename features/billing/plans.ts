@@ -31,7 +31,7 @@ export const plans: Record<PlanId, Plan> = {
   pro: {
     id: "pro",
     name: "Pro",
-    price: "£29",
+    price: "£9",
     cadence: "per month",
     liveListings: 10,
     features: [

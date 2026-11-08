@@ -79,3 +79,16 @@ Step numbers refer to `docs/NEXT_STEPS.md`.
 - Defamation Operators Regulations: <https://www.legislation.gov.uk/uksi/2013/3028/schedule/made>.
 - Apple: <https://developer.apple.com/app-store/review/guidelines/>; Google
   account deletion: <https://support.google.com/googleplay/android-developer/answer/13327111>.
+
+## Status update 2026-11-08
+
+The owner has decided not to instruct a paid solicitor before launch. The
+"questions for the solicitor" above are now taken to free routes first
+(docs/NEXT_STEPS.md step 2.9): the Home Office Employer Enquiry Helpline for
+the online-matching-service question, the Fair Work Agency for
+employment-agency scope, the ICO SME hub for data protection, and the
+Business & IP Centre Leeds for the trade mark. Risk is kept low by launching
+free (no billing), keeping the public pay record behind a kill switch, and
+signing the internal documents as the named accountable person. Paid advice
+is triggered by: billing with an unclear answer, a formal legal complaint,
+revenue covering the cost, or expansion outside the UK.

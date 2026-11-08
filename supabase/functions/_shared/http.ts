@@ -242,6 +242,12 @@ type Options = {
   rawBody?: boolean;
   /** Browser-callable (default true). Webhooks set false: no CORS at all. */
   cors?: boolean;
+  /**
+   * A header every genuine caller sends (e.g. a webhook's signature). If it
+   * is missing or empty the request is a 400 before the body is read, so
+   * junk posts cost no body transfer or buffering.
+   */
+  requiredHeader?: string;
 };
 
 export type Context<Authed extends boolean> = {
@@ -273,6 +279,7 @@ export function createHandler<A extends boolean = true>(
     maxBodyBytes = 16 * 1024,
     rawBody = false,
     cors = true,
+    requiredHeader,
   } = options;
 
   return async (req) => {
@@ -288,6 +295,10 @@ export function createHandler<A extends boolean = true>(
       }
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
       if (req.method !== "POST") throw new HttpError(405, "Method not allowed");
+
+      if (requiredHeader && !req.headers.get(requiredHeader)) {
+        throw new HttpError(400, `Missing ${requiredHeader} header`);
+      }
 
       const declared = Number(req.headers.get("Content-Length") ?? 0);
       if (declared > maxBodyBytes) throw new HttpError(413, "Request too large");

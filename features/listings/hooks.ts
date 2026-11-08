@@ -33,13 +33,25 @@ export const listingKeys = {
   quota: ["listings", "quota"] as const,
 };
 
+/** Pages of Discover results kept in memory (and refetched) at once. */
+export const DISCOVER_MAX_PAGES = 5;
+
 export function useDiscover(filters: DiscoverFilters) {
   return useInfiniteQuery({
     queryKey: listingKeys.discover(filters),
     queryFn: ({ pageParam }) => discoverListings(filters, pageParam),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, pages) =>
-      lastPage.length === DISCOVER_PAGE_SIZE ? pages.length : undefined,
+    // Page params are page numbers. Count from the param, not pages.length:
+    // with maxPages the stored pages no longer start at page 0.
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.length === DISCOVER_PAGE_SIZE ? lastPageParam + 1 : undefined,
+    getPreviousPageParam: (_firstPage, _pages, firstPageParam) =>
+      firstPageParam > 0 ? firstPageParam - 1 : undefined,
+    // Keep at most DISCOVER_MAX_PAGES in the cache, so a refetch on returning
+    // to the app (or pull-to-refresh) costs at most that many requests.
+    // Scrolling on drops the oldest page off the top; the screen fetches it
+    // back with fetchPreviousPage when the user scrolls up to it.
+    maxPages: DISCOVER_MAX_PAGES,
     // Keep showing the last results while a new filter loads.
     placeholderData: keepPreviousData,
   });

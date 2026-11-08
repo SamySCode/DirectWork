@@ -192,3 +192,25 @@ and the app, except where noted. Each is reversible.
   verified.
 - **Jurisdiction** (resolved): UK-first. Legal/tax specifics assume
   English law.
+
+## Decided 2026-11-08 (owner, risk-averse launch)
+
+- **No paid solicitor before launch.** Free routes instead: Business & IP
+  Centre Leeds (trade mark), Home Office Employer Enquiry Helpline (billing
+  and right-to-work), ICO SME helpline (data protection), Ofcom's online
+  safety checker, Fair Work Agency email (employment-agency scope). Pay for a
+  fixed-fee review when a trigger happens: billing on with an unclear
+  helpline answer, a formal legal complaint, revenue covering the cost, or
+  expansion outside the UK (docs/NEXT_STEPS.md step 2.9).
+- **Billing off at launch** until the billing gate in docs/NEXT_STEPS.md
+  Phase 5 is cleared.
+- **Pricing:** the £29/month placeholder is dropped. Test pay-per-listing
+  (£9 / 30 days), Pro at £9–12/month or £99/year, and a founding-member offer
+  (first 50 owners, 6 months free) with beta owners (docs/MONETIZATION.md).
+- **Staged spending:** money is committed one stage at a time against user
+  numbers (docs/NEXT_STEPS.md "Spending in stages").
+- **Entity:** private limited company for liability protection; file micro
+  accounts yourself at first.
+- **Public pay record:** on, with a server-side kill switch
+  (`private.feature_flags.pay_record_public`) to turn it off instantly if a
+  complaint arrives.

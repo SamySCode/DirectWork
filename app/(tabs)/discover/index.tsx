@@ -167,7 +167,21 @@ export default function DiscoverScreen() {
         if (discover.hasNextPage && !discover.isFetchingNextPage) discover.fetchNextPage();
       }}
       onEndReachedThreshold={0.5}
-      refreshing={!!discover.isRefetching && !discover.isFetchingNextPage}
+      // useDiscover keeps a few pages at a time (maxPages), so scrolling on
+      // drops the oldest off the top. Scrolling back up fetches it again, and
+      // native keeps the visible rows still while rows above them change
+      // (web has no maintainVisibleContentPosition; the browser's scroll
+      // anchoring covers most of it).
+      onStartReached={() => {
+        if (discover.hasPreviousPage && !discover.isFetchingPreviousPage) {
+          discover.fetchPreviousPage();
+        }
+      }}
+      onStartReachedThreshold={0.5}
+      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+      refreshing={
+        !!discover.isRefetching && !discover.isFetchingNextPage && !discover.isFetchingPreviousPage
+      }
       onRefresh={() => discover.refetch()}
       keyboardShouldPersistTaps="handled"
       ListEmptyComponent={

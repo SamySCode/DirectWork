@@ -100,7 +100,15 @@ export function createBillingWebhookHandler(deps?: Deps) {
   return createHandler(
     "billing-webhook",
     // Server-to-server: no CORS, no Supabase auth, raw body for the HMAC.
-    { auth: false, cors: false, rawBody: true, maxBodyBytes: 512 * 1024 },
+    // No Stripe-Signature means it isn't Stripe: refused before the (up to
+    // 512 KB) body is read.
+    {
+      auth: false,
+      cors: false,
+      rawBody: true,
+      maxBodyBytes: 512 * 1024,
+      requiredHeader: "Stripe-Signature",
+    },
     billingWebhook,
     deps,
   );

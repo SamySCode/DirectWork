@@ -161,7 +161,11 @@ export default function HomeScreen() {
   }, [incoming.data, listings.data, applications.data]);
 
   const picks = useMemo(() => {
-    const firstPage = discover.data?.pages[0] ?? [];
+    // Discover keeps a few pages (maxPages) and may have dropped page 0 if
+    // the user scrolled far in the shared cache entry; prefer the newest page.
+    const pages = discover.data?.pages ?? [];
+    const newest = discover.data?.pageParams?.indexOf(0) ?? -1;
+    const firstPage = pages[newest >= 0 ? newest : 0] ?? [];
     return firstPage
       .filter((listing) => listing.owner_id !== profile?.id)
       .map((listing) => ({

@@ -8,6 +8,7 @@
 // exists for checking a real deployed project end to end.
 
 import { PGlite } from "@electric-sql/pglite";
+import { pg_trgm } from "@electric-sql/pglite/contrib/pg_trgm";
 import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -59,7 +60,9 @@ const SUPABASE_STUB = `
 `;
 
 export async function createDb() {
-  const db = new PGlite();
+  // pg_trgm ships with PGlite (no network), so the guarded Discover search
+  // indexes are created and tested here as they are on hosted Supabase.
+  const db = new PGlite({ extensions: { pg_trgm } });
   await db.exec(SUPABASE_STUB);
   const files = readdirSync(MIGRATIONS_DIR)
     .filter((name) => name.endsWith(".sql"))

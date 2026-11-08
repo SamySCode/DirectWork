@@ -56,6 +56,30 @@ Deno.test("webhook: not configured is a 503", async () => {
   assertEquals(response.status, 503);
 });
 
+Deno.test("webhook: no Stripe-Signature header is a 400 before the body is read", async () => {
+  for (const headers of [{}, { "Stripe-Signature": "" }] as Record<string, string>[]) {
+    let pulled = false;
+    // highWaterMark 0: the stream is only pulled when someone reads the body.
+    const body = new ReadableStream<Uint8Array>(
+      {
+        pull(controller) {
+          pulled = true;
+          controller.enqueue(new TextEncoder().encode(JSON.stringify(updated)));
+          controller.close();
+        },
+      },
+      { highWaterMark: 0 },
+    );
+    const req = new Request("http://localhost/fn", { method: "POST", headers, body });
+    const admin = fakeAdmin();
+    const handler = createBillingWebhookHandler(depsFor(admin, ENV));
+    const response = await handler(req);
+    assertEquals(response.status, 400);
+    assertEquals((await response.json()).error, "Missing Stripe-Signature header");
+    assertEquals([pulled, req.bodyUsed, admin.calls.length], [false, false, 0]);
+  }
+});
+
 Deno.test("webhook: a bad or stale signature is a 400 and nothing is read", async () => {
   for (const signature of ["", "t=1,v1=deadbeef", "garbage"]) {
     const { response, admin, fetches } = await deliver(updated, { signature });
