@@ -55,6 +55,10 @@ checklist in `docs/OPERATIONS.md` is red.
 ### Phase C: Leeds launch and the 90-day test (4 January to 4 April 2027)
 
 **Online only** (decided 2026-11-16: no in-person events or meetings).
+**UK-wide, West Yorkshire first** (decided 2026-11-17): anyone in the UK
+can use it; ads are geo-targeted to the Leeds and Bradford area, and the
+University of Bradford (the owner is a graduate) is the first university
+to approach.
 Outreach runs through LinkedIn, online founder and freelancer
 communities, university enterprise newsletters and partner mailing
 lists; the plan is `docs/marketing/online-launch.md` (task T13), which
@@ -123,14 +127,10 @@ in `docs/NEXT_STEPS.md` Phase 5 is cleared.
 
 ## Decisions waiting on the owner
 
-0. **Niche or city.** The online plan recommends launching UK-wide in one
-   niche (its suggestion: paid design and web or product work for
-   early-stage founders), using Leeds and Yorkshire only for the first
-   partner emails. Deciding this changes the launch wording in the
-   marketing files. Also decide whether to keep the day-90 thresholds as
-   they are (a strict test that will probably say stop) or lower them for
-   an online-only launch.
-
+0. **Day-90 thresholds.** Keep them as they are (a strict test that an
+   online-only launch will probably fail) or lower them (suggested: 3
+   confirmed outcomes and 15 listings) while keeping a fixed stop point.
+   The owner wants to talk this through before deciding.
 1. Run as an individual for now, or form the company before launch.
 2. Sign-off from your employer that DirectWork is your own project.
 3. Whether the waitlist collects emails (needs an opt-in tick box and a

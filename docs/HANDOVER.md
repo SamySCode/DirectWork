@@ -96,9 +96,10 @@ Short reasons for choices a future session might otherwise undo.
 
 ## Open decisions (the owner has not answered these)
 
-1. Niche or city: launch UK-wide in one niche (suggested: paid design
-   and web or product work for early-stage founders) or stay "Leeds
-   first".
+1. Decided 2026-11-17: UK-wide product, with ads geo-targeted to the
+   Leeds and Bradford area and the University of Bradford (the owner's
+   old university) as the first partner to approach. The narrower niche
+   suggested by the online plan is not adopted.
 2. Day-90 thresholds: keep 8 confirmed outcomes and 35 listings, or
    lower them for an online-only launch (suggested: 3 and 15) while
    keeping a fixed stop point.

@@ -223,3 +223,15 @@ and the app, except where noted. Each is reversible.
   in-person parts of the city plan. Still open: stay Leeds and Yorkshire
   first online, or go UK-wide in one niche, since an online launch is not
   tied to a city.
+
+## Decided 2026-11-17
+
+- **UK-wide product, West Yorkshire-first marketing.** Anyone in the UK
+  can sign up and post. Paid ads, when used, are geo-targeted to the Leeds
+  and Bradford area so a small budget builds density in one place instead
+  of being spread thin.
+- **University of Bradford** is the first university partner to approach:
+  the owner is a graduate. Contact the careers and enterprise teams and
+  the alumni office by email.
+- **Day-90 thresholds:** not decided; the owner wants to talk it through
+  later (see `docs/ROADMAP.md`, "Decision at day 90").
