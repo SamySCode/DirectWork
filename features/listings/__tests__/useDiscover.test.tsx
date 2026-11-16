@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import type { ReactNode } from "react";
 import { DISCOVER_PAGE_SIZE, discoverListings } from "../api";
-import { DISCOVER_MAX_PAGES, useDiscover } from "../hooks";
+import { DISCOVER_MAX_PAGES, listingKeys, useDiscover } from "../hooks";
 
 jest.mock("../../../lib/supabase", () => ({ supabase: {} }));
 jest.mock("../../../lib/functions", () => ({ runAction: jest.fn() }));
@@ -36,7 +36,47 @@ function setup() {
   );
 }
 
-afterEach(() => client.clear());
+afterEach(() => client?.clear());
+
+describe("discover cache key", () => {
+  const home = { query: "", remoteOnly: false };
+
+  it("Home and Discover's default view share one cache entry (one request, not two)", () => {
+    const discoverTab = {
+      query: "",
+      type: undefined,
+      remoteOnly: false,
+      commitment: undefined,
+      compensationType: undefined,
+      minPay: undefined,
+      sort: "newest" as const,
+    };
+    const hash = (filters: Parameters<typeof listingKeys.discover>[0]) =>
+      JSON.stringify(listingKeys.discover(filters));
+    expect(hash(discoverTab)).toBe(hash(home));
+    // "match" is sorted on the device from the same rows.
+    expect(hash({ ...discoverTab, sort: "match" })).toBe(hash(home));
+    expect(hash({ ...home, excludeOwners: [] })).toBe(hash(home));
+  });
+
+  it("anything that changes the server's answer still gets its own entry", () => {
+    const key = (filters: Parameters<typeof listingKeys.discover>[0]) =>
+      JSON.stringify(listingKeys.discover(filters));
+    for (const other of [
+      { ...home, sort: "pay" as const },
+      { ...home, type: "paid" as const },
+      { ...home, remoteOnly: true },
+      { ...home, query: "react" },
+      { ...home, minPay: 400 },
+      { ...home, excludeOwners: ["b", "a"] },
+    ]) {
+      expect(key(other)).not.toBe(key(home));
+    }
+    expect(key({ ...home, excludeOwners: ["b", "a"] })).toBe(
+      key({ ...home, excludeOwners: ["a", "b"] }),
+    );
+  });
+});
 
 /** Fetch the next page n times in a row, as scrolling to the end would. */
 async function scrollOn(result: { current: ReturnType<typeof useDiscover> }, n: number) {

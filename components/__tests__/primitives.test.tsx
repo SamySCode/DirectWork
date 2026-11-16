@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Avatar, initials } from "../Avatar";
 import { Badge } from "../Badge";
 import { Button } from "../Button";
@@ -108,12 +108,20 @@ describe("Avatar", () => {
   // Decorative: hidden from screen readers (the name is always shown beside it).
   const hidden = { includeHiddenElements: true };
 
-  it("shows the photo over the initials when a uri is given", () => {
+  it("shows the photo's thumbnail over the initials when a uri is given", () => {
     render(<Avatar name="Sam Saib" uri="https://img/x.jpg" />);
     expect(screen.getByText("SS", hidden)).toBeTruthy();
     expect(screen.getByTestId("expo-image", hidden).props.source).toEqual({
-      uri: "https://img/x.jpg",
+      uri: "https://img/x.thumb.jpg",
     });
+  });
+
+  it("falls back to the full photo when there is no thumbnail", () => {
+    render(<Avatar name="Sam Saib" uri="https://img/old.jpg" />);
+    act(() => screen.getByTestId("expo-image", hidden).props.onError());
+    const image = screen.getByTestId("expo-image", hidden);
+    expect(image.props.source).toEqual({ uri: "https://img/old.jpg" });
+    expect(image.props.onError).toBeUndefined();
   });
 
   it("has no image without a uri, and is hidden from screen readers", () => {

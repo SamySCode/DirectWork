@@ -18,6 +18,9 @@ import {
 let db;
 let admin;
 
+// Where lib/images.ts puts an image's thumbnail (20261111090000_thumbnails.sql).
+const thumb = (path) => path.replace(/\.jpg$/, ".thumb.jpg");
+
 // Contact-rule violations: SQLSTATE 23514 with the user-facing message and
 // HINT CONTACT_DETAILS (the Edge Function error mapper keys on these).
 const CONTACT_RULE = {
@@ -2197,8 +2200,8 @@ describe("storage limits and cleanup queue", () => {
     const mine = await claim();
     assert.deepEqual(
       mine.map((r) => `${r.bucket}:${r.path}`).sort(),
-      [`avatars:${a2}`, `portfolio:${p1}`].sort(),
-      "a1 is in use again, so it was dropped from the queue",
+      [`avatars:${a2}`, `avatars:${thumb(a2)}`, `portfolio:${p1}`, `portfolio:${thumb(p1)}`].sort(),
+      "a1 is in use again, so it and its thumbnail were dropped from the queue",
     );
     assert.equal((await claim()).length, 0, "claimed rows are leased");
 
@@ -3077,9 +3080,13 @@ describe("database settings", () => {
       assert.match(indexdef, /WHERE \(status = 'published'/);
     }
     // The Discover query shape can use both. The test table is tiny, so the
-    // planner prefers the status btree; drop it (rolled back) and seq scans.
+    // planner prefers a btree on published rows; drop those (rolled back) and
+    // seq scans.
     const plan = await db.transaction(async (tx) => {
-      await tx.exec(`drop index public.projects_discover_idx; set local enable_seqscan = off`);
+      await tx.exec(
+        `drop index public.projects_discover_idx; drop index public.projects_discover_pay_idx;
+         set local enable_seqscan = off`,
+      );
       const { rows: lines } = await tx.query(
         `explain select id from public.projects
          where status = 'published' and (title ilike '%react%' or public_summary ilike '%react%')`,
@@ -3312,5 +3319,177 @@ describe("abuse hardening (20261107100000)", () => {
       [user],
     );
     assert.equal(unread.rows.length, 0, "read rows can't be marked unread");
+  });
+});
+
+describe("thumbnails (20261111090000)", () => {
+  const put = (user, bucket, name) =>
+    asUser(db, user, `insert into storage.objects (bucket_id, name) values ($1, $2)`, [
+      bucket,
+      name,
+    ]);
+
+  test("a thumbnail needs its full image, in the caller's own folder", async () => {
+    const a = await createUser(db);
+    const b = await createUser(db);
+    const full = `${a}/${randomUUID()}.jpg`;
+    await assert.rejects(put(a, "portfolio", thumb(full)), /row-level security/, "no full image");
+    await put(a, "portfolio", full);
+    await put(a, "portfolio", thumb(full));
+    await assert.rejects(
+      put(b, "portfolio", thumb(full)),
+      /row-level security/,
+      "someone else's folder",
+    );
+    await assert.rejects(
+      put(a, "portfolio", `${a}/anything.thumb.jpg`),
+      /row-level security/,
+      "not named after an image",
+    );
+    await assert.rejects(
+      put(a, "avatars", thumb(full)),
+      /row-level security/,
+      "the full image is in another bucket",
+    );
+  });
+
+  test("thumbnails don't use up the image allowance, and can't exceed it", async () => {
+    const user = await createUser(db);
+    const fulls = Array.from({ length: 3 }, () => `${user}/${randomUUID()}.jpg`);
+    for (const path of fulls) {
+      await put(user, "avatars", path);
+      await put(user, "avatars", thumb(path));
+    }
+    await assert.rejects(
+      put(user, "avatars", `${user}/${randomUUID()}.jpg`),
+      /row-level security/,
+      "still capped at 3 full images",
+    );
+    // Swap a full image for a new one: its thumbnail would be a 4th.
+    await asUser(db, user, `delete from storage.objects where name = $1`, [fulls[0]]);
+    const fourth = `${user}/${randomUUID()}.jpg`;
+    await put(user, "avatars", fourth);
+    await assert.rejects(put(user, "avatars", thumb(fourth)), /row-level security/, "thumb cap");
+    await asUser(db, user, `delete from storage.objects where name = $1`, [thumb(fulls[0])]);
+    await put(user, "avatars", thumb(fourth));
+  });
+
+  test("listing thumbnails follow the listing-image upload rule; attachments have none", async () => {
+    const owner = await createUser(db);
+    const other = await createUser(db);
+    const projectId = await createDraft(db, owner);
+    const full = `${owner}/${projectId}/${randomUUID()}.jpg`;
+    await put(owner, "listing-images", full);
+    await put(owner, "listing-images", thumb(full));
+    await assert.rejects(put(other, "listing-images", thumb(full)), /row-level security/);
+
+    const applicant = await createUser(db);
+    await publish(db, owner, admin, projectId);
+    await asUser(
+      db,
+      applicant,
+      `insert into public.applications (project_id, cover_note) values ($1, $2)`,
+      [projectId, "I have shipped three booking flows and can start next week."],
+    );
+    const attachment = `${applicant}/${randomUUID()}.jpg`;
+    await put(applicant, "application-attachments", attachment);
+    await assert.rejects(
+      put(applicant, "application-attachments", thumb(attachment)),
+      /row-level security/,
+    );
+  });
+
+  test("deleting an image, or the account, queues the thumbnail too", async () => {
+    const user = await createUser(db);
+    const owner = await createUser(db);
+    const projectId = await createDraft(db, owner);
+    const portfolio = `${user}/${randomUUID()}.jpg`;
+    const avatar = `${user}/${randomUUID()}.jpg`;
+    const listing = `${owner}/${projectId}/${randomUUID()}.jpg`;
+    await asUser(db, user, `insert into public.portfolio_images (storage_path) values ($1)`, [
+      portfolio,
+    ]);
+    await asUser(db, user, `update public.profiles set avatar_url = $2 where id = $1`, [
+      user,
+      avatar,
+    ]);
+    await asUser(
+      db,
+      owner,
+      `insert into public.listing_images (project_id, storage_path) values ($1, $2)`,
+      [projectId, listing],
+    );
+    await asUser(db, owner, `delete from public.listing_images where storage_path = $1`, [listing]);
+    // Account deletion: the profile row goes, the image rows cascade.
+    await db.query(`delete from auth.users where id = $1`, [user]);
+    const { rows } = await db.query(
+      `select bucket || ':' || path as item from private.storage_cleanup
+       where path like $1 or path like $2`,
+      [`${user}/%`, `${owner}/%`],
+    );
+    assert.deepEqual(
+      rows.map((r) => r.item).sort(),
+      [
+        `avatars:${avatar}`,
+        `avatars:${thumb(avatar)}`,
+        `listing-images:${listing}`,
+        `listing-images:${thumb(listing)}`,
+        `portfolio:${portfolio}`,
+        `portfolio:${thumb(portfolio)}`,
+      ].sort(),
+    );
+  });
+
+  test("path helpers", async () => {
+    const { rows } = await db.query(
+      `select private.thumbnail_path('u/a.jpg') a, private.thumbnail_path('u/p/a.webp') b,
+              private.thumbnail_path('u/a.thumb.jpg') c, private.thumbnail_path('u/a.pdf') d,
+              private.image_path_candidates('u/a.thumb.jpg') e, private.image_path_candidates('u/a.png') f`,
+    );
+    assert.deepEqual(rows[0], {
+      a: "u/a.thumb.jpg",
+      b: "u/p/a.thumb.jpg",
+      c: null,
+      d: null,
+      e: ["u/a.jpg", "u/a.jpeg", "u/a.png", "u/a.webp"],
+      f: ["u/a.png"],
+    });
+  });
+
+  test("Discover by pay and the review queue read from their indexes", async () => {
+    const { rows } = await db.query(
+      `select indexname, indexdef from pg_indexes
+       where indexname in ('projects_discover_pay_idx', 'projects_review_queue_idx') order by 1`,
+    );
+    assert.equal(rows.length, 2);
+    assert.match(
+      rows[0].indexdef,
+      /compensation_max DESC NULLS LAST, compensation_min DESC NULLS LAST, published_at DESC\) WHERE \(status = 'published'/,
+      "must match the ORDER BY discoverListings() sends, or the planner sorts every listing",
+    );
+    // With enough rows to matter, the plan walks the index instead of sorting.
+    const pdb = await createDb();
+    const owner = await createUser(pdb);
+    await pdb.exec(`
+      set session_replication_role = replica;
+      insert into public.projects (owner_id, title, public_summary, opportunity_type, status,
+                                   compensation_type, compensation_min, compensation_max, published_at)
+        select '${owner}', 'Listing number ' || g, 'A summary long enough to pass the checks ' || g,
+               'paid', 'published', 'fixed', g, case when g % 5 = 0 then null else g * 2 end,
+               now() - (g || ' minutes')::interval
+        from generate_series(1, 3000) g;
+      set session_replication_role = origin;
+      analyze public.projects;
+    `);
+    const plan = await asUser(
+      pdb,
+      owner,
+      `explain (costs off) select id from public.projects where status = 'published'
+       order by compensation_max desc nulls last, compensation_min desc nulls last, published_at desc
+       limit 20`,
+    );
+    const text = plan.rows.map((r) => r["QUERY PLAN"]).join("\n");
+    assert.match(text, /projects_discover_pay_idx/);
+    assert.doesNotMatch(text, /Seq Scan|Sort/);
   });
 });

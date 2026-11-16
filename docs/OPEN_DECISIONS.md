@@ -214,3 +214,12 @@ and the app, except where noted. Each is reversible.
 - **Public pay record:** on, with a server-side kill switch
   (`private.feature_flags.pay_record_public`) to turn it off instantly if a
   complaint arrives.
+
+## Decided 2026-11-16
+
+- **Launch is online only.** No in-person events, meetings or printed
+  material. Outreach is through online channels; owner interviews are by
+  video call. `docs/marketing/online-launch.md` (task T13) replaces the
+  in-person parts of the city plan. Still open: stay Leeds and Yorkshire
+  first online, or go UK-wide in one niche, since an online launch is not
+  tied to a city.

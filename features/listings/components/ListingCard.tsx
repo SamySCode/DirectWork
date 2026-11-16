@@ -1,11 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Image } from "expo-image";
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Badge } from "../../../components/Badge";
 import { PressableCard } from "../../../components/Card";
 import { NodeMeter } from "../../../components/NodeMeter";
 import { Text } from "../../../components/Text";
+import { ThumbnailImage } from "../../../components/ThumbnailImage";
 import { colors, radius, spacing, typography } from "../../../lib/theme";
 import type { ListingDetail } from "../api";
 import {
@@ -52,12 +52,9 @@ function ListingCardBase({ listing, onPress, mySkills, showStatus = false }: Lis
   return (
     <PressableCard onPress={onPress} accessibilityLabel={label} style={styles.card}>
       {listing.images[0] ? (
-        <Image
-          source={{ uri: listing.images[0].url }}
+        <ThumbnailImage
+          uri={listing.images[0].url}
           style={styles.cover}
-          contentFit="cover"
-          transition={150}
-          cachePolicy="memory-disk"
           accessibilityIgnoresInvertColors
         />
       ) : null}

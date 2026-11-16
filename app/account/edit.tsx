@@ -285,3 +285,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../components/RouteErrorBoundary";

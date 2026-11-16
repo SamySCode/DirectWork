@@ -1,12 +1,49 @@
-# Security headers for the static web build (Netlify / Cloudflare Pages
-# format; see docs/LAUNCH.md for other hosts). Expo copies public/ into dist/.
+# Headers for the static web build (Cloudflare / Netlify `_headers` format).
+# Expo copies public/ into dist/ on `expo export`.
 #
-# No Content-Security-Policy yet: Expo's web output and react-native-web
-# inject inline styles, so a CSP needs testing against the real deployed
-# origin before it's turned on - tracked in docs/LAUNCH.md.
+# SUPABASE_PROJECT_HOST below is a placeholder for the Supabase project's host
+# name (the `abcdefgh.supabase.co` part of EXPO_PUBLIC_SUPABASE_URL, with no
+# https:// and no path). Deploy with `npm run build:web`: it exports the app
+# and then writes the real host into dist/_headers from
+# EXPO_PUBLIC_SUPABASE_URL (scripts/apply-web-headers.js), and fails if the
+# placeholder is still there. Never edit the placeholder in this file. If it
+# reaches production unreplaced the app cannot reach the backend at all, so
+# the mistake is obvious and nothing is exposed. See docs/OPERATIONS.md.
+#
+# Content-Security-Policy, verified against the real export (2026-11-12):
+# - script-src 'self': the export has one external script and no inline
+#   script, and runs without eval. zod probes `new Function("")` once at
+#   start-up, is refused, and falls back; that shows as one console report
+#   per page load and is harmless. Do not add 'unsafe-eval' to silence it.
+# - style-src 'unsafe-inline': react-native-web and expo-font inject <style>
+#   elements at run time.
+# - connect-src data: blob: is for reading a picked image before upload
+#   (lib/images.ts fetches the picker's blob:/data: URI).
+# - wss:// is for Supabase Realtime, which the app does not use yet.
 /*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://SUPABASE_PROJECT_HOST; font-src 'self' data:; connect-src 'self' data: blob: https://SUPABASE_PROJECT_HOST wss://SUPABASE_PROJECT_HOST; manifest-src 'self'; worker-src 'self'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Cross-Origin-Resource-Policy: same-origin
+
+# Caching. These paths never overlap, because hosts join a header that two
+# matching rules both set. File names under /_expo/static and /assets carry a
+# content hash, so they can be cached for a year. The page itself must be
+# revalidated on every visit so a new deploy is picked up; deep links
+# (/discover and so on) are served the same index.html with the host's
+# default, which is already "max-age=0, must-revalidate".
+/_expo/static/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/
+  Cache-Control: no-cache
+
+/index.html
+  Cache-Control: no-cache

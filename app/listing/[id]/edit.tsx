@@ -25,3 +25,6 @@ export default function EditListingScreen() {
 
   return <ListingForm initial={listing.data} saving={saving} error={error} onSave={onSave} />;
 }
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../../components/RouteErrorBoundary";

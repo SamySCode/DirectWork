@@ -186,3 +186,93 @@ Deno.test("auth pre-check allows a minute of clock skew on expiry", () => {
   assertEquals(looksLikeUserToken({ ...base, exp: 1000 }, 1100), false);
   assertEquals(looksLikeUserToken(null), false);
 });
+
+// ---------------------------------------------------------------------------
+// CORS and exposure, end to end through the middleware.
+// ---------------------------------------------------------------------------
+
+const CORS_HEADERS = [
+  "Access-Control-Allow-Origin",
+  "Access-Control-Allow-Headers",
+  "Access-Control-Allow-Methods",
+  "Access-Control-Allow-Credentials",
+];
+
+Deno.test("CORS: a disallowed origin gets no CORS headers, on POST or preflight", async () => {
+  for (const method of ["POST", "OPTIONS"]) {
+    const refused = await echo(
+      new Request("http://x", { method, headers: { Origin: "https://evil.example" } }),
+    );
+    assertEquals(refused.status, 403);
+    for (const header of CORS_HEADERS) assertEquals(refused.headers.get(header), null);
+  }
+});
+
+Deno.test("CORS: an allowed origin is echoed exactly, never '*', with Vary", async () => {
+  const preflight = await echo(
+    new Request("http://x", { method: "OPTIONS", headers: { Origin: "http://localhost:8081" } }),
+  );
+  assertEquals(preflight.status, 204);
+  assertEquals(preflight.headers.get("Access-Control-Allow-Origin"), "http://localhost:8081");
+  assertEquals(preflight.headers.get("Access-Control-Allow-Methods"), "POST, OPTIONS");
+  assertEquals(preflight.headers.get("Vary"), "Origin");
+  // Bearer tokens only: cookies are never accepted cross-origin.
+  assertEquals(preflight.headers.get("Access-Control-Allow-Credentials"), null);
+});
+
+Deno.test("CORS: no Origin (native app) gets no CORS headers and still needs a token", async () => {
+  const response = await echo(post({}, "{}"));
+  assertEquals(response.status, 401);
+  for (const header of CORS_HEADERS) assertEquals(response.headers.get(header), null);
+});
+
+Deno.test("CORS: cors:false handlers (webhook, maintenance) never emit CORS headers", async () => {
+  const closed = createHandler(
+    "closed",
+    { auth: false, cors: false },
+    () => Promise.resolve({ ok: true }),
+    depsFor(fakeAdmin()),
+  );
+  for (const origin of ["http://localhost:8081", "https://evil.example"]) {
+    const response = await closed(post({ Origin: origin }, "{}"));
+    for (const header of CORS_HEADERS) assertEquals(response.headers.get(header), null);
+  }
+});
+
+Deno.test("CORS: with ALLOWED_ORIGINS set, only those exact origins pass", async () => {
+  // http.ts reads the variable once at load, so load a fresh copy of it.
+  Deno.env.set("ALLOWED_ORIGINS", "https://app.example.co.uk, https://example.co.uk");
+  try {
+    const fresh: typeof import("./http.ts") = await import("./http.ts?allowlist");
+    assertEquals(fresh.isOriginAllowed("https://app.example.co.uk"), true);
+    assertEquals(fresh.isOriginAllowed("https://example.co.uk"), true);
+    assertEquals(fresh.isOriginAllowed(null), true);
+    // Production must not trust localhost, other schemes, ports or look-alikes.
+    for (const origin of [
+      "http://localhost:8081",
+      "http://app.example.co.uk",
+      "https://app.example.co.uk:8443",
+      "https://app.example.co.uk.evil.example",
+      "https://evil-example.co.uk",
+      "https://sub.app.example.co.uk",
+      "null",
+      "*",
+    ]) {
+      assertEquals([origin, fresh.isOriginAllowed(origin)], [origin, false]);
+    }
+    const handler = fresh.createHandler(
+      "echo",
+      { auth: false },
+      () => Promise.resolve({ ok: true }),
+      depsFor(fakeAdmin()),
+    );
+    const allowed = await handler(post({ Origin: "https://app.example.co.uk" }, "{}"));
+    assertEquals(allowed.status, 200);
+    assertEquals(allowed.headers.get("Access-Control-Allow-Origin"), "https://app.example.co.uk");
+    const local = await handler(post({ Origin: "http://localhost:8081" }, "{}"));
+    assertEquals(local.status, 403);
+    assertEquals(local.headers.get("Access-Control-Allow-Origin"), null);
+  } finally {
+    Deno.env.delete("ALLOWED_ORIGINS");
+  }
+});

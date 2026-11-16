@@ -204,12 +204,18 @@ export async function getMyListings(userId: string): Promise<ListingDetail[]> {
   return ((data ?? []) as unknown as RawDetail[]).map(toDetail);
 }
 
+export const REVIEW_QUEUE_LIMIT = 50;
+
 export async function getReviewQueue(): Promise<ListingDetail[]> {
   const { data, error } = await supabase
     .from("projects")
     .select(DETAIL_SELECT)
     .eq("status", "in_review")
-    .order("updated_at", { ascending: true });
+    .order("updated_at", { ascending: true })
+    // Oldest first, a screenful at a time: every row carries its owner,
+    // skills, admission and images, so an unbounded queue was the most
+    // expensive list in the app (reviewing one brings the next in).
+    .limit(REVIEW_QUEUE_LIMIT);
   if (error) throw error;
   return ((data ?? []) as unknown as RawDetail[]).map(toDetail);
 }

@@ -24,9 +24,26 @@ import {
 } from "./api";
 import type { ListingInput } from "./schemas";
 
+/**
+ * The part of the filters that changes what the server returns. Home and
+ * Discover both show the default first page; without this they cached (and
+ * fetched) it twice, because Discover spells the same request with
+ * `sort: "newest"` and Home leaves it out.
+ */
+export function discoverKeyFilters(filters: DiscoverFilters): DiscoverFilters {
+  const { sort, excludeOwners, query, ...rest } = filters;
+  return {
+    ...rest,
+    query: query.trim(),
+    ...(sort === "pay" ? { sort } : {}),
+    ...(excludeOwners?.length ? { excludeOwners: [...excludeOwners].sort() } : {}),
+  };
+}
+
 export const listingKeys = {
   all: ["listings"] as const,
-  discover: (filters: DiscoverFilters) => ["listings", "discover", filters] as const,
+  discover: (filters: DiscoverFilters) =>
+    ["listings", "discover", discoverKeyFilters(filters)] as const,
   detail: (id: string) => ["listings", "detail", id] as const,
   mine: (userId: string) => ["listings", "mine", userId] as const,
   reviewQueue: ["listings", "review-queue"] as const,

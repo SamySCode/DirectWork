@@ -7,6 +7,7 @@ import { Appearance, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppLoadingScreen } from "../components/AppLoadingScreen";
 import { ErrorState } from "../components/ErrorState";
+import { OfflineBanner } from "../components/OfflineBanner";
 import { SessionProvider, useAuth } from "../features/auth/SessionProvider";
 import { useProtectedRoute } from "../features/auth/hooks";
 import { useLegalStatus } from "../features/legal/hooks";
@@ -109,6 +110,7 @@ function RootNavigator() {
           options={{ title: "Updated terms", headerBackVisible: false, gestureEnabled: false }}
         />
       </Stack>
+      <OfflineBanner />
       {session && (hasProfile === undefined || !legalSettled) ? (
         <View style={StyleSheet.absoluteFill}>
           {profile.isError ? (

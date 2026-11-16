@@ -145,6 +145,10 @@ export function useAttachmentUrls(paths: string[]) {
     queryFn: () => getAttachmentUrls(paths),
     enabled: paths.length > 0,
     staleTime: 50 * 60_000,
+    // Keep the URLs for as long as they're valid. With the default 5 minutes,
+    // coming back to an application minted new URLs - and a new URL is a
+    // cache miss, so every attachment downloaded again.
+    gcTime: 55 * 60_000,
   });
 }
 

@@ -244,3 +244,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../components/RouteErrorBoundary";

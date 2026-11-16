@@ -5,6 +5,17 @@ Guidance for Claude Code sessions working in this repository. Read
 before making structural changes — they capture decisions already agreed,
 not just suggestions.
 
+## Start here (keeps sessions short and cheap)
+
+- What happens next and when to stop: `docs/ROADMAP.md`.
+- Ready-to-run work items, one per session: `docs/tasks/README.md`.
+- How to work cheaply (models, `/clear`, the `builder`, `checker` and
+  `reviewer` agents): `docs/WORKING_WITH_CLAUDE.md`.
+- Read only the files a task names. Don't re-audit the codebase or re-read
+  the long docs unless the task asks for it.
+- Don't launch several agents at once, and never on maximum effort, unless
+  the owner asks. Use quiet command output and report only failures.
+
 ## Product boundary (hard constraint)
 
 DirectWork is a direct professional marketplace, not a social network.

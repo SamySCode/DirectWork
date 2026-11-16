@@ -4,8 +4,15 @@ import { useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { colors, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
+import { ThumbnailImage } from "./ThumbnailImage";
 
-export type GalleryImage = { key: string; uri: string; caption?: string | null };
+export type GalleryImage = {
+  key: string;
+  uri: string;
+  caption?: string | null;
+  /** Stable cache key for images whose URL changes (signed URLs). */
+  cacheKey?: string;
+};
 
 type GalleryProps = {
   images: GalleryImage[];
@@ -33,11 +40,10 @@ export function Gallery({ images, height = 150 }: GalleryProps) {
             accessibilityLabel={image.caption ?? "View image"}
             style={styles.item}
           >
-            <Image
-              source={{ uri: image.uri }}
+            <ThumbnailImage
+              uri={image.uri}
+              cacheKey={image.cacheKey}
               style={[styles.image, { height, width: height * (4 / 3) }]}
-              contentFit="cover"
-              transition={150}
             />
             {image.caption ? (
               <Text style={[styles.caption, { width: height * (4 / 3) }]} numberOfLines={1}>
@@ -60,7 +66,12 @@ export function Gallery({ images, height = 150 }: GalleryProps) {
           </Pressable>
           {open ? (
             <>
-              <Image source={{ uri: open.uri }} style={styles.full} contentFit="contain" />
+              <Image
+                source={{ uri: open.uri, cacheKey: open.cacheKey }}
+                style={styles.full}
+                contentFit="contain"
+                cachePolicy="memory-disk"
+              />
               {open.caption ? <Text style={styles.fullCaption}>{open.caption}</Text> : null}
             </>
           ) : null}

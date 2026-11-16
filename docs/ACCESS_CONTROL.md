@@ -419,3 +419,33 @@ rows. The figures are counts only: no scores or labels.
 9. Once either person blocks the other, neither can propose or confirm.
    Reports and disputes still work, so an owner can't avoid a report by
    blocking.
+
+## Thumbnails and list-query indexes (`20261111090000`; not yet applied to any hosted project)
+
+- **Layout.** Every avatar, portfolio and listing image has a small JPEG
+  beside it: `<folder>/<uuid>.jpg` and `<folder>/<uuid>.thumb.jpg` (160px
+  avatars, 480px covers), made on the device at upload (`lib/images.ts`), so
+  no billed image transformations. Lists, cards, gallery tiles and avatars
+  load the thumbnail; only full-size views load the original. The private
+  attachments bucket has none.
+- **No row or column for a thumbnail.** Its path is derived from the image's
+  (`private.thumbnail_path`, `thumbnailPath()`), so the path constraints, the
+  image-row triggers, the export and the deletion cascades are unchanged.
+  Images uploaded before this have no thumbnail; the client asks once, gets a
+  404 and uses the full file for the rest of the session.
+- **Caps.** `private.storage_object_count` no longer counts `*.thumb.jpg`, so
+  the image allowances (3 / 8 / 40) are what they were. A thumbnail insert
+  must pass `private.can_upload_thumbnail`: caller's own folder in a public
+  bucket, named after a full image that already exists there, and fewer
+  thumbnails than the bucket's image cap. Worst case per user is therefore
+  twice the object count, but a thumbnail slot only opens once a full image
+  exists. Storage can't check a file's size in a policy, so a hand-rolled
+  client could still put a 2 MB file under a thumbnail name.
+- **Cleanup.** `private.enqueue_storage_cleanup` queues the thumbnail with
+  its image (row deletes, account deletion and retention cascades, avatar
+  changes); `claim_storage_cleanup` rescues both when the image is referenced
+  again. Removing a thumbnail that was never made is a no-op in Storage.
+- **Indexes.** `projects_discover_pay_idx` (partial, published, in the pay
+  sort's exact ORDER BY) and `projects_review_queue_idx`. Measured on the
+  PGlite harness with 6,000 listings: Discover by pay went from reading every
+  published listing (117,867 buffer hits) to 623.

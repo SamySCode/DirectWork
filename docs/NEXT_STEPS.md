@@ -493,10 +493,13 @@ revenue covers the cost; or before expanding outside the UK.
 
 - **Who:** Code prepares, You connect the account.
 - **Do:**
-  1. Code adds a `wrangler.jsonc` (static assets from `./dist`,
-     `not_found_handling = "single-page-application"`), cache headers and a
-     Content-Security-Policy in `public/_headers` (tested in report-only mode
-     first), and a GitHub Actions deploy job.
+  1. Done 2026-11-13: cache headers and a Content-Security-Policy are in
+     `public/_headers`, tested against the real export. **Always build with
+     `npm run build:web`** (never a bare `expo export`): it writes your
+     Supabase host into the policy and fails if the placeholder is left in.
+     Still for Code: a `wrangler.jsonc` (static assets from `./dist`,
+     `not_found_handling = "single-page-application"`) and a GitHub Actions
+     deploy job. Running costs and bill caps: `docs/OPERATIONS.md`.
   2. You create a Cloudflare API token (My Profile > API Tokens > "Edit
      Cloudflare Workers", one account) and save it as a GitHub secret.
   3. Build settings: `EXPO_PUBLIC_SUPABASE_URL` and the publishable key of the

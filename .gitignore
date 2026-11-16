@@ -9,21 +9,29 @@ web-build/
 .metro-health-check*
 *.orig.*
 
-# Native signing (once ios/ and android/ exist)
+# Signing keys and credentials: never commit (scripts/secret-scan.js and the
+# security-guards test check this list)
 *.jks
+*.keystore
 *.p8
 *.p12
+*.pem
 *.key
 *.mobileprovision
+signing_keys.json
+google-services.json
+GoogleService-Info.plist
 
 # Native build output (once ios/ and android/ exist)
 ios/
 android/
 
-# Env
+# Env (only .env.example is tracked)
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
 
 # Supabase local dev
 supabase/.branches/
