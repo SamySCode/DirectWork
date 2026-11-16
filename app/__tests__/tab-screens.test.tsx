@@ -8,6 +8,7 @@ import { useIsAdmin } from "../../features/admin/hooks";
 import { useIncomingPending, useMyApplications } from "../../features/applications/hooks";
 import { deleteAccount } from "../../features/auth/api";
 import { useDiscover, useListingQuota, useMyListings } from "../../features/listings/hooks";
+import { useBlockedIds } from "../../features/safety/hooks";
 import { useMyProfile, usePortfolio, useTrackRecord } from "../../features/profile/hooks";
 import { makeApplication, makeListing, makeProfile, T } from "../../test/fixtures";
 
@@ -202,6 +203,16 @@ describe("Home", () => {
     expect(screen.getByText("Matching gig")).toBeTruthy();
     expect(screen.queryByText("My own gig")).toBeNull();
     expect(screen.queryByText("Design job")).toBeNull();
+  });
+  it("leaves blocked owners out of the picks, the same request Discover makes", () => {
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: ["blocked-owner"] });
+    render(<HomeScreen />);
+    expect(useDiscover).toHaveBeenLastCalledWith({
+      query: "",
+      remoteOnly: false,
+      excludeOwners: ["blocked-owner"],
+    });
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: [] });
   });
 });
 

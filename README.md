@@ -80,12 +80,17 @@ npm run check   # lint + typecheck + format:check + unit + database tests
 
 Should pass with no errors on a clean checkout. The test suites:
 
-| Command                  | What it covers                                                                     |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `npm run test:unit`      | 232 Jest tests: logic, components and screens (React Native Testing Library)       |
-| `npm run test:db`        | 43 tests: migrations, RLS, transitions and schema guardrails in PGlite (no Docker) |
-| `npm run test:functions` | Edge Function middleware (Deno, fetched via npx)                                   |
-| `npm run test:rls:live`  | End-to-end RLS check against a deployed project                                    |
+| Command                  | What it covers                                                           |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `npm run test:unit`      | Jest tests: logic, components and screens (React Native Testing Library) |
+| `npm run test:db`        | Migrations, RLS, transitions and schema guardrails in PGlite (no Docker) |
+| `npm run test:functions` | Edge Function middleware (Deno, fetched via npx)                         |
+| `npm run test:rls:live`  | End-to-end RLS check against a deployed project                          |
+
+Current status, next steps and operations live in
+[`docs/ROADMAP.md`](docs/ROADMAP.md), [`docs/NEXT_STEPS.md`](docs/NEXT_STEPS.md) and
+[`docs/OPERATIONS.md`](docs/OPERATIONS.md). Those are the places to check for test counts and
+launch state, so this README does not repeat them.
 
 ## Running the app
 

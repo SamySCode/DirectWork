@@ -1,5 +1,5 @@
 import { StyleSheet, View } from "react-native";
-import { colors, spacing, typography } from "../lib/theme";
+import { colors, elevation, radius, spacing, surfaces, typography } from "../lib/theme";
 import { Button } from "./Button";
 import { Text } from "./Text";
 
@@ -16,9 +16,11 @@ export function ErrorState({
 }: ErrorStateProps) {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>{title}</Text>
-      {description ? <Text style={styles.description}>{description}</Text> : null}
-      {onRetry ? <Button label="Try again" variant="secondary" onPress={onRetry} /> : null}
+      <View style={styles.panel}>
+        <Text style={styles.title}>{title}</Text>
+        {description ? <Text style={styles.description}>{description}</Text> : null}
+        {onRetry ? <Button label="Try again" variant="secondary" onPress={onRetry} /> : null}
+      </View>
     </View>
   );
 }
@@ -29,7 +31,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: spacing.xl,
+  },
+  panel: {
+    ...surfaces.card,
+    ...elevation.sm,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
     gap: spacing.md,
+    alignItems: "center",
+    maxWidth: 420,
   },
   title: {
     fontSize: typography.size.lg,

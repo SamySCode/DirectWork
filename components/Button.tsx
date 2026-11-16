@@ -12,7 +12,7 @@ import {
 } from "react-native";
 import { useReducedMotion } from "../lib/accessibility";
 import { nativeDriverEnabled } from "../lib/animation";
-import { colors, radius, spacing, typography } from "../lib/theme";
+import { colors, elevation, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -29,7 +29,10 @@ type ButtonProps = Omit<PressableProps, "children" | "style"> & {
 };
 
 const variantStyles: Record<ButtonVariant, { container: ViewStyle; text: string }> = {
-  primary: { container: { backgroundColor: colors.accent }, text: colors.onAccent },
+  primary: {
+    container: { backgroundColor: colors.accent, ...elevation.md },
+    text: colors.onAccent,
+  },
   secondary: {
     container: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
     text: colors.textPrimary,
@@ -58,6 +61,24 @@ const hoverStyles: Record<ButtonVariant, ViewStyle> = {
 
 // Press feedback: short, eased, no overshoot - reads as "precise" rather
 // than "playful". A spring's bounce is what makes button animation tacky.
+// Darker tone while held. Not shown with a shadow: the lift settles as it is pressed.
+const pressedStyles: Record<ButtonVariant, ViewStyle> = {
+  primary: { backgroundColor: colors.accentPressed, ...elevation.none },
+  secondary: { backgroundColor: colors.surfaceSunken },
+  ghost: { backgroundColor: colors.accentMuted },
+  danger: { opacity: 0.85 },
+  light: { opacity: 0.85 },
+  onDark: { backgroundColor: "rgba(255,255,255,0.16)" },
+};
+
+// Keyboard focus (web / hardware keyboards): a ring that clears the page and the fill.
+const focusStyle: ViewStyle = {
+  outlineColor: colors.focusRing,
+  outlineWidth: 2,
+  outlineOffset: 2,
+  outlineStyle: "solid",
+};
+
 const PRESS_IN = { toValue: 0.97, duration: 90, easing: Easing.out(Easing.quad) };
 const PRESS_OUT = { toValue: 1, duration: 140, easing: Easing.out(Easing.cubic) };
 
@@ -79,6 +100,8 @@ export function Button({
   const scale = useRef(new Animated.Value(1)).current;
   const reduceMotion = useReducedMotion();
   const [hovered, setHovered] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const [focused, setFocused] = useState(false);
   const { container, text } = variantStyles[variant];
 
   const animate = (config: typeof PRESS_IN) => {
@@ -97,11 +120,21 @@ export function Button({
       hitSlop={size === "sm" ? SMALL_HIT_SLOP : undefined}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
+      onFocus={(event) => {
+        setFocused(true);
+        pressableProps.onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setFocused(false);
+        pressableProps.onBlur?.(event);
+      }}
       onPressIn={(event) => {
+        setPressed(true);
         animate(PRESS_IN);
         onPressIn?.(event);
       }}
       onPressOut={(event) => {
+        setPressed(false);
         animate(PRESS_OUT);
         onPressOut?.(event);
       }}
@@ -110,6 +143,8 @@ export function Button({
         size === "sm" ? styles.small : null,
         container,
         hovered && !isDisabled ? hoverStyles[variant] : null,
+        pressed && !isDisabled ? pressedStyles[variant] : null,
+        focused && !isDisabled ? focusStyle : null,
         isDisabled ? styles.disabled : null,
         { transform: [{ scale }] },
         style,

@@ -15,6 +15,7 @@ import { useIncomingPending, useMyApplications } from "../../features/applicatio
 import { collaborationState } from "../../features/applications/labels";
 import { ListingCard } from "../../features/listings/components/ListingCard";
 import { useDiscover, useMyListings } from "../../features/listings/hooks";
+import { useBlockedIds } from "../../features/safety/hooks";
 import { PulseCard } from "../../features/insights/components/PulseCard";
 import { usePlatformPulse } from "../../features/insights/hooks";
 import { AvailabilityCheck } from "../../features/profile/components/AvailabilityCheck";
@@ -52,7 +53,13 @@ export default function HomeScreen() {
   const applications = useMyApplications();
   const incoming = useIncomingPending();
   const listings = useMyListings();
-  const discover = useDiscover({ query: "", remoteOnly: false });
+  // Same request as Discover's default view (one cache entry), with blocked
+  // owners left out, as Discover does.
+  const blocked = useBlockedIds();
+  const homeFilters = { query: "", remoteOnly: false };
+  const discover = useDiscover(
+    blocked.data?.length ? { ...homeFilters, excludeOwners: blocked.data } : homeFilters,
+  );
 
   const seeking = !!profile && (profile.seeking_paid || profile.seeking_partner);
   const freshness = profile ? availabilityFreshness(profile) : null;

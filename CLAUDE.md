@@ -62,7 +62,7 @@ feature.
 - Prioritize performance, responsiveness, and cost efficiency (query
   volume, Realtime usage, data transfer) over matching every visual or
   feature detail in a reference design. Messaging is deliberately
-  deferred (slice 10) for this reason — don't build it out early even if
+  deferred to Phase 3 for this reason — don't build it out early even if
   a reference design shows it prominently.
 
 <!-- claude-mem-lite:begin v1 -->

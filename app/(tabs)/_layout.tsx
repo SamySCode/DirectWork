@@ -4,7 +4,7 @@ import { ComponentProps } from "react";
 import { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIncomingPending } from "../../features/applications/hooks";
-import { colors, tabThemes, typography } from "../../lib/theme";
+import { colors, elevation, surfaces, tabThemes, typography } from "../../lib/theme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
 
@@ -34,8 +34,9 @@ export default function TabsLayout() {
         // bar is 6 top padding + 58 content + the bottom safe-area inset
         // (home indicator), minimum 8.
         tabBarStyle: {
-          backgroundColor: colors.surface,
-          borderTopColor: colors.border,
+          backgroundColor: surfaces.raised.backgroundColor,
+          borderTopColor: surfaces.raised.borderColor,
+          ...elevation.up,
           height: 6 + 58 + Math.max(insets.bottom, 8),
           paddingTop: 6,
           paddingBottom: Math.max(insets.bottom, 8),

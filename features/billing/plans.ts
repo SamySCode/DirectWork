@@ -22,7 +22,7 @@ export const plans: Record<PlanId, Plan> = {
     cadence: "forever",
     liveListings: 1,
     features: [
-      "1 live listing at a time",
+      "1 live listing at a time (paused and in-review listings count too)",
       "Reviewed by our team before it goes live",
       "Unlimited applicants",
       "Contact details shared on mutual acceptance",

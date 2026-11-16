@@ -75,9 +75,10 @@ State on 2026-11-07:
       `not_found_handling = "single-page-application"` (NEXT_STEPS 2.17).
 - [ ] `public/_headers` sets HSTS, nosniff, frame-deny, referrer and
       permissions headers. Cloudflare reads it as is.
-- [ ] Add a Content-Security-Policy once the production origin exists, and
-      test it in report-only mode first. `connect-src` needs the Supabase URL;
-      react-native-web needs `style-src 'unsafe-inline'`.
+- [ ] Deploy with `npm run build:web`, not a bare `expo export`. It writes the
+      Content-Security-Policy into `dist/_headers` with the Supabase host from
+      `EXPO_PUBLIC_SUPABASE_URL` (see `scripts/apply-web-headers.js`). See
+      OPERATIONS.md, "Web security headers", before changing the policy.
 - [ ] Set `EXPO_PUBLIC_*` env vars in the build settings (production values
       for production, staging values for previews).
 

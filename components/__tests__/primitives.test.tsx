@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Avatar, initials } from "../Avatar";
 import { Badge } from "../Badge";
 import { Button } from "../Button";
+import { Card } from "../Card";
 import { Chip } from "../Chip";
 import { EmptyState } from "../EmptyState";
 import { ErrorState } from "../ErrorState";
@@ -252,5 +253,34 @@ describe("tab themes", () => {
   it("gives every tab a distinct tint", () => {
     const tints = Object.values(tabThemes).map((theme) => theme.tint);
     expect(new Set(tints).size).toBe(tints.length);
+  });
+});
+
+describe("Card", () => {
+  it("renders children in default and raised variants", () => {
+    render(
+      <>
+        <Card>
+          <Badge label="resting" />
+        </Card>
+        <Card raised>
+          <Badge label="floating" />
+        </Card>
+      </>,
+    );
+    expect(screen.getByText("resting")).toBeTruthy();
+    expect(screen.getByText("floating")).toBeTruthy();
+  });
+});
+
+describe("Button states", () => {
+  it("survives press and focus cycles", () => {
+    render(<Button label="Save" onPress={jest.fn()} />);
+    const button = screen.getByRole("button", { name: "Save" });
+    fireEvent(button, "pressIn");
+    fireEvent(button, "pressOut");
+    fireEvent(button, "focus");
+    fireEvent(button, "blur");
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });
 });

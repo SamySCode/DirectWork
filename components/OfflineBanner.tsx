@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { checkConnection, useIsOnline } from "../lib/query";
-import { colors, spacing, typography } from "../lib/theme";
+import { colors, elevation, spacing, surfaces, typography } from "../lib/theme";
 import { Text } from "./Text";
 
 /**
@@ -49,7 +49,10 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
-    backgroundColor: colors.surfaceSunken,
+    ...surfaces.raised,
+    borderWidth: 0,
+    borderTopWidth: 1,
+    ...elevation.up,
   },
   text: {
     flex: 1,

@@ -7,6 +7,10 @@ import { list, p, rows, section, type LegalDocument } from "./types";
 // with it, so people are shown the updated notice).
 const billing = env.EXPO_PUBLIC_BILLING_ENABLED;
 
+// Where Supabase keeps our data. Change this one word when the London project
+// exists. Section 8 uses it, and features/legal/__tests__ checks that it does.
+export const REGION = "Ireland";
+
 export const privacy: LegalDocument = {
   slug: "privacy",
   title: "Privacy Notice",
@@ -205,7 +209,7 @@ export const privacy: LegalDocument = {
     section(
       "8. Transfers outside the UK",
       list(
-        "Supabase keeps our database, files and backups in Ireland (EU), which UK law treats as adequate. Its logs are stored in EU data centres, and images may be delivered through a worldwide content delivery network. Supabase's contracting company is in Singapore and some support staff are in the US. Those transfers are protected by the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.",
+        `Supabase keeps our database, files and backups in ${REGION} (EU), which UK law treats as adequate. Its logs are stored in EU data centres, and images may be delivered through a worldwide content delivery network. Supabase's contracting company is in Singapore and some support staff are in the US. Those transfers are protected by the UK International Data Transfer Addendum to the EU Standard Contractual Clauses.`,
         'Amazon SES sends our emails from its London region. Amazon Web Services, Cloudflare and Expo are US companies, and Cloudflare delivers our website through a worldwide network. Where data reaches the US, it\'s protected by the UK Extension to the EU-US Data Privacy Framework (the "UK-US data bridge") or by Standard Contractual Clauses with the UK Addendum.',
         ...(billing
           ? [

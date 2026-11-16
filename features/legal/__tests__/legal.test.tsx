@@ -11,6 +11,7 @@ import { renderWithClient } from "../../../test/utils";
 import { supabase } from "../../../lib/supabase";
 import { exportFileName, getMyLegalStatus } from "../api";
 import { getLegalDocument, legalDocuments, PRIVACY_VERSION, TERMS_VERSION } from "../documents";
+import { REGION } from "../documents/privacy";
 import { needsLegalAcceptance } from "../versions";
 
 const mockPush = jest.fn();
@@ -69,6 +70,11 @@ describe("legal documents", () => {
     }
     expect(privacy).not.toContain("Stripe");
     expect(privacy).toMatch(/still see it, marked as withdrawn/);
+  });
+
+  it("states the data region from the REGION constant", () => {
+    const privacy = allText("privacy");
+    expect(privacy).toContain(`Supabase keeps our database, files and backups in ${REGION} (EU)`);
   });
 
   it("covers Deal Sheets and payment records", () => {

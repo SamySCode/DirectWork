@@ -61,21 +61,20 @@ lists; the plan is `docs/marketing/online-launch.md` (task T13), which
 replaces the in-person parts of `docs/marketing/city-launch.md`. Ten
 owner interviews by video call in the first 60 days. No charges.
 
-The ranges below came from a review that assumed weekly in-person
-outreach. Treat them as optimistic until T13 re-estimates them for an
-online-only launch.
+Expected numbers for an online-only launch, from `docs/marketing/online-launch.md`
+(judgement, not measurement; cumulative):
 
-Measured at day 30, 60 and 90 with the queries from task T07:
+| Measure                           | Day 30 | Day 60 | Day 90 |
+| --------------------------------- | ------ | ------ | ------ |
+| Professional sign-ups             | 5-25   | 25-80  | 50-180 |
+| Approved listings                 | 4-10   | 8-20   | 12-30  |
+| Contact exchanges (both accepted) | 0-1    | 1-5    | 3-12   |
+| Confirmed outcomes                | 0      | 0-2    | 1-5    |
 
-| Measure (cumulative)              | Day 30 | Day 60 | Day 90  |
-| --------------------------------- | ------ | ------ | ------- |
-| Professional sign-ups             | 30-120 | 60-250 | 100-400 |
-| Approved listings                 | 5-15   | 15-35  | 25-70   |
-| Contact exchanges (both accepted) | 0-4    | 3-12   | 6-25    |
-| Confirmed outcomes                | 0-2    | 1-6    | 3-15    |
-
-(Listings, exchanges and outcomes are the ranges in the competitor
-review; the sign-up row is a planning estimate.)
+These are well below the in-person estimates, and below the continue
+thresholds in the next section: the online plan puts the chance of
+meeting them at about one in ten. Measured with the queries from task
+T07.
 
 ### Decision at day 90 (about 4 April 2027)
 
@@ -123,6 +122,14 @@ in `docs/NEXT_STEPS.md` Phase 5 is cleared.
   1 January 2027; ICO fee renewal yearly.
 
 ## Decisions waiting on the owner
+
+0. **Niche or city.** The online plan recommends launching UK-wide in one
+   niche (its suggestion: paid design and web or product work for
+   early-stage founders), using Leeds and Yorkshire only for the first
+   partner emails. Deciding this changes the launch wording in the
+   marketing files. Also decide whether to keep the day-90 thresholds as
+   they are (a strict test that will probably say stop) or lower them for
+   an online-only launch.
 
 1. Run as an individual for now, or form the company before launch.
 2. Sign-off from your employer that DirectWork is your own project.
