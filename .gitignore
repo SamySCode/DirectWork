@@ -62,3 +62,7 @@ expo-env.d.ts
 # @end expo-cli
 # Local design-hook cache (impeccable plugin)
 .impeccable/
+
+# Owner-only working files: review reports, preview scripts, personal notes.
+# Kept on this machine, never pushed.
+.private/

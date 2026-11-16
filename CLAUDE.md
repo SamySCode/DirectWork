@@ -7,6 +7,8 @@ not just suggestions.
 
 ## Start here (keeps sessions short and cheap)
 
+- Context from earlier sessions (state, reasons, open decisions):
+  `docs/HANDOVER.md`.
 - What happens next and when to stop: `docs/ROADMAP.md`.
 - Ready-to-run work items, one per session: `docs/tasks/README.md`.
 - How to work cheaply (models, `/clear`, the `builder`, `checker` and
