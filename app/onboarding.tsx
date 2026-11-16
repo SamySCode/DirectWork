@@ -16,6 +16,7 @@ import { remotePrefLabels } from "../features/listings/labels";
 import { errorMessage } from "../lib/functions";
 import { colors, radius, spacing, typography } from "../lib/theme";
 import { useFormValidation } from "../lib/validation";
+import { a11yState } from "../lib/accessibility";
 
 type Intent = "seekingPaid" | "seekingPartner" | "wantsToHire";
 
@@ -163,7 +164,7 @@ export default function OnboardingScreen() {
                     <Pressable
                       key={option.key}
                       accessibilityRole="checkbox"
-                      accessibilityState={{ checked: selected }}
+                      {...a11yState({ checked: selected })}
                       onPress={() =>
                         setIntent((prev) => ({ ...prev, [option.key]: !prev[option.key] }))
                       }

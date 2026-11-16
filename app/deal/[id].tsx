@@ -5,8 +5,8 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { Screen } from "../../components/Screen";
+import { SkeletonDetail } from "../../components/Skeleton";
 import { Text } from "../../components/Text";
 import { useApplication } from "../../features/applications/hooks";
 import { useAuth } from "../../features/auth/SessionProvider";
@@ -45,7 +45,7 @@ export default function DealScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
 
-  if (application.isPending) return <LoadingState />;
+  if (application.isPending) return <SkeletonDetail />;
   if (application.data === undefined) return <ErrorState onRetry={() => application.refetch()} />;
   const app = application.data;
   if (!app || app.status !== "accepted" || !app.membership) {
@@ -57,12 +57,12 @@ export default function DealScreen() {
       />
     );
   }
-  if (deal.isPending) return <LoadingState />;
+  if (deal.isPending) return <SkeletonDetail />;
   if (deal.data === undefined) return <ErrorState onRetry={() => deal.refetch()} />;
 
   const sheet = deal.data;
   // The first proposal is prefilled from the listing - wait for it.
-  if (!sheet && listing.isPending) return <LoadingState />;
+  if (!sheet && listing.isPending) return <SkeletonDetail />;
   const side: Side = app.project?.owner_id === session?.user.id ? "owner" : "member";
   const partner = app.application_type === "partner";
   const projectTitle = app.project?.title ?? "Collaboration";

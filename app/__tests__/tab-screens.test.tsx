@@ -137,6 +137,21 @@ describe("Home", () => {
     expect(screen.getByText("You're all caught up")).toBeTruthy();
   });
 
+  it("shows placeholders, not 'all caught up' or 'no matches', while it is still loading", () => {
+    const pending = { data: undefined, isSuccess: false, isPending: true, refetch: jest.fn() };
+    (useMyApplications as jest.Mock).mockReturnValue(pending);
+    (useIncomingPending as jest.Mock).mockReturnValue(pending);
+    (useMyListings as jest.Mock).mockReturnValue(pending);
+    (useDiscover as jest.Mock).mockReturnValue(pending);
+    render(<HomeScreen />);
+    expect(screen.queryByText("You're all caught up")).toBeNull();
+    expect(screen.queryByText("No close matches yet")).toBeNull();
+    expect(screen.getByRole("progressbar", { name: "Loading" })).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+    // Counts that aren't known yet aren't shown as zero.
+    expect(screen.queryByText("0")).toBeNull();
+  });
+
   it("builds 'Needs you' from applicants, review notes, acceptances and confirmations", () => {
     (useIncomingPending as jest.Mock).mockReturnValue(
       query([
@@ -364,6 +379,35 @@ describe("Discover", () => {
     expect(screen.getByText("RN job")).toBeTruthy();
   });
 
+  it("shows listing placeholders while the first page loads", () => {
+    (useDiscover as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    render(<DiscoverScreen />);
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+    expect(screen.queryByText("No live listings yet")).toBeNull();
+  });
+
+  it("never shows a blocked owner's listing, even before the server has left it out", () => {
+    const theirs = makeListing({ id: "x", title: "From a blocked owner", owner_id: "blocked-1" });
+    const fine = makeListing({ id: "y", title: "From someone else", owner_id: "other-1" });
+    const page = query(
+      { pages: [[theirs, fine]] },
+      { hasNextPage: false, isFetchingNextPage: false, fetchNextPage: jest.fn() },
+    );
+    (useDiscover as jest.Mock).mockReturnValue(page);
+
+    // Block list still loading: hold the list back.
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    const { rerender } = render(<DiscoverScreen />);
+    expect(screen.queryByText("From a blocked owner")).toBeNull();
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+
+    // Block list back, but the page on screen was fetched without it.
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: ["blocked-1"], isPending: false });
+    rerender(<DiscoverScreen />);
+    expect(screen.queryByText("From a blocked owner")).toBeNull();
+    expect(screen.getByText("From someone else")).toBeTruthy();
+  });
+
   it("offers retry on error", () => {
     const refetch = jest.fn();
     (useDiscover as jest.Mock).mockReturnValue({ isPending: false, isError: true, refetch });
@@ -378,6 +422,13 @@ describe("Applications tab", () => {
     render(<ApplicationsScreen />);
     fireEvent.press(screen.getByRole("button", { name: "Browse listings" }));
     expect(mockPush).toHaveBeenCalledWith("/discover");
+  });
+
+  it("shows row placeholders while loading", () => {
+    (useMyApplications as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    render(<ApplicationsScreen />);
+    expect(screen.getByRole("progressbar", { name: "Loading your applications" })).toBeTruthy();
+    expect(screen.queryByText("You haven't applied to anything yet")).toBeNull();
   });
 
   it("splits in-progress from past and counts them in the header", () => {

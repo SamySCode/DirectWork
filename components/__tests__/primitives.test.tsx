@@ -9,8 +9,31 @@ import { ErrorState } from "../ErrorState";
 import { Gallery } from "../Gallery";
 import { ImagePickerGrid } from "../ImagePickerGrid";
 import { HeroStat, PageHero } from "../PageHero";
+import { Bone, Skeleton, SkeletonRows } from "../Skeleton";
 import { TextField } from "../TextField";
 import { tabThemes } from "../../lib/theme";
+
+describe("Skeleton", () => {
+  it("is one busy 'Loading' element to a screen reader, whatever boxes it holds", () => {
+    render(
+      <Skeleton>
+        <SkeletonRows count={3} leading="icon" />
+      </Skeleton>,
+    );
+    const placeholder = screen.getByRole("progressbar", { name: "Loading" });
+    expect(placeholder.props.accessibilityState).toMatchObject({ busy: true });
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  });
+
+  it("names what is loading when told", () => {
+    render(
+      <Skeleton label="Loading listings">
+        <Bone />
+      </Skeleton>,
+    );
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+  });
+});
 
 describe("Button", () => {
   it("calls onPress", () => {

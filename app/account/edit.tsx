@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
-import { LoadingState } from "../../components/LoadingState";
+import { SkeletonForm } from "../../components/Skeleton";
 import { Screen } from "../../components/Screen";
 import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
@@ -82,7 +82,7 @@ export default function EditProfileScreen() {
   };
 
   if (loading) {
-    return <LoadingState />;
+    return <SkeletonForm />;
   }
 
   return (

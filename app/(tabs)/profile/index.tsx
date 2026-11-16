@@ -2,17 +2,18 @@ import Ionicons from "@expo/vector-icons/Ionicons";
 import { Href, useRouter } from "expo-router";
 import { ComponentProps } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Avatar } from "../../../components/Avatar";
 import { Badge } from "../../../components/Badge";
 import { Card } from "../../../components/Card";
 import { ErrorState } from "../../../components/ErrorState";
-import { LoadingState } from "../../../components/LoadingState";
 import { PageHero } from "../../../components/PageHero";
 import { Screen } from "../../../components/Screen";
 import { Text } from "../../../components/Text";
 import { useIsAdmin } from "../../../features/admin/hooks";
 import { signOut } from "../../../features/auth/api";
 import { useAuth } from "../../../features/auth/SessionProvider";
+import { ProfileSkeleton } from "../../../features/profile/components/ProfileSkeleton";
 import { ProfileStrengthCard } from "../../../features/profile/components/ProfileStrengthCard";
 import { PayRecordLine } from "../../../features/deals/components/PayRecordLine";
 import { ProfileView } from "../../../features/profile/components/ProfileView";
@@ -54,7 +55,14 @@ export default function ProfileScreen() {
 
   // Cached data wins over a failed background refresh (F10).
   if (!profile) {
-    if (loading) return <LoadingState />;
+    if (loading) {
+      // No hero yet to clear the status bar, so the safe area does it.
+      return (
+        <SafeAreaView edges={["top"]} style={styles.loading}>
+          <ProfileSkeleton />
+        </SafeAreaView>
+      );
+    }
     return <ErrorState title="Couldn't load your profile" onRetry={refetch} />;
   }
 
@@ -155,6 +163,10 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   heroBadges: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -181,11 +193,6 @@ const styles = StyleSheet.create({
   },
   danger: {
     color: colors.danger,
-  },
-  error: {
-    color: colors.danger,
-    fontSize: typography.size.sm,
-    textAlign: "center",
   },
   email: {
     fontSize: typography.size.sm,

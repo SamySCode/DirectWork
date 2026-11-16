@@ -15,8 +15,11 @@ This is the owner's protection under the Equality Act 2010.
 ## Check and fix, component by component
 
 - Accessible name, role and state on every pressable
-  (`accessibilityRole`, `accessibilityLabel`, and `accessibilityState`
-  for selected, disabled, busy and expanded).
+  (`accessibilityRole`, `accessibilityLabel`, and state for selected,
+  checked, disabled, busy and expanded). Pass state with
+  `a11yState()` from `lib/accessibility.ts`, never a bare
+  `accessibilityState`: React Native Web ignores that prop, so the state
+  would be missing on the web build.
 - Touch targets at least 44 by 44 points (use `hitSlop` where the visual
   size must stay small).
 - Visible keyboard focus on web for every focusable element.

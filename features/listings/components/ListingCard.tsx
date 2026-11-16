@@ -19,7 +19,12 @@ import {
 
 type ListingCardProps = {
   listing: ListingDetail;
-  onPress: () => void;
+  /**
+   * Called with the listing, so a list can pass one stable function to
+   * every card. A new closure per row would re-render every card on every
+   * parent render and make the `memo` below pointless.
+   */
+  onPress: (listing: ListingDetail) => void;
   /** Lowercased skill names of the viewer - matching ones are highlighted. */
   mySkills?: Set<string>;
   /** Owner's view shows lifecycle status instead of the owner's name. */
@@ -50,7 +55,7 @@ function ListingCardBase({ listing, onPress, mySkills, showStatus = false }: Lis
     .join(", ");
 
   return (
-    <PressableCard onPress={onPress} accessibilityLabel={label} style={styles.card}>
+    <PressableCard onPress={() => onPress(listing)} accessibilityLabel={label} style={styles.card}>
       {listing.images[0] ? (
         <ThumbnailImage
           uri={listing.images[0].url}

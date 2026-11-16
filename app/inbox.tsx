@@ -5,7 +5,7 @@ import { FlatList, StyleSheet, View } from "react-native";
 import { PressableCard } from "../components/Card";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
-import { LoadingState } from "../components/LoadingState";
+import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import { Text } from "../components/Text";
 import { useActivity, useMarkRead } from "../features/activity/hooks";
 import { describeActivity, type ActivityTone } from "../features/activity/describe";
@@ -38,7 +38,13 @@ export default function InboxScreen() {
     if (unreadKey) markRead(unreadKey.split(","));
   }, [unreadKey, markRead]);
 
-  if (activity.isPending) return <LoadingState />;
+  if (activity.isPending) {
+    return (
+      <Skeleton page label="Loading activity">
+        <SkeletonRows count={5} leading="avatar" />
+      </Skeleton>
+    );
+  }
   // A failed background refresh keeps the list already on screen.
   if (activity.data === undefined) {
     return <ErrorState title="Couldn't load activity" onRetry={() => activity.refetch()} />;

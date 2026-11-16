@@ -25,6 +25,7 @@ import {
   ListingInput,
   listingSchema,
 } from "../schemas";
+import { a11yState } from "../../../lib/accessibility";
 
 type ListingFormProps = {
   initial?: ListingDetail | null;
@@ -173,7 +174,7 @@ export function ListingForm({ initial, saving, error, onSave }: ListingFormProps
                 key={option.key}
                 onPress={() => setOpportunityType(option.key)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected }}
+                {...a11yState({ checked: selected })}
                 style={[styles.typeCard, selected ? styles.typeCardSelected : null]}
               >
                 <Ionicons

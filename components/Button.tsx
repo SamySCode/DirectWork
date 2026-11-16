@@ -10,7 +10,7 @@ import {
   StyleSheet,
   ViewStyle,
 } from "react-native";
-import { useReducedMotion } from "../lib/accessibility";
+import { a11yState, useReducedMotion } from "../lib/accessibility";
 import { nativeDriverEnabled } from "../lib/animation";
 import { colors, elevation, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
@@ -113,7 +113,7 @@ export function Button({
     <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      {...a11yState({ disabled: isDisabled, busy: loading })}
       disabled={isDisabled}
       // Small buttons are 36px tall; the slop makes the touch target 44px
       // (WCAG 2.5.8 / platform guidance) without changing the layout.

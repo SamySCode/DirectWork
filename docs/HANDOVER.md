@@ -24,11 +24,12 @@ written anywhere else. For what to do next, read `docs/ROADMAP.md` and
 
 ## State on 2026-11-16
 
-- All work is on the branch `build/launch-hardening`. **It has never been
-  pushed to GitHub**, so it exists only on the owner's computer until
-  `git push -u origin build/launch-hardening` is run. `main` on GitHub
-  holds the older version.
-- Checks: 629 app tests, 127 database tests, 75 server-function tests,
+- All work is on the branch `build/launch-hardening`, which is pushed to
+  GitHub. **It is not merged**: `main` (the branch GitHub shows first)
+  still holds the older version until a pull request from
+  `build/launch-hardening` into `main` is opened and merged at
+  <https://github.com/SamySCode/DirectWork/compare/main...build/launch-hardening>.
+- Checks: 639 app tests, 127 database tests, 75 server-function tests,
   dependency and secret scans, all passing.
 - Nothing newer than migration `20261105100000` is applied to any
   Supabase project. The one hosted project (`zgoqieldstaisvudndda`,
@@ -120,8 +121,8 @@ Short reasons for choices a future session might otherwise undo.
 
 In rough order. Details are in `docs/NEXT_STEPS.md`.
 
-1. Push the branch: `git push -u origin build/launch-hardening`, then
-   open a pull request into `main`.
+1. Open a pull request from `build/launch-hardening` into `main` and
+   merge it (the branch itself is already pushed).
 2. Run `npm run hooks:install` once (switches on the secret scan before
    each commit).
 3. Check the employment contract (see `.private/OWNER_NOTES.md`).
@@ -143,8 +144,6 @@ In rough order. Details are in `docs/NEXT_STEPS.md`.
 - The design changes (T01) have not been looked at on a real phone or in
   dark mode on a device.
 - Accessibility audit not done yet (T02, T03).
-- A blocked owner's listing can flash briefly on Home or Discover before
-  the block list loads.
 - Photos uploaded before thumbnails existed have no thumbnail; they show
   the full image after one failed request. There are none in production.
 - Discover text search scans the table at a few thousand rows (6 to 9
@@ -167,7 +166,7 @@ In rough order. Details are in `docs/NEXT_STEPS.md`.
 ## Seeing the app without a backend
 
 The preview scripts are in `.private/preview/`. Once:
-`cd .private/preview && npm install && npx playwright install chromium`.
+`cd .private/preview && npm install && npx playwright install chromium && node make-fake-images.js`.
 Then, from the repo root:
 
 ```
@@ -179,3 +178,10 @@ A browser window opens at <http://localhost:8137> with every Supabase
 call faked (`preview-mock.js` holds the sample data). When the app gains
 a new server function, add a canned answer for it there, or the screen
 that uses it will look broken in the preview only.
+
+Two switches for `preview.js`, set before the command:
+`PREVIEW_DELAY_MS=2000` holds every answer back so the loading
+placeholders stay on screen long enough to look at, and
+`PREVIEW_SKIP_TERMS=1` starts past the "Updated terms" screen, and
+`PREVIEW_SIGNED_IN=1` opens on Home as the sample user.
+`skeleton-shots.js` screenshots every screen mid-load in light and dark.

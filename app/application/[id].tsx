@@ -6,8 +6,8 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { Screen } from "../../components/Screen";
+import { SkeletonDetail } from "../../components/Skeleton";
 import { Text } from "../../components/Text";
 import { AttachmentGallery } from "../../features/applications/components/AttachmentGallery";
 import { ApplicationQuestions } from "../../features/applications/components/ApplicationQuestions";
@@ -27,7 +27,7 @@ export default function ApplicationScreen() {
   const withdraw = useWithdrawApplication();
   const [error, setError] = useState<string | null>(null);
 
-  if (application.isPending) return <LoadingState />;
+  if (application.isPending) return <SkeletonDetail />;
   // A failed background refresh keeps the cached data on screen; the
   // error state is only for when there is nothing to show.
   if (application.data === undefined) return <ErrorState onRetry={() => application.refetch()} />;

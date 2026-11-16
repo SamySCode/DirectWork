@@ -14,6 +14,9 @@ const light = {
   // anything floating). surfaceSunken is the well: inset fills, tracks, tiles.
   surfaceRaised: "#FFFFFF",
   surfaceSunken: "#EEEDF8",
+  // Loading placeholders (components/Skeleton.tsx): reads as "not here yet" on
+  // both the page and a card, without looking like a control or a divider.
+  skeleton: "#D9D6EC",
   // border: decorative edge of a card. divider: hairline inside a surface.
   // borderStrong: the edge of a control someone has to find (inputs,
   // unselected chips, checkboxes) - 3:1 against every surface (WCAG 1.4.11).
@@ -55,6 +58,7 @@ const dark: Palette = {
   // up is a lighter surface with a lighter edge.
   surfaceRaised: "#221E52",
   surfaceSunken: "#211D4B",
+  skeleton: "#322D70",
   border: "#2E2A5E",
   divider: "#262257",
   borderStrong: "#7772B3",

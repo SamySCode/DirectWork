@@ -6,10 +6,10 @@ import { Button } from "../../../components/Button";
 import { PressableCard } from "../../../components/Card";
 import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
-import { LoadingState } from "../../../components/LoadingState";
 import { HeroStat, HeroStats, PageHero } from "../../../components/PageHero";
 import { Screen } from "../../../components/Screen";
 import { SectionHeader } from "../../../components/SectionHeader";
+import { Skeleton, SkeletonRows } from "../../../components/Skeleton";
 import { Text } from "../../../components/Text";
 import type { Application } from "../../../features/applications/api";
 import { useMyApplications } from "../../../features/applications/hooks";
@@ -94,7 +94,9 @@ export default function ApplicationsScreen() {
   return (
     <Screen onRefresh={() => refetch()} refreshing={isRefetching} header={hero}>
       {isPending ? (
-        <LoadingState />
+        <Skeleton label="Loading your applications">
+          <SkeletonRows />
+        </Skeleton>
       ) : isError && data === undefined ? (
         <ErrorState title="Couldn't load your applications" onRetry={() => refetch()} />
       ) : all.length === 0 ? (

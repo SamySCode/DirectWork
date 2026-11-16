@@ -7,6 +7,7 @@ import { Card } from "../components/Card";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
+import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { TextField } from "../components/TextField";
@@ -26,7 +27,13 @@ export default function ModerationScreen() {
 
   if (isAdmin.isPending) return <LoadingState />;
   if (!isAdmin.data) return <EmptyState icon="lock-closed-outline" title="Reviewers only" />;
-  if (reports.isPending) return <LoadingState />;
+  if (reports.isPending) {
+    return (
+      <Skeleton page label="Loading reports">
+        <SkeletonRows />
+      </Skeleton>
+    );
+  }
   if (reports.data === undefined) return <ErrorState onRetry={() => reports.refetch()} />;
 
   return (

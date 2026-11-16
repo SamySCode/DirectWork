@@ -15,6 +15,7 @@ import {
   toDealTerms,
   type DealSheetForm as FormValues,
 } from "../schemas";
+import { a11yState } from "../../../lib/accessibility";
 
 type Prefill = {
   scope: string;
@@ -356,7 +357,7 @@ export function BusinessCheckbox({
   return (
     <Pressable
       accessibilityRole="checkbox"
-      accessibilityState={{ checked }}
+      {...a11yState({ checked })}
       accessibilityLabel={BUSINESS_LABEL}
       onPress={() => onChange(!checked)}
       style={styles.checkRow}

@@ -1,6 +1,7 @@
 import { Pressable, PressableProps, StyleSheet } from "react-native";
 import { colors, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
+import { a11yState } from "../lib/accessibility";
 
 type ChipProps = Omit<PressableProps, "children" | "style"> & {
   label: string;
@@ -13,7 +14,7 @@ export function Chip({ label, selected, tint = colors.accent, ...pressableProps 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityState={{ selected }}
+      {...a11yState({ selected }, { selectedAs: "pressed" })}
       // 36pt visual height + 4pt slop each side = 44pt touch target (WCAG 2.5.8 / Apple HIG).
       hitSlop={{ top: 4, bottom: 4 }}
       style={[styles.chip, selected ? { borderColor: tint, backgroundColor: tint } : null]}

@@ -1,10 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { Screen } from "../../components/Screen";
 import { useAuth } from "../../features/auth/SessionProvider";
 import { PayRecordLine } from "../../features/deals/components/PayRecordLine";
+import { ProfileSkeleton } from "../../features/profile/components/ProfileSkeleton";
 import { ProfileView } from "../../features/profile/components/ProfileView";
 import {
   usePortfolio,
@@ -24,7 +24,7 @@ export default function PersonScreen() {
   const portfolio = usePortfolio(id);
   const references = useReferences(id);
 
-  if (profile.isPending) return <LoadingState />;
+  if (profile.isPending) return <ProfileSkeleton />;
   // A failed background refresh keeps the cached data on screen; the
   // error state is only for when there is nothing to show.
   if (profile.data === undefined)

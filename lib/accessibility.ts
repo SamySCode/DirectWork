@@ -24,6 +24,41 @@ export function useReducedMotion(): boolean {
   return reduced;
 }
 
+export type A11yState = {
+  checked?: boolean;
+  selected?: boolean;
+  expanded?: boolean;
+  busy?: boolean;
+  disabled?: boolean;
+};
+
+/**
+ * The state of a control for assistive technology, on every platform.
+ * Spread it onto the element: `<Pressable {...a11yState({ checked })} />`.
+ *
+ * iOS and Android read `accessibilityState`. React Native Web (0.21) does
+ * not read it at all: it only understands `aria-*` props, so passing
+ * `accessibilityState` alone leaves a web screen reader unable to tell a
+ * ticked box from an empty one. Always use this instead of writing
+ * `accessibilityState` directly.
+ *
+ * `selectedAs: "pressed"` is for toggle buttons (chips): ARIA has no
+ * "selected" on a button, its on/off state is `aria-pressed`.
+ */
+export function a11yState(
+  state: A11yState,
+  { selectedAs = "selected" }: { selectedAs?: "selected" | "pressed" } = {},
+) {
+  if (Platform.OS !== "web") return { accessibilityState: state };
+  const aria: Record<string, boolean> = {};
+  if (state.checked !== undefined) aria["aria-checked"] = state.checked;
+  if (state.selected !== undefined) aria[`aria-${selectedAs}`] = state.selected;
+  if (state.expanded !== undefined) aria["aria-expanded"] = state.expanded;
+  if (state.busy !== undefined) aria["aria-busy"] = state.busy;
+  if (state.disabled !== undefined) aria["aria-disabled"] = state.disabled;
+  return { accessibilityState: state, ...aria };
+}
+
 /**
  * React Native Web renders pressables as focusable elements but strips the
  * browser's focus outline. Put a clear, high-contrast ring back for

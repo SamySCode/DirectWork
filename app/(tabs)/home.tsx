@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Href, useRouter } from "expo-router";
-import { ComponentProps, useMemo } from "react";
+import { ComponentProps, useCallback, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button } from "../../components/Button";
 import { PressableCard } from "../../components/Card";
@@ -9,11 +9,14 @@ import { EmptyState } from "../../components/EmptyState";
 import { HeroStat, HeroStats, PageHero } from "../../components/PageHero";
 import { Screen } from "../../components/Screen";
 import { SectionHeader } from "../../components/SectionHeader";
+import { Skeleton, SkeletonRows } from "../../components/Skeleton";
 import { Text } from "../../components/Text";
 import { InboxButton } from "../../features/activity/components/InboxButton";
 import { useIncomingPending, useMyApplications } from "../../features/applications/hooks";
 import { collaborationState } from "../../features/applications/labels";
+import type { ListingDetail } from "../../features/listings/api";
 import { ListingCard } from "../../features/listings/components/ListingCard";
+import { ListingListSkeleton } from "../../features/listings/components/ListingSkeletons";
 import { useDiscover, useMyListings } from "../../features/listings/hooks";
 import { useBlockedIds } from "../../features/safety/hooks";
 import { PulseCard } from "../../features/insights/components/PulseCard";
@@ -59,6 +62,16 @@ export default function HomeScreen() {
   const homeFilters = { query: "", remoteOnly: false };
   const discover = useDiscover(
     blocked.data?.length ? { ...homeFilters, excludeOwners: blocked.data } : homeFilters,
+  );
+
+  // Until these are back there is nothing true to say: showing "You're all
+  // caught up" or "No close matches yet" first, then replacing it, tells
+  // people something false for a moment. Placeholders say "still loading".
+  const actionsLoading = applications.isPending || incoming.isPending || listings.isPending;
+  const picksLoading = discover.isPending || !!blocked.isPending;
+  const openListing = useCallback(
+    (listing: ListingDetail) => router.push(`/listing/${listing.id}`),
+    [router],
   );
 
   const seeking = !!profile && (profile.seeking_paid || profile.seeking_partner);
@@ -173,8 +186,11 @@ export default function HomeScreen() {
     const pages = discover.data?.pages ?? [];
     const newest = discover.data?.pageParams?.indexOf(0) ?? -1;
     const firstPage = pages[newest >= 0 ? newest : 0] ?? [];
+    // Blocked owners are left out by the server once it has the list; this
+    // covers the first request of a session, sent before the list is back.
+    const blockedOwners = new Set(blocked.data ?? []);
     return firstPage
-      .filter((listing) => listing.owner_id !== profile?.id)
+      .filter((listing) => listing.owner_id !== profile?.id && !blockedOwners.has(listing.owner_id))
       .map((listing) => ({
         listing,
         score: listing.skills.filter((s) => mySkills.has(s.toLowerCase())).length,
@@ -183,7 +199,7 @@ export default function HomeScreen() {
       .sort((a, b) => b.score - a.score)
       .slice(0, 3)
       .map(({ listing }) => listing);
-  }, [discover.data, mySkills, profile?.id]);
+  }, [discover.data, blocked.data, mySkills, profile?.id]);
 
   const refreshing =
     applications.isRefetching ||
@@ -197,6 +213,8 @@ export default function HomeScreen() {
     discover.refetch();
   };
 
+  // A count that isn't known yet is shown as a dash, not as a confident "0".
+  const count = (ready: boolean, value: number) => (ready ? value : "–");
   const firstName = profile?.full_name.split(" ")[0] ?? "";
   const live = (applications.data ?? []).filter((a) => a.status === "submitted").length;
   const working = (applications.data ?? []).filter(
@@ -221,13 +239,16 @@ export default function HomeScreen() {
           <HeroStats>
             {seeking ? (
               <>
-                <HeroStat value={live} label="waiting for reply" />
-                <HeroStat value={working} label="working together" />
+                <HeroStat value={count(!!applications.data, live)} label="waiting for reply" />
+                <HeroStat value={count(!!applications.data, working)} label="working together" />
               </>
             ) : null}
             {hiring ? (
               <HeroStat
-                value={(listings.data ?? []).filter((l) => l.status === "published").length}
+                value={count(
+                  !!listings.data,
+                  (listings.data ?? []).filter((l) => l.status === "published").length,
+                )}
                 label="live listings"
               />
             ) : null}
@@ -299,6 +320,10 @@ export default function HomeScreen() {
                 </PressableCard>
               );
             })
+          ) : actionsLoading ? (
+            <Skeleton>
+              <SkeletonRows count={2} leading="icon" />
+            </Skeleton>
           ) : (
             <EmptyState
               inline
@@ -317,13 +342,15 @@ export default function HomeScreen() {
             actionLabel="See all"
             onAction={() => router.push("/discover")}
           />
-          {picks.length > 0 ? (
+          {picksLoading ? (
+            <ListingListSkeleton count={2} />
+          ) : picks.length > 0 ? (
             picks.map((listing) => (
               <ListingCard
                 key={listing.id}
                 listing={listing}
                 mySkills={mySkills}
-                onPress={() => router.push(`/listing/${listing.id}`)}
+                onPress={openListing}
               />
             ))
           ) : (

@@ -3,7 +3,7 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
+import { Skeleton, SkeletonRows } from "../../components/Skeleton";
 import { Screen } from "../../components/Screen";
 import { Text } from "../../components/Text";
 import { useBlockedPeople, useUnblock } from "../../features/safety/hooks";
@@ -13,7 +13,13 @@ export default function BlockedPeopleScreen() {
   const blocked = useBlockedPeople();
   const unblock = useUnblock();
 
-  if (blocked.isPending) return <LoadingState />;
+  if (blocked.isPending) {
+    return (
+      <Skeleton page>
+        <SkeletonRows />
+      </Skeleton>
+    );
+  }
   if (blocked.data === undefined) return <ErrorState onRetry={() => blocked.refetch()} />;
   if (blocked.data.length === 0) {
     return (

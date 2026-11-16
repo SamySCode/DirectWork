@@ -5,6 +5,7 @@ import { Card } from "../components/Card";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
+import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { TextField } from "../components/TextField";
@@ -27,7 +28,13 @@ export default function ReviewScreen() {
   if (!isAdmin.data) {
     return <EmptyState icon="lock-closed-outline" title="Reviewers only" />;
   }
-  if (queue.isPending) return <LoadingState />;
+  if (queue.isPending) {
+    return (
+      <Skeleton page label="Loading the review queue">
+        <SkeletonRows />
+      </Skeleton>
+    );
+  }
   if (queue.data === undefined) return <ErrorState onRetry={() => queue.refetch()} />;
   if (queue.data.length === 0) {
     return (

@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, View } from "react-native";
 import { Text } from "../../../components/Text";
 import { colors, radius, spacing, typography } from "../../../lib/theme";
+import { a11yState } from "../../../lib/accessibility";
 
 export const CONSENT_LABEL =
   "I'm 18 or over, I agree to the Terms of Service, and I've read the Privacy Notice";
@@ -24,7 +25,7 @@ export function LegalConsent({ checked, onChange, error }: LegalConsentProps) {
     <View style={styles.container}>
       <Pressable
         accessibilityRole="checkbox"
-        accessibilityState={{ checked }}
+        {...a11yState({ checked })}
         accessibilityLabel={CONSENT_LABEL}
         onPress={() => onChange(!checked)}
         style={styles.row}
