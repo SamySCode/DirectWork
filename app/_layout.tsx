@@ -7,8 +7,11 @@ import { Appearance, Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppLoadingScreen } from "../components/AppLoadingScreen";
 import { ErrorState } from "../components/ErrorState";
+import { OfflineBanner } from "../components/OfflineBanner";
 import { SessionProvider, useAuth } from "../features/auth/SessionProvider";
 import { useProtectedRoute } from "../features/auth/hooks";
+import { useSigningOut } from "../features/auth/signingOut";
+import { useLegalStatus } from "../features/legal/hooks";
 import { useProfile } from "../features/profile/hooks";
 import { installWebFocusStyles } from "../lib/accessibility";
 import { useAppFonts } from "../lib/fonts";
@@ -32,16 +35,25 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 function RootNavigator() {
   const { session, loading: sessionLoading } = useAuth();
   const { loaded: fontsLoaded } = useAppFonts();
+  const signingOut = useSigningOut();
   const profile = useProfile(session?.user.id);
-  const hasProfile = !session ? false : profile.isSuccess ? !!profile.data : undefined;
+  // Based on data, not status: a failed background refresh keeps the cached
+  // profile, so it mustn't bounce anyone back to onboarding or a spinner (F9).
+  const hasProfile = !session ? false : profile.data !== undefined ? !!profile.data : undefined;
+  // Terms/Privacy re-acceptance (fetched once per sign-in). A failed check
+  // counts as "settled, no gate" so a network error never locks anyone out.
+  const legal = useLegalStatus(session?.user.id);
+  const needsAcceptance = legal.isSuccess ? legal.data : undefined;
+  const legalSettled = !session || !legal.isPending;
 
   // Boot once. After that the Stack stays mounted for good: remounting it
   // (e.g. while a fresh sign-in's profile loads) would reset navigation to
   // the initial route and lose screens like update-password mid-flow.
-  const ready = fontsLoaded && !sessionLoading && (!session || hasProfile !== undefined);
+  const ready =
+    fontsLoaded && !sessionLoading && (!session || (hasProfile !== undefined && legalSettled));
   const booted = useRef(false);
   if (ready) booted.current = true;
-  useProtectedRoute(session, !booted.current, hasProfile);
+  useProtectedRoute(session, !booted.current, hasProfile, needsAcceptance);
 
   useEffect(() => {
     if (booted.current) SplashScreen.hideAsync().catch(() => {});
@@ -81,6 +93,7 @@ function RootNavigator() {
         <Stack.Screen name="listing/[id]/index" options={{ title: "Listing" }} />
         <Stack.Screen name="listing/[id]/edit" options={{ title: "Edit listing" }} />
         <Stack.Screen name="application/[id]" options={{ title: "Application" }} />
+        <Stack.Screen name="deal/[id]" options={{ title: "Deal Sheet" }} />
         <Stack.Screen name="people/[id]" options={{ title: "Profile" }} />
         <Stack.Screen name="account/edit" options={{ title: "Edit profile" }} />
         <Stack.Screen name="account/delete" options={{ title: "Delete account" }} />
@@ -88,11 +101,24 @@ function RootNavigator() {
         <Stack.Screen name="billing" options={{ title: "Plans" }} />
         <Stack.Screen name="guide" options={{ title: "Guide & tips" }} />
         <Stack.Screen name="inbox" options={{ title: "Activity" }} />
-        <Stack.Screen name="moderation" options={{ title: "Reports" }} />
+        <Stack.Screen name="moderation" options={{ title: "Moderation" }} />
         <Stack.Screen name="review" options={{ title: "Review queue" }} />
         <Stack.Screen name="update-password" options={{ title: "New password" }} />
+        <Stack.Screen name="help" options={{ title: "Help & legal" }} />
+        <Stack.Screen name="legal/index" options={{ title: "Legal" }} />
+        <Stack.Screen name="legal/[doc]" options={{ title: "" }} />
+        <Stack.Screen
+          name="legal/accept"
+          options={{ title: "Updated terms", headerBackVisible: false, gestureEnabled: false }}
+        />
       </Stack>
-      {session && hasProfile === undefined ? (
+      <OfflineBanner />
+      {signingOut ? (
+        <View style={StyleSheet.absoluteFill}>
+          <AppLoadingScreen label="Signing out" />
+        </View>
+      ) : null}
+      {session && (hasProfile === undefined || !legalSettled) ? (
         <View style={StyleSheet.absoluteFill}>
           {profile.isError ? (
             <ErrorState

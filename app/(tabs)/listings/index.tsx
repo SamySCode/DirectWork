@@ -3,7 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Button } from "../../../components/Button";
 import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
-import { LoadingState } from "../../../components/LoadingState";
+import { FadeIn } from "../../../components/FadeIn";
 import { HeroStat, HeroStats, PageHero } from "../../../components/PageHero";
 import { Screen } from "../../../components/Screen";
 import { Text } from "../../../components/Text";
@@ -13,7 +13,9 @@ import { FactCard } from "../../../features/insights/components/FactCard";
 import { PulseCard } from "../../../features/insights/components/PulseCard";
 import { wrongTeam } from "../../../features/insights/facts";
 import { usePlatformPulse } from "../../../features/insights/hooks";
+import type { ListingDetail } from "../../../features/listings/api";
 import { ListingCard } from "../../../features/listings/components/ListingCard";
+import { ListingListSkeleton } from "../../../features/listings/components/ListingSkeletons";
 import { useListingQuota, useMyListings } from "../../../features/listings/hooks";
 import { colors, radius, spacing, tabThemes, typography } from "../../../lib/theme";
 
@@ -28,6 +30,7 @@ export default function ListingsScreen() {
   const pulse = usePlatformPulse(listings.isSuccess && (listings.data?.length ?? 0) === 0);
 
   const mine = listings.data ?? [];
+  const openListing = (listing: ListingDetail) => router.push(`/listing/${listing.id}`);
   const used = quota.data?.live ?? 0;
   const max = quota.data?.max_live ?? 1;
   const atLimit = used >= max;
@@ -90,8 +93,8 @@ export default function ListingsScreen() {
       refreshing={listings.isRefetching}
     >
       {listings.isPending ? (
-        <LoadingState />
-      ) : listings.isError ? (
+        <ListingListSkeleton count={2} />
+      ) : listings.isError && listings.data === undefined ? (
         <ErrorState title="Couldn't load your listings" onRetry={() => listings.refetch()} />
       ) : mine.length === 0 ? (
         <View style={styles.list}>
@@ -107,16 +110,11 @@ export default function ListingsScreen() {
           <FactCard fact={wrongTeam} color={theme.tint} />
         </View>
       ) : (
-        <View style={styles.list}>
+        <FadeIn style={styles.list}>
           {mine.map((listing) => (
-            <ListingCard
-              key={listing.id}
-              listing={listing}
-              showStatus
-              onPress={() => router.push(`/listing/${listing.id}`)}
-            />
+            <ListingCard key={listing.id} listing={listing} showStatus onPress={openListing} />
           ))}
-        </View>
+        </FadeIn>
       )}
     </Screen>
   );
@@ -158,3 +156,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../../components/RouteErrorBoundary";

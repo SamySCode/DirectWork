@@ -1,5 +1,12 @@
 import { z } from "zod";
 
+// The web build ships a Content-Security-Policy without unsafe-eval
+// (public/_headers). zod would otherwise probe `new Function` once at
+// start-up to see if it may compile validators, which the policy refuses and
+// reports in the console. Tell it not to try. This module is imported first
+// (via lib/supabase), before any schema is parsed.
+z.config({ jitless: true });
+
 // Expo only inlines EXPO_PUBLIC_* vars when they're referenced statically
 // (process.env.NAME, not process.env[name]) - so each is listed explicitly.
 const envSchema = z.object({

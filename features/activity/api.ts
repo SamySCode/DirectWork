@@ -11,7 +11,13 @@ export type ActivityKind =
   | "outcome_confirmed"
   | "reference_received"
   | "question_asked"
-  | "question_answered";
+  | "question_answered"
+  | "deal_proposed"
+  | "deal_agreed"
+  | "payment_due"
+  | "payment_reported"
+  | "payment_disputed"
+  | "payment_dispute_resolved";
 
 export type ActivityItem = {
   id: string;
@@ -65,10 +71,17 @@ export async function getUnreadCount(): Promise<number> {
   return count ?? 0;
 }
 
-export async function markAllRead(): Promise<void> {
+/**
+ * Marks exactly the rows the person has been shown. Never a blanket "all
+ * unread": anything that arrived after the list was fetched must keep its
+ * dot and its place in the badge until it's actually seen.
+ */
+export async function markRead(ids: string[]): Promise<void> {
+  if (ids.length === 0) return;
   const { error } = await supabase
     .from("activity")
     .update({ read_at: new Date().toISOString() })
+    .in("id", ids)
     .is("read_at", null);
   if (error) throw error;
 }

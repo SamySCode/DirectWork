@@ -1,5 +1,6 @@
 import { PreparedImage, publicImageUrl, removeImages, uploadImage } from "../../lib/images";
 import { supabase } from "../../lib/supabase";
+import { isUuid } from "../../lib/validation";
 import { ensureSkillIds, escapeLikePattern } from "../profile/api";
 import type { ListingInput } from "./schemas";
 
@@ -29,7 +30,8 @@ export type Listing = {
   compensation_min: number | null;
   compensation_max: number | null;
   currency: "GBP" | "EUR" | "USD";
-  review_note: string | null;
+  /** Only filled in for the owner, by getListing() - see get_review_note(). */
+  review_note?: string | null;
   is_featured: boolean;
   published_at: string | null;
   created_at: string;
@@ -50,7 +52,7 @@ export type ListingDetail = Listing & {
 const LISTING_COLUMNS = `
   id, owner_id, title, public_summary, opportunity_type, status, location, remote_pref,
   commitment, duration, compensation_type, compensation_min, compensation_max, currency,
-  review_note, is_featured, published_at, created_at, updated_at
+  is_featured, published_at, created_at, updated_at
 `;
 
 const DETAIL_SELECT = `
@@ -171,13 +173,23 @@ export async function discoverListings(
 }
 
 export async function getListing(id: string): Promise<ListingDetail | null> {
+  if (!isUuid(id)) return null;
   const { data, error } = await supabase
     .from("projects")
     .select(DETAIL_SELECT)
     .eq("id", id)
     .maybeSingle();
   if (error) throw error;
-  return data ? toDetail(data as unknown as RawDetail) : null;
+  if (!data) return null;
+  const listing = toDetail(data as unknown as RawDetail);
+  // The reviewer's note isn't a readable column (applicants would see it);
+  // it comes from an RPC that only answers the owner and reviewers.
+  if (listing.status === "changes_requested") {
+    const note = await supabase.rpc("get_review_note", { p_project: id });
+    if (note.error) throw note.error;
+    listing.review_note = (note.data as string | null) ?? null;
+  }
+  return listing;
 }
 
 export async function getMyListings(userId: string): Promise<ListingDetail[]> {
@@ -192,12 +204,18 @@ export async function getMyListings(userId: string): Promise<ListingDetail[]> {
   return ((data ?? []) as unknown as RawDetail[]).map(toDetail);
 }
 
+export const REVIEW_QUEUE_LIMIT = 50;
+
 export async function getReviewQueue(): Promise<ListingDetail[]> {
   const { data, error } = await supabase
     .from("projects")
     .select(DETAIL_SELECT)
     .eq("status", "in_review")
-    .order("updated_at", { ascending: true });
+    .order("updated_at", { ascending: true })
+    // Oldest first, a screenful at a time: every row carries its owner,
+    // skills, admission and images, so an unbounded queue was the most
+    // expensive list in the app (reviewing one brings the next in).
+    .limit(REVIEW_QUEUE_LIMIT);
   if (error) throw error;
   return ((data ?? []) as unknown as RawDetail[]).map(toDetail);
 }
@@ -255,13 +273,22 @@ async function syncChildren(projectId: string, input: ListingInput) {
   }
 }
 
-export async function createListing(input: ListingInput): Promise<string> {
+/**
+ * Inserts the row, then its skills and admission. `onCreated` hears the id
+ * as soon as the row exists, so a caller can retry a later failure as an
+ * update instead of inserting a duplicate draft.
+ */
+export async function createListing(
+  input: ListingInput,
+  onCreated?: (id: string) => void,
+): Promise<string> {
   const { data, error } = await supabase
     .from("projects")
     .insert(toRow(input))
     .select("id")
     .single();
   if (error) throw error;
+  onCreated?.(data.id);
   await syncChildren(data.id, input);
   return data.id;
 }
@@ -280,14 +307,18 @@ export async function updateListing(id: string, input: ListingInput): Promise<vo
 }
 
 export async function deleteDraft(id: string): Promise<void> {
-  // Files first: once the row is gone, the cascade drops the image rows and
-  // the storage objects would be orphaned.
+  // Read the paths first: once the row is gone, the cascade drops the image
+  // rows. But only remove the files once the row delete really happened -
+  // RLS refuses some drafts (e.g. ones that were live) with 0 rows, no error.
   const { data: images } = await supabase
     .from("listing_images")
     .select("storage_path")
     .eq("project_id", id);
-  const { error } = await supabase.from("projects").delete().eq("id", id);
+  const { data, error } = await supabase.from("projects").delete().eq("id", id).select("id");
   if (error) throw error;
+  if (!data?.length) {
+    throw new Error("This listing can't be deleted. Listings that have been live are kept.");
+  }
   await removeImages(
     "listing-images",
     (images ?? []).map((image) => image.storage_path),

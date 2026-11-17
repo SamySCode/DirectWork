@@ -6,10 +6,11 @@ import { Button } from "../../../components/Button";
 import { PressableCard } from "../../../components/Card";
 import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
-import { LoadingState } from "../../../components/LoadingState";
+import { FadeIn } from "../../../components/FadeIn";
 import { HeroStat, HeroStats, PageHero } from "../../../components/PageHero";
 import { Screen } from "../../../components/Screen";
 import { SectionHeader } from "../../../components/SectionHeader";
+import { Skeleton, SkeletonRows } from "../../../components/Skeleton";
 import { Text } from "../../../components/Text";
 import type { Application } from "../../../features/applications/api";
 import { useMyApplications } from "../../../features/applications/hooks";
@@ -94,8 +95,10 @@ export default function ApplicationsScreen() {
   return (
     <Screen onRefresh={() => refetch()} refreshing={isRefetching} header={hero}>
       {isPending ? (
-        <LoadingState />
-      ) : isError ? (
+        <Skeleton label="Loading your applications">
+          <SkeletonRows />
+        </Skeleton>
+      ) : isError && data === undefined ? (
         <ErrorState title="Couldn't load your applications" onRetry={() => refetch()} />
       ) : all.length === 0 ? (
         <EmptyState
@@ -107,7 +110,7 @@ export default function ApplicationsScreen() {
           onAction={() => router.push("/discover")}
         />
       ) : (
-        <>
+        <FadeIn style={styles.loaded}>
           {active.length > 0 ? (
             <View style={styles.section}>
               <SectionHeader title="In progress" />
@@ -129,13 +132,17 @@ export default function ApplicationsScreen() {
               {past.map(renderCard)}
             </View>
           ) : null}
-        </>
+        </FadeIn>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  // Same spacing the sections had as direct children of the screen.
+  loaded: {
+    gap: spacing.lg,
+  },
   section: {
     gap: spacing.md,
   },
@@ -181,3 +188,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../../components/RouteErrorBoundary";

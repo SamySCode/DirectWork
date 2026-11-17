@@ -1,37 +1,25 @@
-import * as Linking from "expo-linking";
 import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { useState } from "react";
+import { StyleSheet, View } from "react-native";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
+import { LoadingState } from "../components/LoadingState";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { TextField } from "../components/TextField";
 import { useAuth } from "../features/auth/SessionProvider";
 import { updatePasswordSchema } from "../features/auth/schemas";
+import { useAuthLink } from "../features/auth/useAuthLink";
 import { errorMessage } from "../lib/functions";
 import { supabase } from "../lib/supabase";
 import { colors, spacing, typography } from "../lib/theme";
 import { fieldErrors } from "../lib/validation";
 
-// The reset email links here with a one-time PKCE `?code=` (lib/supabase.ts).
-// On web supabase-js exchanges it itself (detectSessionInUrl). On native the
-// link arrives as directwork://update-password?code=..., exchanged here.
-// Tokens are never accepted from a URL: a code only works on the device
-// that asked for the reset, so a crafted link can't swap in another account.
-function useRecoverySessionFromDeepLink() {
-  const url = Linking.useLinkingURL();
-  useEffect(() => {
-    if (Platform.OS === "web" || !url) return;
-    const code = Linking.parse(url).queryParams?.code;
-    if (typeof code === "string" && code) {
-      supabase.auth.exchangeCodeForSession(code).catch(() => {});
-    }
-  }, [url]);
-}
-
+// The reset email links here with a one-time PKCE `?code=` (lib/supabase.ts),
+// exchanged by useAuthLink (features/auth/useAuthLink.ts).
 export default function UpdatePasswordScreen() {
-  useRecoverySessionFromDeepLink();
+  // Without this, a valid link flashed "expired" while the code was exchanged.
+  const exchanging = useAuthLink().status === "exchanging";
   const router = useRouter();
   const { session } = useAuth();
   const [password, setPassword] = useState("");
@@ -83,11 +71,14 @@ export default function UpdatePasswordScreen() {
             {formError ? <Text style={styles.formError}>{formError}</Text> : null}
             <Button label="Save new password" onPress={handleSave} loading={saving} />
           </View>
+        ) : exchanging ? (
+          <LoadingState />
         ) : (
           <View style={styles.group}>
-            <Text style={styles.title}>This reset link has expired</Text>
+            <Text style={styles.title}>This reset link didn't work</Text>
             <Text style={styles.body}>
-              Reset links work once and expire after an hour. Request a new one to continue.
+              Reset links work once, expire after an hour, and only open on the phone or browser you
+              asked for them from. Request a new one there to continue.
             </Text>
             <Button label="Request a new link" onPress={() => router.replace("/forgot-password")} />
           </View>

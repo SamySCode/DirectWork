@@ -1,15 +1,39 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
+import { act, fireEvent, render, screen } from "@testing-library/react-native";
 import { Avatar, initials } from "../Avatar";
 import { Badge } from "../Badge";
 import { Button } from "../Button";
+import { Card } from "../Card";
 import { Chip } from "../Chip";
 import { EmptyState } from "../EmptyState";
 import { ErrorState } from "../ErrorState";
 import { Gallery } from "../Gallery";
 import { ImagePickerGrid } from "../ImagePickerGrid";
 import { HeroStat, PageHero } from "../PageHero";
+import { Bone, Skeleton, SkeletonRows } from "../Skeleton";
 import { TextField } from "../TextField";
 import { tabThemes } from "../../lib/theme";
+
+describe("Skeleton", () => {
+  it("is one busy 'Loading' element to a screen reader, whatever boxes it holds", () => {
+    render(
+      <Skeleton>
+        <SkeletonRows count={3} leading="icon" />
+      </Skeleton>,
+    );
+    const placeholder = screen.getByRole("progressbar", { name: "Loading" });
+    expect(placeholder.props.accessibilityState).toMatchObject({ busy: true });
+    expect(screen.getAllByRole("progressbar")).toHaveLength(1);
+  });
+
+  it("names what is loading when told", () => {
+    render(
+      <Skeleton label="Loading listings">
+        <Bone />
+      </Skeleton>,
+    );
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+  });
+});
 
 describe("Button", () => {
   it("calls onPress", () => {
@@ -108,12 +132,20 @@ describe("Avatar", () => {
   // Decorative: hidden from screen readers (the name is always shown beside it).
   const hidden = { includeHiddenElements: true };
 
-  it("shows the photo over the initials when a uri is given", () => {
+  it("shows the photo's thumbnail over the initials when a uri is given", () => {
     render(<Avatar name="Sam Saib" uri="https://img/x.jpg" />);
     expect(screen.getByText("SS", hidden)).toBeTruthy();
     expect(screen.getByTestId("expo-image", hidden).props.source).toEqual({
-      uri: "https://img/x.jpg",
+      uri: "https://img/x.thumb.jpg",
     });
+  });
+
+  it("falls back to the full photo when there is no thumbnail", () => {
+    render(<Avatar name="Sam Saib" uri="https://img/old.jpg" />);
+    act(() => screen.getByTestId("expo-image", hidden).props.onError());
+    const image = screen.getByTestId("expo-image", hidden);
+    expect(image.props.source).toEqual({ uri: "https://img/old.jpg" });
+    expect(image.props.onError).toBeUndefined();
   });
 
   it("has no image without a uri, and is hidden from screen readers", () => {
@@ -244,5 +276,34 @@ describe("tab themes", () => {
   it("gives every tab a distinct tint", () => {
     const tints = Object.values(tabThemes).map((theme) => theme.tint);
     expect(new Set(tints).size).toBe(tints.length);
+  });
+});
+
+describe("Card", () => {
+  it("renders children in default and raised variants", () => {
+    render(
+      <>
+        <Card>
+          <Badge label="resting" />
+        </Card>
+        <Card raised>
+          <Badge label="floating" />
+        </Card>
+      </>,
+    );
+    expect(screen.getByText("resting")).toBeTruthy();
+    expect(screen.getByText("floating")).toBeTruthy();
+  });
+});
+
+describe("Button states", () => {
+  it("survives press and focus cycles", () => {
+    render(<Button label="Save" onPress={jest.fn()} />);
+    const button = screen.getByRole("button", { name: "Save" });
+    fireEvent(button, "pressIn");
+    fireEvent(button, "pressOut");
+    fireEvent(button, "focus");
+    fireEvent(button, "blur");
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });
 });

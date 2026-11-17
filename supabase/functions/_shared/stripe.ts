@@ -91,6 +91,14 @@ export function shouldApply(stored: Stored, incoming: { id: string; status: stri
 
 // --- REST calls ---
 
+/**
+ * Pinned so a Stripe dashboard upgrade can never change response shapes
+ * under us. "basil" is the first version that moved current_period_end onto
+ * subscription items, which billing-webhook reads (with a fallback for the
+ * old top-level field). Change only after re-checking every field we read.
+ */
+export const STRIPE_API_VERSION = "2025-03-31.basil";
+
 export async function stripeRequest(
   key: string,
   method: "GET" | "POST" | "DELETE",
@@ -103,6 +111,7 @@ export async function stripeRequest(
     method,
     headers: {
       Authorization: `Bearer ${key}`,
+      "Stripe-Version": STRIPE_API_VERSION,
       ...(method === "POST" ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
       ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
     },

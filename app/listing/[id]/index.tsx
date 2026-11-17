@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
-import { LoadingState } from "../../../components/LoadingState";
 import { Screen } from "../../../components/Screen";
 import { SectionHeader } from "../../../components/SectionHeader";
 import {
@@ -16,6 +15,7 @@ import { useListingApplications } from "../../../features/applications/hooks";
 import { useAuth } from "../../../features/auth/SessionProvider";
 import { FitPanel } from "../../../features/listings/components/FitPanel";
 import { ListingDetailView } from "../../../features/listings/components/ListingDetailView";
+import { ListingDetailSkeleton } from "../../../features/listings/components/ListingSkeletons";
 import { computeFit } from "../../../features/listings/fit";
 import { OwnerPanel } from "../../../features/listings/components/OwnerPanel";
 import { useListing } from "../../../features/listings/hooks";
@@ -32,8 +32,10 @@ export default function ListingScreen() {
   const { skills, profile } = useMyProfile();
   const mySkills = useMemo(() => new Set(skills.map((s) => s.toLowerCase())), [skills]);
 
-  if (listing.isPending) return <LoadingState />;
-  if (listing.isError) return <ErrorState onRetry={() => listing.refetch()} />;
+  if (listing.isPending) return <ListingDetailSkeleton />;
+  // A failed background refresh keeps the cached data on screen; the
+  // error state is only for when there is nothing to show.
+  if (listing.data === undefined) return <ErrorState onRetry={() => listing.refetch()} />;
   if (!listing.data) {
     return (
       <EmptyState
@@ -58,6 +60,7 @@ export default function ListingScreen() {
         listing.refetch();
         if (isOwner) applications.refetch();
       }}
+      refreshing={listing.isRefetching || (isOwner && applications.isRefetching)}
       footer={
         !isOwner && acceptingApplications ? (
           <ApplyPanel
@@ -132,3 +135,6 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../../components/RouteErrorBoundary";

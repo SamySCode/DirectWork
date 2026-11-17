@@ -9,10 +9,16 @@ jest.mock("../../../lib/supabase", () => ({ supabase: {} }));
 const replace = jest.fn();
 const session = { user: { id: "u1" } } as Session;
 
-function run(segment: string, s: Session | null, hasProfile: boolean | undefined, loading = false) {
-  (useSegments as jest.Mock).mockReturnValue([segment]);
+function run(
+  segment: string | string[],
+  s: Session | null,
+  hasProfile: boolean | undefined,
+  loading = false,
+  needsAcceptance?: boolean,
+) {
+  (useSegments as jest.Mock).mockReturnValue(Array.isArray(segment) ? segment : [segment]);
   (useRouter as jest.Mock).mockReturnValue({ replace });
-  renderHook(() => useProtectedRoute(s, loading, hasProfile));
+  renderHook(() => useProtectedRoute(s, loading, hasProfile, needsAcceptance));
 }
 
 beforeEach(() => replace.mockReset());
@@ -57,5 +63,46 @@ describe("useProtectedRoute", () => {
     run("update-password", null, false);
     run("update-password", session, true);
     expect(replace).not.toHaveBeenCalled();
+  });
+
+  it.each([["legal"], ["legal", "[doc]"], ["help"]])(
+    "lets anyone read the legal pages and help (%s)",
+    (...segments) => {
+      run(segments, null, false);
+      run(segments, session, false);
+      run(segments, session, true, false, true);
+      expect(replace).not.toHaveBeenCalled();
+    },
+  );
+
+  it("sends people with outdated Terms/Privacy acceptance to the accept screen", () => {
+    run("(tabs)", session, true, false, true);
+    expect(replace).toHaveBeenCalledWith("/legal/accept");
+    replace.mockReset();
+    run("onboarding", session, false, false, true);
+    expect(replace).toHaveBeenCalledWith("/legal/accept");
+  });
+
+  it("keeps people on the accept screen until they accept", () => {
+    run(["legal", "accept"], session, true, false, true);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("moves on from the accept screen once accepted", () => {
+    run(["legal", "accept"], session, true, false, false);
+    expect(replace).toHaveBeenCalledWith("/home");
+    replace.mockReset();
+    run(["legal", "accept"], session, false, false, false);
+    expect(replace).toHaveBeenCalledWith("/onboarding");
+  });
+
+  it("doesn't gate while the acceptance check is unknown or failed", () => {
+    run("(tabs)", session, true, false, undefined);
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("sends signed-out people away from the accept screen", () => {
+    run(["legal", "accept"], null, false);
+    expect(replace).toHaveBeenCalledWith("/welcome");
   });
 });

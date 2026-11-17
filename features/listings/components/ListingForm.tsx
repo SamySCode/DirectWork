@@ -25,6 +25,7 @@ import {
   ListingInput,
   listingSchema,
 } from "../schemas";
+import { a11yState } from "../../../lib/accessibility";
 
 type ListingFormProps = {
   initial?: ListingDetail | null;
@@ -119,9 +120,15 @@ export function ListingForm({ initial, saving, error, onSave }: ListingFormProps
       footer={
         <View style={styles.footer}>
           {hasErrors ? (
-            <Text style={styles.formError}>Fix the highlighted fields to continue.</Text>
+            <Text style={styles.formError} accessibilityLiveRegion="polite">
+              Fix the highlighted fields to continue.
+            </Text>
           ) : null}
-          {error ? <Text style={styles.formError}>{error}</Text> : null}
+          {error ? (
+            <Text style={styles.formError} accessibilityLiveRegion="polite">
+              {error}
+            </Text>
+          ) : null}
           <View style={styles.footerButtons}>
             <Button
               label="Save draft"
@@ -167,7 +174,7 @@ export function ListingForm({ initial, saving, error, onSave }: ListingFormProps
                 key={option.key}
                 onPress={() => setOpportunityType(option.key)}
                 accessibilityRole="radio"
-                accessibilityState={{ selected }}
+                {...a11yState({ checked: selected })}
                 style={[styles.typeCard, selected ? styles.typeCardSelected : null]}
               >
                 <Ionicons
@@ -250,6 +257,14 @@ export function ListingForm({ initial, saving, error, onSave }: ListingFormProps
             <Text style={styles.explainerText}>
               Strong professionals get pitched vague ideas every week. These answers show yours is
               real, and our reviewers check them before the listing goes live.
+            </Text>
+          </Card>
+          <Card style={styles.explainer}>
+            <Ionicons name="scale-outline" size={20} color={colors.accent} />
+            <Text style={styles.explainerText}>
+              A partnership means sharing ownership, risk and decisions. If you'd set their hours,
+              direct the work or need it delivered for you, it's a job: list it as paid work, at
+              least the National Minimum Wage. Equity-only jobs aren't allowed.
             </Text>
           </Card>
           <TextField

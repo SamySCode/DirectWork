@@ -21,7 +21,7 @@ export const supabase = createClient(
       // gets nothing usable.
       flowType: "pkce",
       // On web supabase-js exchanges `?code=` itself; native does it in
-      // app/update-password.tsx.
+      // features/auth/useAuthLink.ts (sign-in and update-password screens).
       detectSessionInUrl: Platform.OS === "web",
     },
   },

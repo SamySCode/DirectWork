@@ -1,16 +1,24 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  ListRenderItem,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { Chip } from "../../../components/Chip";
 import { SegmentedTabs } from "../../../components/SegmentedTabs";
 import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
-import { LoadingState } from "../../../components/LoadingState";
 import { PageHero } from "../../../components/PageHero";
 import { Text } from "../../../components/Text";
 import { DiscoverFilterPanel } from "../../../features/listings/components/DiscoverFilterPanel";
+import type { ListingDetail } from "../../../features/listings/api";
 import { ListingCard } from "../../../features/listings/components/ListingCard";
+import { ListingListSkeleton } from "../../../features/listings/components/ListingSkeletons";
 import { useDiscoverFilters } from "../../../features/listings/useDiscoverFilters";
 import { topSkills } from "../../../features/listings/demand";
 import { useDiscover } from "../../../features/listings/hooks";
@@ -20,6 +28,12 @@ import { useDebounced } from "../../../lib/useDebounced";
 import { useBlockedIds } from "../../../features/safety/hooks";
 
 const theme = tabThemes.discover;
+
+// Defined once: an inline component here would be a new type on every
+// render, remounting every separator each time the screen updates.
+function Separator() {
+  return <View style={styles.separator} />;
+}
 
 export default function DiscoverScreen() {
   const router = useRouter();
@@ -36,9 +50,20 @@ export default function DiscoverScreen() {
   const discover = useDiscover(
     blocked.data?.length ? { ...filters.server, excludeOwners: blocked.data } : filters.server,
   );
+  // The server leaves blocked owners out once it is told who they are, but
+  // the first request of a session goes out before the block list is back.
+  // Dropping them here too, and holding the list until the block list has
+  // loaded, means a blocked owner's listing never flashes on screen.
+  const blockedOwners = useMemo(() => new Set(blocked.data ?? []), [blocked.data]);
+  const loading = discover.isPending || !!blocked.isPending;
   const loaded = useMemo(
-    () => (discover.data?.pages.flat() ?? []).filter((l) => l.owner_id !== profile?.id),
-    [discover.data, profile?.id],
+    () =>
+      loading
+        ? []
+        : (discover.data?.pages.flat() ?? []).filter(
+            (l) => l.owner_id !== profile?.id && !blockedOwners.has(l.owner_id),
+          ),
+    [loading, discover.data, profile?.id, blockedOwners],
   );
   // "In demand": the most-requested skills across what's loaded - computed
   // here, no extra query. Tapping one narrows the loaded list to it.
@@ -61,6 +86,20 @@ export default function DiscoverScreen() {
     return out;
   }, [loaded, skillFilter, filters.refine.matchesOnly, filters.sort, overlap]);
   const mySkillSet = (skill: string) => mySkills.has(skill.toLowerCase());
+  // Stable across renders, so typing in the search box re-renders the header
+  // and not every card in the list (ListingCard is memoised).
+  const openListing = useCallback(
+    (listing: ListingDetail) => router.push(`/listing/${listing.id}`),
+    [router],
+  );
+  const renderItem = useCallback<ListRenderItem<ListingDetail>>(
+    ({ item }) => (
+      <View style={styles.column}>
+        <ListingCard listing={item} mySkills={mySkills} onPress={openListing} />
+      </View>
+    ),
+    [mySkills, openListing],
+  );
   const matching = listings.filter((l) => l.skills.some((s) => mySkills.has(s.toLowerCase())));
   const filtersActive =
     !!query || filters.type !== "all" || filters.active.length > 0 || !!skillFilter;
@@ -94,7 +133,9 @@ export default function DiscoverScreen() {
               size={18}
               color={colors.textMuted}
               onPress={() => setSearch("")}
+              accessibilityRole="button"
               accessibilityLabel="Clear search"
+              hitSlop={12}
             />
           ) : null}
         </View>
@@ -151,27 +192,33 @@ export default function DiscoverScreen() {
       data={listings}
       keyExtractor={(item) => item.id}
       ListHeaderComponent={header}
-      renderItem={({ item }) => (
-        <View style={styles.column}>
-          <ListingCard
-            listing={item}
-            mySkills={mySkills}
-            onPress={() => router.push(`/listing/${item.id}`)}
-          />
-        </View>
-      )}
-      ItemSeparatorComponent={() => <View style={styles.separator} />}
+      renderItem={renderItem}
+      ItemSeparatorComponent={Separator}
       onEndReached={() => {
         if (discover.hasNextPage && !discover.isFetchingNextPage) discover.fetchNextPage();
       }}
       onEndReachedThreshold={0.5}
-      refreshing={!!discover.isRefetching && !discover.isFetchingNextPage}
+      // useDiscover keeps a few pages at a time (maxPages), so scrolling on
+      // drops the oldest off the top. Scrolling back up fetches it again, and
+      // native keeps the visible rows still while rows above them change
+      // (web has no maintainVisibleContentPosition; the browser's scroll
+      // anchoring covers most of it).
+      onStartReached={() => {
+        if (discover.hasPreviousPage && !discover.isFetchingPreviousPage) {
+          discover.fetchPreviousPage();
+        }
+      }}
+      onStartReachedThreshold={0.5}
+      maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+      refreshing={
+        !!discover.isRefetching && !discover.isFetchingNextPage && !discover.isFetchingPreviousPage
+      }
       onRefresh={() => discover.refetch()}
       keyboardShouldPersistTaps="handled"
       ListEmptyComponent={
         <View style={styles.column}>
-          {discover.isPending ? (
-            <LoadingState />
+          {loading ? (
+            <ListingListSkeleton />
           ) : discover.isError ? (
             <ErrorState
               title="Couldn't load listings"
@@ -280,3 +327,6 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../../components/RouteErrorBoundary";

@@ -16,6 +16,10 @@ import {
 } from "../hooks";
 
 const mockPush = jest.fn();
+jest.mock("../../deals/hooks", () => ({
+  useDealSheet: jest.fn(() => ({ data: null, isPending: false })),
+  usePayRecord: jest.fn(() => ({ data: null })),
+}));
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("../../../lib/supabase", () => ({
   supabase: { storage: { from: () => ({ getPublicUrl: () => ({ data: { publicUrl: "" } }) }) } },
@@ -119,12 +123,41 @@ describe("ApplyPanel", () => {
     expect(mockPush).toHaveBeenCalledWith("/application/app-1");
   });
 
-  it("lets you apply again after a rejection", () => {
+  it("lets you apply again after a withdrawal, but not after a rejection", () => {
+    (useMyApplications as jest.Mock).mockReturnValue({
+      data: [makeApplication({ status: "withdrawn" })],
+    });
+    const { unmount } = render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
+    expect(screen.getByRole("button", { name: "Apply" })).toBeTruthy();
+    unmount();
     (useMyApplications as jest.Mock).mockReturnValue({
       data: [makeApplication({ status: "rejected" })],
     });
     render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
-    expect(screen.getByRole("button", { name: "Apply" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
+    expect(screen.getByRole("button", { name: "View your application" })).toBeTruthy();
+  });
+
+  it("says what happens next, and shows a partial attachment failure after applying", () => {
+    let apps: unknown[] = [];
+    (useMyApplications as jest.Mock).mockImplementation(() => ({ data: apps }));
+    (useApply as jest.Mock).mockReturnValue({
+      isPending: false,
+      mutate: (_: unknown, opts: { onSuccess: (r: unknown) => void }) => {
+        apps = [makeApplication()];
+        opts.onSuccess({
+          id: "app-1",
+          attachmentError: "Application sent, but 1 of 2 images couldn't be attached.",
+        });
+      },
+    });
+    open();
+    expect(screen.getByText(/never asks you to pay to apply/)).toBeTruthy();
+    fireEvent.changeText(screen.getByLabelText("Your note"), "A genuinely relevant note here.");
+    fireEvent.press(screen.getByRole("button", { name: "Send application" }));
+    expect(screen.getByText("You've applied")).toBeTruthy();
+    expect(screen.getByText(/1 of 2 images couldn't be attached/)).toBeTruthy();
+    expect(screen.getByText(/We don't email you yet/)).toBeTruthy();
   });
 });
 
@@ -201,7 +234,36 @@ describe("CollaborationPanel", () => {
     );
     expect(screen.getByText("Contact details unlocked")).toBeTruthy();
     fireEvent.press(screen.getByRole("button", { name: "Email Tom" }));
-    expect(openURL).toHaveBeenCalledWith("mailto:tom@fieldnote.io");
+    expect(openURL).toHaveBeenCalledWith(
+      "mailto:tom@fieldnote.io?subject=DirectWork%3A%20React%20Native%20developer",
+    );
+    // Safety guidance at the riskiest moment: money and off-platform contact.
+    expect(screen.getByText("Before you start")).toBeTruthy();
+    expect(screen.getByText(/never asks for money/)).toBeTruthy();
+    expect(screen.getByText(/Never pay to get work/)).toBeTruthy();
+    expect(screen.getByText(/Companies House/)).toBeTruthy();
+    expect(screen.getByText(/We don't email them for you/)).toBeTruthy();
+  });
+
+  it("offers a retry when contact details fail to load", () => {
+    const refetch = jest.fn();
+    (useContact as jest.Mock).mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isError: true,
+      isRefetching: false,
+      refetch,
+    });
+    render(
+      <CollaborationPanel
+        application={makeApplication({ status: "accepted" })}
+        viewerIsOwner={false}
+      />,
+    );
+    expect(screen.getByText("Couldn't load contact details.")).toBeTruthy();
+    expect(screen.queryByText("Before you start")).toBeNull();
+    fireEvent.press(screen.getByRole("button", { name: "Try again" }));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it("records an outcome after confirmation", async () => {

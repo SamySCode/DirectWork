@@ -6,6 +6,7 @@ import { FadeIn } from "../../../components/FadeIn";
 import { Text } from "../../../components/Text";
 import { colors, radius, spacing, typography } from "../../../lib/theme";
 import { guideSection, type GuideSection } from "../tips";
+import { a11yState } from "../../../lib/accessibility";
 
 /**
  * Collapsible tips at the top of a form. Closed by default so it never
@@ -21,7 +22,7 @@ export function TipsCard({ section }: { section: GuideSection["key"] }) {
       <Pressable
         onPress={() => setOpen((value) => !value)}
         accessibilityRole="button"
-        accessibilityState={{ expanded: open }}
+        {...a11yState({ expanded: open })}
         accessibilityLabel={`Tips: ${content.title}`}
         style={styles.header}
       >

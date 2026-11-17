@@ -6,8 +6,8 @@ import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { Screen } from "../../components/Screen";
+import { SkeletonDetail } from "../../components/Skeleton";
 import { Text } from "../../components/Text";
 import { AttachmentGallery } from "../../features/applications/components/AttachmentGallery";
 import { ApplicationQuestions } from "../../features/applications/components/ApplicationQuestions";
@@ -27,8 +27,10 @@ export default function ApplicationScreen() {
   const withdraw = useWithdrawApplication();
   const [error, setError] = useState<string | null>(null);
 
-  if (application.isPending) return <LoadingState />;
-  if (application.isError) return <ErrorState onRetry={() => application.refetch()} />;
+  if (application.isPending) return <SkeletonDetail />;
+  // A failed background refresh keeps the cached data on screen; the
+  // error state is only for when there is nothing to show.
+  if (application.data === undefined) return <ErrorState onRetry={() => application.refetch()} />;
   if (!application.data) {
     return <EmptyState icon="document-outline" title="Application not found" />;
   }
@@ -39,7 +41,8 @@ export default function ApplicationScreen() {
   const onWithdraw = async () => {
     const ok = await confirm({
       title: "Withdraw your application?",
-      message: "The owner will no longer see it. You can apply again later.",
+      message:
+        "The owner will still see your application, marked as withdrawn, and can't accept it. You can apply to this listing again later.",
       confirmLabel: "Withdraw",
       destructive: true,
     });
@@ -156,3 +159,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../components/RouteErrorBoundary";

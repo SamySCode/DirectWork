@@ -8,10 +8,15 @@ import { useIsAdmin } from "../../features/admin/hooks";
 import { useIncomingPending, useMyApplications } from "../../features/applications/hooks";
 import { deleteAccount } from "../../features/auth/api";
 import { useDiscover, useListingQuota, useMyListings } from "../../features/listings/hooks";
+import { useBlockedIds } from "../../features/safety/hooks";
 import { useMyProfile, usePortfolio, useTrackRecord } from "../../features/profile/hooks";
 import { makeApplication, makeListing, makeProfile, T } from "../../test/fixtures";
 
 const mockPush = jest.fn();
+jest.mock("../../features/deals/hooks", () => ({
+  useDealSheet: jest.fn(() => ({ data: null, isPending: false })),
+  usePayRecord: jest.fn(() => ({ data: null })),
+}));
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("../../lib/supabase", () => ({
   supabase: {
@@ -44,6 +49,7 @@ jest.mock("../../features/profile/hooks", () => ({
   useTrackRecord: jest.fn(),
   usePortfolio: jest.fn(),
   useReferences: jest.fn(() => ({ data: [] })),
+  useRefreshProfile: jest.fn(() => jest.fn()),
   useConfirmAvailability: jest.fn(() => ({ mutate: jest.fn(), isPending: false })),
 }));
 jest.mock("../../features/safety/hooks", () => ({
@@ -131,6 +137,21 @@ describe("Home", () => {
     expect(screen.getByText("You're all caught up")).toBeTruthy();
   });
 
+  it("shows placeholders, not 'all caught up' or 'no matches', while it is still loading", () => {
+    const pending = { data: undefined, isSuccess: false, isPending: true, refetch: jest.fn() };
+    (useMyApplications as jest.Mock).mockReturnValue(pending);
+    (useIncomingPending as jest.Mock).mockReturnValue(pending);
+    (useMyListings as jest.Mock).mockReturnValue(pending);
+    (useDiscover as jest.Mock).mockReturnValue(pending);
+    render(<HomeScreen />);
+    expect(screen.queryByText("You're all caught up")).toBeNull();
+    expect(screen.queryByText("No close matches yet")).toBeNull();
+    expect(screen.getByRole("progressbar", { name: "Loading" })).toBeTruthy();
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+    // Counts that aren't known yet aren't shown as zero.
+    expect(screen.queryByText("0")).toBeNull();
+  });
+
   it("builds 'Needs you' from applicants, review notes, acceptances and confirmations", () => {
     (useIncomingPending as jest.Mock).mockReturnValue(
       query([
@@ -197,6 +218,16 @@ describe("Home", () => {
     expect(screen.getByText("Matching gig")).toBeTruthy();
     expect(screen.queryByText("My own gig")).toBeNull();
     expect(screen.queryByText("Design job")).toBeNull();
+  });
+  it("leaves blocked owners out of the picks, the same request Discover makes", () => {
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: ["blocked-owner"] });
+    render(<HomeScreen />);
+    expect(useDiscover).toHaveBeenLastCalledWith({
+      query: "",
+      remoteOnly: false,
+      excludeOwners: ["blocked-owner"],
+    });
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: [] });
   });
 });
 
@@ -322,10 +353,9 @@ describe("Discover", () => {
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "pay" }));
     fireEvent.press(screen.getByRole("button", { name: "Best match" }));
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "newest" }));
-    const titles = screen
-      .getAllByRole("button", { name: /^(Strong|Weak) match$/ })
-      .map((node) => node.props.accessibilityLabel);
-    expect(titles[0]).toBe("Strong match");
+    // Order of the rendered titles - independent of the cards' accessibility labels.
+    const titles = screen.getAllByText(/^(Strong|Weak) match$/).map((node) => node.props.children);
+    expect(titles).toEqual(["Strong match", "Weak match"]);
   });
 
   it("can show only listings that need my skills", () => {
@@ -349,6 +379,35 @@ describe("Discover", () => {
     expect(screen.getByText("RN job")).toBeTruthy();
   });
 
+  it("shows listing placeholders while the first page loads", () => {
+    (useDiscover as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    render(<DiscoverScreen />);
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+    expect(screen.queryByText("No live listings yet")).toBeNull();
+  });
+
+  it("never shows a blocked owner's listing, even before the server has left it out", () => {
+    const theirs = makeListing({ id: "x", title: "From a blocked owner", owner_id: "blocked-1" });
+    const fine = makeListing({ id: "y", title: "From someone else", owner_id: "other-1" });
+    const page = query(
+      { pages: [[theirs, fine]] },
+      { hasNextPage: false, isFetchingNextPage: false, fetchNextPage: jest.fn() },
+    );
+    (useDiscover as jest.Mock).mockReturnValue(page);
+
+    // Block list still loading: hold the list back.
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    const { rerender } = render(<DiscoverScreen />);
+    expect(screen.queryByText("From a blocked owner")).toBeNull();
+    expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
+
+    // Block list back, but the page on screen was fetched without it.
+    (useBlockedIds as jest.Mock).mockReturnValue({ data: ["blocked-1"], isPending: false });
+    rerender(<DiscoverScreen />);
+    expect(screen.queryByText("From a blocked owner")).toBeNull();
+    expect(screen.getByText("From someone else")).toBeTruthy();
+  });
+
   it("offers retry on error", () => {
     const refetch = jest.fn();
     (useDiscover as jest.Mock).mockReturnValue({ isPending: false, isError: true, refetch });
@@ -363,6 +422,13 @@ describe("Applications tab", () => {
     render(<ApplicationsScreen />);
     fireEvent.press(screen.getByRole("button", { name: "Browse listings" }));
     expect(mockPush).toHaveBeenCalledWith("/discover");
+  });
+
+  it("shows row placeholders while loading", () => {
+    (useMyApplications as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
+    render(<ApplicationsScreen />);
+    expect(screen.getByRole("progressbar", { name: "Loading your applications" })).toBeTruthy();
+    expect(screen.queryByText("You haven't applied to anything yet")).toBeNull();
   });
 
   it("splits in-progress from past and counts them in the header", () => {
@@ -428,6 +494,12 @@ describe("Profile tab", () => {
     render(<ProfileScreen />);
     fireEvent.press(screen.getByRole("button", { name: "Add a profile photo" }));
     expect(mockPush).toHaveBeenCalledWith("/account/edit");
+  });
+
+  it("links to Help & legal", () => {
+    render(<ProfileScreen />);
+    fireEvent.press(screen.getByRole("button", { name: "Help & legal" }));
+    expect(mockPush).toHaveBeenCalledWith("/help");
   });
 
   it("puts your name and headline in the header", () => {

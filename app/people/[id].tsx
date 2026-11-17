@@ -1,9 +1,10 @@
 import { useLocalSearchParams } from "expo-router";
 import { EmptyState } from "../../components/EmptyState";
 import { ErrorState } from "../../components/ErrorState";
-import { LoadingState } from "../../components/LoadingState";
 import { Screen } from "../../components/Screen";
 import { useAuth } from "../../features/auth/SessionProvider";
+import { PayRecordLine } from "../../features/deals/components/PayRecordLine";
+import { ProfileSkeleton } from "../../features/profile/components/ProfileSkeleton";
 import { ProfileView } from "../../features/profile/components/ProfileView";
 import {
   usePortfolio,
@@ -23,8 +24,10 @@ export default function PersonScreen() {
   const portfolio = usePortfolio(id);
   const references = useReferences(id);
 
-  if (profile.isPending) return <LoadingState />;
-  if (profile.isError)
+  if (profile.isPending) return <ProfileSkeleton />;
+  // A failed background refresh keeps the cached data on screen; the
+  // error state is only for when there is nothing to show.
+  if (profile.data === undefined)
     return <ErrorState title="Couldn't load this profile" onRetry={() => profile.refetch()} />;
   if (!profile.data) {
     return (
@@ -44,6 +47,7 @@ export default function PersonScreen() {
         trackRecord={trackRecord.data}
         portfolio={portfolio.data}
         references={references.data}
+        afterHeader={<PayRecordLine ownerId={profile.data.id} />}
       />
       {session?.user.id !== profile.data.id ? (
         <SafetyActions
@@ -54,3 +58,6 @@ export default function PersonScreen() {
     </Screen>
   );
 }
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../components/RouteErrorBoundary";

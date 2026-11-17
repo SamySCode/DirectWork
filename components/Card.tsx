@@ -1,17 +1,14 @@
 import { ReactNode } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleProp,
-  StyleSheet,
-  View,
-  ViewProps,
-  ViewStyle,
-} from "react-native";
-import { colors, radius, shadow, spacing } from "../lib/theme";
+import { Pressable, StyleProp, StyleSheet, View, ViewProps, ViewStyle } from "react-native";
+import { colors, elevation, radius, spacing, surfaces, webTransition } from "../lib/theme";
 
-export function Card({ style, ...viewProps }: ViewProps) {
-  return <View style={[styles.card, style]} {...viewProps} />;
+type CardProps = ViewProps & {
+  /** Floating things (menus, popovers, pinned panels): one step above a resting card. */
+  raised?: boolean;
+};
+
+export function Card({ style, raised = false, ...viewProps }: CardProps) {
+  return <View style={[styles.card, raised ? styles.raised : null, style]} {...viewProps} />;
 }
 
 type PressableCardProps = {
@@ -47,27 +44,24 @@ export function PressableCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    ...surfaces.card,
     borderRadius: radius.lg,
     padding: spacing.md,
-    ...shadow.card,
+    ...elevation.sm,
     // Web only (ignored natively): eases the hover lift / press dip.
-    ...(Platform.OS === "web"
-      ? ({
-          transitionProperty: "transform, box-shadow, border-color",
-          transitionDuration: "160ms",
-          transitionTimingFunction: "cubic-bezier(0.2, 0, 0, 1)",
-        } as object)
-      : {}),
+    ...webTransition("transform, box-shadow, border-color"),
+  },
+  // In dark mode height is a lighter fill and edge; the shadow adds the rest.
+  raised: {
+    ...surfaces.raised,
+    ...elevation.md,
   },
   // Web hover: lift 2px with a deeper shadow - says "this opens" without
   // a colour flash. Transitioned in CSS so it eases rather than jumps.
   hovered: {
     borderColor: colors.accent,
     transform: [{ translateY: -2 }],
-    ...shadow.raised,
+    ...elevation.md,
   },
   pressed: {
     opacity: 0.92,

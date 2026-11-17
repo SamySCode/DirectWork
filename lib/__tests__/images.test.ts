@@ -1,11 +1,15 @@
+import { act, renderHook } from "@testing-library/react-native";
 import * as ImagePicker from "expo-image-picker";
 import { ImageManipulator } from "expo-image-manipulator";
 import {
   ImageValidationError,
   MAX_UPLOAD_BYTES,
   pickImages,
+  removeImages,
   signedImageUrls,
+  thumbnailPath,
   uploadImage,
+  useThumbnailSource,
 } from "../images";
 import { supabase } from "../supabase";
 
@@ -17,6 +21,7 @@ jest.mock("expo-image-manipulator", () => ({
 }));
 
 const upload = jest.fn();
+const remove = jest.fn();
 const createSignedUrls = jest.fn();
 jest.mock("../supabase", () => ({
   supabase: { storage: { from: jest.fn() } },
@@ -36,7 +41,7 @@ beforeEach(() => {
     }),
   };
   manipulate.mockReturnValue(context);
-  (supabase.storage.from as jest.Mock).mockReturnValue({ upload, createSignedUrls });
+  (supabase.storage.from as jest.Mock).mockReturnValue({ upload, remove, createSignedUrls });
 });
 
 const asset = (overrides: Partial<ImagePicker.ImagePickerAsset> = {}) => ({
@@ -130,16 +135,113 @@ describe("uploadImage", () => {
     });
   });
 
-  it("refuses files still over the limit after compression", async () => {
+  it("refuses files still over the limit after every compression step", async () => {
     mockFetch(MAX_UPLOAD_BYTES + 1);
-    await expect(uploadImage("avatars", "user-1", image)).rejects.toThrow(/over 5 MB/);
+    await expect(uploadImage("avatars", "user-1", image)).rejects.toThrow(/over 2 MB/);
     expect(upload).not.toHaveBeenCalled();
+    const saves = (await context.renderAsync.mock.results[0]!.value).saveAsync as jest.Mock;
+    expect(saves.mock.calls.map((call) => call[0].compress)).toEqual([0.65, 0.5]);
+  });
+
+  it("re-encodes at lower quality until it fits", async () => {
+    const sizes = [MAX_UPLOAD_BYTES + 1, 1000];
+    global.fetch = jest
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve({ arrayBuffer: () => Promise.resolve(new ArrayBuffer(sizes.shift()!)) }),
+      ) as unknown as typeof fetch;
+    upload.mockResolvedValue({ error: null });
+    await uploadImage("application-attachments", "user-1", image);
+    expect(manipulate).toHaveBeenCalledTimes(1);
+    expect(upload).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.objectContaining({ byteLength: 1000 }),
+      expect.any(Object),
+    );
+  });
+
+  it("uploads a small thumbnail next to public images, after the full image", async () => {
+    mockFetch(1000);
+    upload.mockResolvedValue({ error: null });
+    const big = { uri: "file://out.jpg", width: 1600, height: 1200 };
+    const path = await uploadImage("listing-images", "user-1/project-1", big);
+    expect(upload.mock.calls.map((call) => call[0])).toEqual([
+      path,
+      "user-1/project-1/00000000-0000-4000-8000-000000000000.thumb.jpg",
+    ]);
+    expect(context.resize).toHaveBeenCalledWith({ width: 480 });
+
+    jest.clearAllMocks();
+    manipulate.mockReturnValue(context);
+    (supabase.storage.from as jest.Mock).mockReturnValue({ upload, remove, createSignedUrls });
+    upload.mockResolvedValue({ error: null });
+    await uploadImage("avatars", "user-1", { uri: "file://a.jpg", width: 800, height: 800 });
+    expect(context.resize).toHaveBeenCalledWith({ width: 160 });
+  });
+
+  it("has no thumbnail for private attachments", async () => {
+    mockFetch(1000);
+    upload.mockResolvedValue({ error: null });
+    await uploadImage("application-attachments", "user-1", image);
+    expect(upload).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the upload when only the thumbnail fails", async () => {
+    mockFetch(1000);
+    upload
+      .mockResolvedValueOnce({ error: null })
+      .mockRejectedValueOnce(new TypeError("Network request failed"));
+    await expect(uploadImage("portfolio", "user-1", image)).resolves.toBe(
+      "user-1/00000000-0000-4000-8000-000000000000.jpg",
+    );
+  });
+
+  it("caps uploads at the 2 MB bucket limit", () => {
+    expect(MAX_UPLOAD_BYTES).toBe(2 * 1024 * 1024);
   });
 
   it("propagates storage errors", async () => {
     mockFetch(1000);
     upload.mockResolvedValue({ error: new Error("new row violates row-level security policy") });
     await expect(uploadImage("avatars", "user-1", image)).rejects.toThrow(/row-level security/);
+  });
+});
+
+describe("thumbnails", () => {
+  it("derives the thumbnail path from a path or public URL", () => {
+    expect(thumbnailPath("u/a.jpg")).toBe("u/a.thumb.jpg");
+    expect(thumbnailPath("https://x.supabase.co/storage/v1/object/public/avatars/u/a.webp")).toBe(
+      "https://x.supabase.co/storage/v1/object/public/avatars/u/a.thumb.jpg",
+    );
+    expect(thumbnailPath("u/a.thumb.jpg")).toBe("u/a.thumb.jpg");
+  });
+
+  it("removes thumbnails with their images, except in the private bucket", async () => {
+    remove.mockResolvedValue({ error: null });
+    await removeImages("portfolio", ["u/a.jpg"]);
+    expect(remove).toHaveBeenLastCalledWith(["u/a.jpg", "u/a.thumb.jpg"]);
+    await removeImages("application-attachments", ["u/b.jpg"]);
+    expect(remove).toHaveBeenLastCalledWith(["u/b.jpg"]);
+  });
+
+  it("falls back to the full image once, and remembers it for the session", () => {
+    const first = renderHook(() => useThumbnailSource("https://img/legacy.jpg"));
+    expect(first.result.current.source).toEqual({ uri: "https://img/legacy.thumb.jpg" });
+    act(() => first.result.current.onError?.());
+    expect(first.result.current).toEqual({
+      source: { uri: "https://img/legacy.jpg" },
+      onError: undefined,
+    });
+    // Another card showing the same image doesn't ask for the thumbnail again.
+    const second = renderHook(() => useThumbnailSource("https://img/legacy.jpg"));
+    expect(second.result.current.source).toEqual({ uri: "https://img/legacy.jpg" });
+  });
+
+  it("leaves local files and signed URLs alone", () => {
+    for (const uri of ["file://picked.jpg", "https://x/sign/a.jpg?token=abc"]) {
+      const { result } = renderHook(() => useThumbnailSource(uri));
+      expect(result.current).toEqual({ source: { uri }, onError: undefined });
+    }
   });
 });
 

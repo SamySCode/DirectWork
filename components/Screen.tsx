@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import {
+  Animated,
   KeyboardAvoidingView,
   Platform,
   RefreshControl,
@@ -9,7 +10,8 @@ import {
   View,
   ViewStyle,
 } from "react-native";
-import { colors, layout, spacing } from "../lib/theme";
+import { colors, layout, motion, spacing } from "../lib/theme";
+import { useFadeIn } from "./FadeIn";
 
 type ScreenProps = {
   children: ReactNode;
@@ -31,6 +33,9 @@ export function Screen({
   footer,
   contentStyle,
 }: ScreenProps) {
+  // The content dissolves in as the screen opens (often straight after a
+  // loading placeholder); the header and footer are solid from the start.
+  const opacity = useFadeIn(motion.base);
   return (
     <KeyboardAvoidingView
       style={styles.page}
@@ -50,7 +55,9 @@ export function Screen({
         }
       >
         {header}
-        <View style={[styles.content, contentStyle]}>{children}</View>
+        <Animated.View style={[styles.content, contentStyle, { opacity }]}>
+          {children}
+        </Animated.View>
       </ScrollView>
       {footer ? (
         <View style={styles.footer}>

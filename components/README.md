@@ -2,7 +2,7 @@
 
 Shared, feature-agnostic UI primitives, styled from `lib/theme.ts`:
 `Button`, `Card`/`PressableCard`, `Chip`, `Badge`, `Avatar`,
-`EmptyState`, `LoadingState`, `ErrorState`, `TextField`, `FadeIn`,
+`EmptyState`, `LoadingState`, `Skeleton`, `ErrorState`, `TextField`, `FadeIn`,
 `Screen`, `SectionHeader`, `Wordmark`, `ConnectMark`, `PageHero`/`HeroStats`,
 `ImagePickerGrid` (presentation only; picking and uploading live in
 `lib/images.ts`), and `Gallery` (horizontal strip with a full-screen viewer).
@@ -41,9 +41,42 @@ pinned `footer` slot for the primary action. Long, paginated lists use a
   visual refresh (`docs/OPEN_DECISIONS.md`). Body text stays on the system
   font. Don't use the display face for paragraphs or labels.
 
-`AppLoadingScreen` is the branded full-screen loading state used by the
-root layout during the initial session check. `LoadingState` stays the
-generic bare spinner for in-context loading.
+## Loading
+
+Three states, picked by what is known about what's coming:
+
+- `Skeleton` (grey boxes in the shape of the content) wherever the layout
+  is known: every list, detail page and form. Build the shape from `Bone`,
+  `SkeletonLines`, `SkeletonCard` and `SkeletonRows`, or use the page
+  presets `SkeletonDetail` and `SkeletonForm`. Shapes that mirror one
+  feature's card live with that feature (`ListingSkeletons`,
+  `ProfileSkeleton`). Keep paddings and gaps equal to the real component so
+  nothing jumps when the data lands. One `Skeleton` wraps a whole group:
+  it owns the single pulse animation, the short delay that stops fast
+  responses flashing a placeholder, and the "Loading" announcement.
+- `LoadingState` (a bare spinner) only where the shape is not known yet:
+  checking a reset link, checking whether someone is a reviewer.
+- `AppLoadingScreen` is the branded full-screen state the root layout
+  shows during the initial session check. With a `label` it also covers
+  the app during an action that ends somewhere else entirely
+  ("Signing out", see `features/auth/signingOut.ts`).
+
+Every press that waits on the network must show it is working from the
+first moment: `loading` on the `Button` that was pressed, or the cover
+above when the whole app is about to change. Content that replaces a
+placeholder dissolves in (`Screen` does this for its content; use
+`FadeIn` for a swap inside a screen).
+
+Never show an empty state ("You're all caught up", "No matches") while a
+query is still pending. It is a false statement for half a second. Check
+`isPending` first and show a `Skeleton`.
+
+## State for screen readers
+
+Don't write `accessibilityState` on its own. React Native Web ignores it,
+so on the web a ticked box and an empty one sound the same. Spread
+`a11yState({ checked })` from `lib/accessibility.ts` instead: it gives
+native `accessibilityState` and the browser the matching `aria-*`.
 
 Anything specific to a single feature belongs in
 `features/<feature>/components/` instead.

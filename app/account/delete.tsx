@@ -1,4 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { Button } from "../../components/Button";
@@ -8,24 +9,22 @@ import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
 import { deleteAccount } from "../../features/auth/api";
 import { useAuth } from "../../features/auth/SessionProvider";
+import {
+  DELETED_ON_ACCOUNT_DELETION,
+  KEPT_AFTER_ACCOUNT_DELETION,
+} from "../../features/legal/documents/account";
 import { errorMessage } from "../../lib/functions";
 import { colors, radius, spacing, typography } from "../../lib/theme";
-
-const WHAT_GOES = [
-  "Your profile, photo and portfolio",
-  "Your listings and their applicants",
-  "Your applications and work samples",
-  "Your track record (on both sides of every collaboration)",
-  "Any Pro subscription - cancelled straight away",
-];
 
 /**
  * A screen, not a pop-up: deleting is permanent, so it says exactly what
  * goes and asks for the password (the server also insists on a fresh
- * sign-in - see supabase/functions/delete-account).
+ * sign-in - see supabase/functions/delete-account). What goes and what's
+ * kept is shared with the public /legal/account-deletion page.
  */
 export default function DeleteAccountScreen() {
   const { session } = useAuth();
+  const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -60,13 +59,46 @@ export default function DeleteAccountScreen() {
       </View>
 
       <Card style={styles.list}>
-        {WHAT_GOES.map((item) => (
+        {DELETED_ON_ACCOUNT_DELETION.map((item) => (
           <View key={item} style={styles.item}>
             <Ionicons name="close-circle" size={18} color={colors.danger} />
             <Text style={styles.itemText}>{item}</Text>
           </View>
         ))}
       </Card>
+
+      <View style={styles.header}>
+        <Text style={styles.subtitle} accessibilityRole="header">
+          What we keep, and why
+        </Text>
+      </View>
+      <Card style={styles.list}>
+        {KEPT_AFTER_ACCOUNT_DELETION.map(([what, why]) => (
+          <View key={what} style={styles.item}>
+            <Ionicons name="time-outline" size={18} color={colors.textMuted} />
+            <View style={styles.keptText}>
+              <Text style={styles.itemText}>{what}</Text>
+              <Text style={styles.keptWhy}>{why}</Text>
+            </View>
+          </View>
+        ))}
+      </Card>
+      <View style={styles.links}>
+        <Button
+          label="Download my data first"
+          variant="ghost"
+          size="sm"
+          icon="download-outline"
+          onPress={() => router.push("/help")}
+        />
+        <Button
+          label="Full details"
+          variant="ghost"
+          size="sm"
+          icon="document-text-outline"
+          onPress={() => router.push("/legal/account-deletion")}
+        />
+      </View>
 
       <TextField
         label="Your password"
@@ -118,6 +150,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: spacing.sm,
     alignItems: "center",
+  },
+  subtitle: {
+    fontFamily: typography.displayFontFamily,
+    fontSize: typography.size.lg,
+    color: colors.textPrimary,
+  },
+  keptText: {
+    flex: 1,
+    gap: 2,
+  },
+  keptWhy: {
+    fontSize: typography.size.sm,
+    color: colors.textSecondary,
+  },
+  links: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.sm,
   },
   itemText: {
     flex: 1,

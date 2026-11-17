@@ -15,17 +15,51 @@ export function fieldErrors(error: z.ZodError): Record<string, string> {
   return result;
 }
 
-// Mirrors private.has_contact_details() in the images/content-rules
-// migration - the database is the real enforcement, this is for inline
-// feedback. Keep the patterns in sync.
+// Mirrors private.has_contact_details() (the trigger-based version in
+// 20261105120000_launch_hardening.sql) - the database is the real
+// enforcement, this is for inline feedback. Keep the patterns in sync.
+// JS translation of the SQL patterns: \m/\M -> \b, [[:space:]] -> \s.
 const CONTACT_PATTERNS = [
-  /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i,
+  /[a-z0-9._%+-]+\s*@\s*[a-z0-9-]+\.[a-z]{2,}/i,
+  /[a-z0-9._%+-]+@(gmail|googlemail|hotmail|outlook|live|yahoo|icloud|proton|protonmail)\b/i,
   /(https?:\/\/|www\.)/i,
-  /\+?\(?[0-9](?:[\s().-]*[0-9]){9,}/,
+  /\b(linkedin\.com|lnkd\.in|instagram\.com|facebook\.com|fb\.com|fb\.me|twitter\.com|x\.com|tiktok\.com|calendly\.com|wa\.me|t\.me|telegram\.me|discord\.gg|discord\.com|skype\.com|snapchat\.com|linktr\.ee|youtube\.com|youtu\.be|bit\.ly|tinyurl\.com|github\.com|gitlab\.com|behance\.net|dribbble\.com)\b/i,
+  /[a-z0-9._%+-]\s*[([{<]\s*at\s*[)\]}>]\s*[a-z0-9-]+\s*(\.|[([{<]\s*dot\s*[)\]}>]|\bdot\b)/i,
+  /[([{<]\s*dot\s*[)\]}>]\s*(com|co|net|org|io|uk|me|dev)\b/i,
+  /\bat\s+[a-z0-9-]+\s+dot\s+(com|co|net|org|io|uk|me|dev)\b/i,
+  // Phone numbers need a dialling prefix (+, 00 or a leading 0) and 9+ more
+  // digits, with at most two separator characters between digits, so dates,
+  // year ranges ("2015-2019 2020-2024") and money don't trip it.
+  /(?:\+\s?|\b00?)[1-9](?:[\s()./,_|·‐-―•−-]{0,2}[0-9]){8,}/,
 ];
 
+// Zero-width spaces/joiners, soft hyphens, word joiners, bidi marks: invisible
+// characters someone can wedge into "07700 900123" to slip past the patterns.
+const FORMAT_CHARS = /\p{Cf}/gu;
+const NON_ASCII_DIGIT = /(?![0-9])\p{Nd}/gu;
+const DECIMAL_DIGIT = /^\p{Nd}$/u;
+
+/**
+ * Folds any script's decimal digit (Arabic-Indic, Devanagari, ...) to ASCII.
+ * Unicode lays each set out as 10 consecutive code points from zero, so a
+ * digit's value is its distance from the start of its run, mod 10.
+ */
+function foldDigit(digit: string): string {
+  const code = digit.codePointAt(0)!;
+  let start = code;
+  while (start > 0 && DECIMAL_DIGIT.test(String.fromCodePoint(start - 1))) start -= 1;
+  return String((code - start) % 10);
+}
+
+/** The text the patterns see: NFKC, invisible format characters dropped, digits folded. */
+export function normalizeForContactCheck(text: string): string {
+  return text.normalize("NFKC").replace(FORMAT_CHARS, "").replace(NON_ASCII_DIGIT, foldDigit);
+}
+
 export function hasContactDetails(text: string | undefined | null): boolean {
-  return !!text && CONTACT_PATTERNS.some((pattern) => pattern.test(text));
+  if (!text) return false;
+  const normalized = normalizeForContactCheck(text);
+  return CONTACT_PATTERNS.some((pattern) => pattern.test(normalized));
 }
 
 export const CONTACT_DETAILS_MESSAGE =
@@ -67,4 +101,15 @@ export function useFormValidation<T>(schema: z.ZodType<T>, values: unknown) {
     /** Error keys in the order they appear in the form - for jumping to the first. */
     allErrors: all,
   };
+}
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Route params come from links anyone can type. Ids that can't be a uuid
+ * are "not found" without a request (Postgres would answer 400, which the
+ * screen would show as a connection problem and offer to retry).
+ */
+export function isUuid(value: unknown): value is string {
+  return typeof value === "string" && UUID.test(value);
 }

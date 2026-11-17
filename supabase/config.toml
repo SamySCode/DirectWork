@@ -49,9 +49,9 @@ port = 54329
 # Configure one of the supported pooler modes: `transaction`, `session`.
 pool_mode = "transaction"
 # How many server connections to allow per user/database pair.
-default_pool_size = 20
+default_pool_size = 15
 # Maximum number of client connections allowed.
-max_client_conn = 100
+max_client_conn = 200
 
 # [db.vault]
 # secret_key = "env(SECRET_VALUE)"
@@ -145,7 +145,7 @@ max_catalogs = 2
 
 # Store vector embeddings in S3 for large and durable datasets
 [storage.vector]
-enabled = true
+enabled = false
 max_buckets = 10
 max_indexes = 5
 
@@ -156,13 +156,21 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
+# Local development only. The hosted project sets its own Site URL (the production web
+# origin) in the dashboard - see docs/LAUNCH.md.
+# !!! DO NOT `supabase config push` THIS FILE AS-IS: it would set the hosted Site URL and
+# !!! redirect list to the localhost values below. Set both in the dashboard instead
+# !!! (Authentication > URL Configuration), or run `config push` without --yes and decline.
 site_url = "http://localhost:8081"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-# exp://** is for Expo Go in LOCAL development only. Never add it to the
-# hosted project's redirect list: any Expo Go app could receive auth links.
-additional_redirect_urls = ["http://localhost:8081/**", "directwork://**", "exp://**"]
+# !!! HOSTED PROJECT: the dashboard redirect list must be EXACT URLs (the production web
+# !!! origin's /sign-in and /update-password, and the app's exact native callback), never
+# !!! wildcards, never exp://, never localhost. A wildcard lets any page or any Expo Go app
+# !!! on the allowlist receive sign-in and password-reset links (account takeover).
+# Expo Go (exp://...) links are deliberately not listed even locally; use a dev build.
+additional_redirect_urls = ["http://localhost:8081/**", "directwork://**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -181,7 +189,7 @@ enable_anonymous_sign_ins = false
 # Allow/disallow testing manual linking of accounts
 enable_manual_linking = false
 # Passwords shorter than this value will be rejected as weak. Minimum 6, recommended 8 or more.
-minimum_password_length = 8
+minimum_password_length = 10
 # Passwords that do not meet the following requirements will be rejected as weak. Supported values
 # are: `letters_digits`, `lower_upper_letters_digits`, `lower_upper_letters_digits_symbols`
 password_requirements = ""
@@ -198,7 +206,10 @@ password_requirements = ""
 
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
-email_sent = 2
+# Set explicitly: when the key is missing the CLI falls back to 2/hour, which would cap
+# custom SMTP for every user of the project (sign-up, confirmation and reset emails all
+# count) if this file were pushed. 30/hour is Supabase's custom-SMTP default.
+email_sent = 30
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
@@ -229,9 +240,9 @@ enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 secure_password_change = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+max_frequency = "1m"
 # Number of characters used in the email OTP.
-otp_length = 6
+otp_length = 8
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
@@ -301,9 +312,11 @@ auth_token = "env(SUPABASE_AUTH_SMS_TWILIO_AUTH_TOKEN)"
 max_enrolled_factors = 10
 
 # Control MFA via App Authenticator (TOTP)
+# Kept on to match the hosted project: reviewer/admin accounts should enrol TOTP.
+# Requiring AAL2 for admin actions in the app is a later item (docs/LAUNCH.md).
 [auth.mfa.totp]
-enroll_enabled = false
-verify_enabled = false
+enroll_enabled = true
+verify_enabled = true
 
 # Configure MFA via Phone Messaging
 [auth.mfa.phone]
@@ -419,4 +432,9 @@ enabled = true
 # Stripe-Signature HMAC itself instead. Every other function keeps the
 # default verify_jwt = true.
 [functions.billing-webhook]
+verify_jwt = false
+
+# Called by a scheduler, not a signed-in user: the function checks the
+# x-maintenance-key header against MAINTENANCE_SECRET (constant-time) instead.
+[functions.maintenance]
 verify_jwt = false

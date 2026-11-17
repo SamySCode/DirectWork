@@ -10,6 +10,7 @@ import type { DiscoverSort } from "../api";
 import { commitmentLabels, compensationLabels } from "../labels";
 import { commitmentOptions, compensationTypes } from "../schemas";
 import type { useDiscoverFilters } from "../useDiscoverFilters";
+import { a11yState } from "../../../lib/accessibility";
 
 type Filters = ReturnType<typeof useDiscoverFilters>;
 
@@ -50,7 +51,7 @@ export function DiscoverFilterPanel({ filters, open, onToggle, tint, canMatch }:
         <Pressable
           onPress={onToggle}
           accessibilityRole="button"
-          accessibilityState={{ expanded: open }}
+          {...a11yState({ expanded: open })}
           accessibilityLabel={`Filters${active.length ? `, ${active.length} applied` : ""}`}
           style={[styles.toggle, open || active.length ? { borderColor: tint } : null]}
         >

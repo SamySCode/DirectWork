@@ -52,6 +52,13 @@ describe.each(["light", "dark"] as const)("%s palette meets WCAG AA", (scheme) =
     expect(contrast(palette.border, palette.surface)).toBeGreaterThanOrEqual(1.2);
   });
 
+  it.each(["background", "surface", "surfaceSunken", "surfaceRaised"] as const)(
+    "focus ring is visible on %s (non-text UI, 3:1)",
+    (bg) => {
+      expect(contrast(palette.focusRing, palette[bg])).toBeGreaterThanOrEqual(AA_LARGE_OR_UI);
+    },
+  );
+
   it("mint (used for lit nodes/progress) is distinguishable from the surface", () => {
     expect(contrast(palette.mint, palette.surface)).toBeGreaterThanOrEqual(AA_LARGE_OR_UI - 1.5);
   });

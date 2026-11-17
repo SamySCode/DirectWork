@@ -134,3 +134,66 @@ describe("errorMessage keeps internals out of the UI", () => {
     expect(errorMessage(new Error(""))).toBe("Something went wrong. Try again.");
   });
 });
+
+describe("errorMessage maps the codes the server sends", () => {
+  it("explains the contact-details rule from the actions gate", () => {
+    expect(errorMessage(new FunctionError("check failed", 400, "CONTACT_DETAILS"))).toMatch(
+      /Leave out emails, phone numbers and links/,
+    );
+  });
+
+  it("explains a contact-rule trigger error from a direct write", () => {
+    expect(
+      errorMessage({
+        code: "23514",
+        details: null,
+        hint: null,
+        message: "contact details are not allowed in cover_note",
+      }),
+    ).toMatch(/Leave out emails/);
+  });
+
+  it("says duplicates are already done and rate limits need a wait", () => {
+    expect(errorMessage(new FunctionError("", 409))).toBe("That's already been done.");
+    expect(
+      errorMessage({ code: "23505", details: null, hint: null, message: "duplicate key" }),
+    ).toBe("That's already been done.");
+    expect(errorMessage(new FunctionError("Too Many Requests", 429))).toMatch(/Wait a minute/);
+    expect(
+      errorMessage(Object.assign(new Error("email rate limit exceeded"), { status: 429 })),
+    ).toMatch(/Wait a few minutes/);
+  });
+
+  it("passes not-found messages our SQL raises", () => {
+    expect(
+      errorMessage({ code: "P0002", details: null, hint: null, message: "Listing not found" }),
+    ).toBe("Listing not found");
+  });
+
+  it("never shows a stringified object", () => {
+    expect(errorMessage(new Error("{}"))).toBe("Something went wrong. Try again.");
+    expect(errorMessage({ message: "{}" })).toBe("Something went wrong. Try again.");
+  });
+
+  it("gives rate-limited and conflicting responses without a body readable copy", async () => {
+    invoke.mockResolvedValue({
+      data: null,
+      error: new FunctionsHttpError(new Response("rate limited", { status: 429 })),
+    });
+    await expect(invokeFunction("actions", {})).rejects.toMatchObject({
+      message: expect.stringMatching(/Wait a minute/),
+      status: 429,
+    });
+  });
+});
+
+describe("errorMessage and the actions gate's codes", () => {
+  it("maps DUPLICATE and RATE_LIMITED", () => {
+    expect(errorMessage(new FunctionError("x", 409, "DUPLICATE"))).toBe(
+      "That's already been done.",
+    );
+    expect(errorMessage(new FunctionError("Slow down", 429, "RATE_LIMITED"))).toMatch(
+      /Wait a minute/,
+    );
+  });
+});

@@ -64,7 +64,20 @@ export function useMyProfile() {
     skills: skills.data ?? [],
     loading: profile.isPending || skills.isPending,
     error: profile.error ?? skills.error,
+    isRefetching: profile.isRefetching || skills.isRefetching,
     refetch: () => Promise.all([profile.refetch(), skills.refetch()]),
+  };
+}
+
+/**
+ * Reloads every section of a profile at once. They all live under
+ * ["profile", userId], and refetchQueries skips disabled queries, so a new
+ * section is picked up without touching the screens.
+ */
+export function useRefreshProfile(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  return () => {
+    if (userId) queryClient.refetchQueries({ queryKey: profileKeys.profile(userId) });
   };
 }
 

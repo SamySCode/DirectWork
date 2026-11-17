@@ -7,10 +7,12 @@ import { Card } from "../components/Card";
 import { EmptyState } from "../components/EmptyState";
 import { ErrorState } from "../components/ErrorState";
 import { LoadingState } from "../components/LoadingState";
+import { Skeleton, SkeletonRows } from "../components/Skeleton";
 import { Screen } from "../components/Screen";
 import { Text } from "../components/Text";
 import { TextField } from "../components/TextField";
 import { useIsAdmin } from "../features/admin/hooks";
+import { PaymentDisputes } from "../features/deals/components/PaymentDisputes";
 import { timeAgo } from "../features/listings/labels";
 import { reportReasons, type OpenReport } from "../features/safety/api";
 import { useOpenReports, useResolveReport } from "../features/safety/hooks";
@@ -25,24 +27,30 @@ export default function ModerationScreen() {
 
   if (isAdmin.isPending) return <LoadingState />;
   if (!isAdmin.data) return <EmptyState icon="lock-closed-outline" title="Reviewers only" />;
-  if (reports.isPending) return <LoadingState />;
-  if (reports.isError) return <ErrorState onRetry={() => reports.refetch()} />;
-  if (reports.data.length === 0) {
+  if (reports.isPending) {
     return (
-      <EmptyState
-        icon="shield-checkmark-outline"
-        title="No open reports"
-        description="Reports from people show up here, oldest first."
-      />
+      <Skeleton page label="Loading reports">
+        <SkeletonRows />
+      </Skeleton>
     );
   }
+  if (reports.data === undefined) return <ErrorState onRetry={() => reports.refetch()} />;
 
   return (
     <Screen onRefresh={() => reports.refetch()} refreshing={reports.isRefetching}>
-      <Text style={styles.count}>{reports.data.length} open · oldest first</Text>
-      {reports.data.map((report) => (
-        <ReportItem key={report.id} report={report} />
-      ))}
+      {reports.data.length === 0 ? (
+        <Text style={styles.count}>
+          No open reports. Reports from people show up here, oldest first.
+        </Text>
+      ) : (
+        <>
+          <Text style={styles.count}>{reports.data.length} open · oldest first</Text>
+          {reports.data.map((report) => (
+            <ReportItem key={report.id} report={report} />
+          ))}
+        </>
+      )}
+      <PaymentDisputes enabled={!!isAdmin.data} />
     </Screen>
   );
 }
@@ -52,8 +60,14 @@ function ReportItem({ report }: { report: OpenReport }) {
   const resolve = useResolveReport();
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const isListing = !!report.project;
-  const targetLabel = report.project?.title ?? report.profile?.full_name ?? "Deleted";
+  // The target can be gone (account or listing deleted): reports are kept,
+  // anonymised, so the label comes from target_kind and there is nothing to open.
+  const isListing = report.target_kind ? report.target_kind === "project" : !!report.project;
+  const targetId = isListing ? report.project?.id : report.profile?.id;
+  const targetLabel =
+    report.project?.title ??
+    report.profile?.full_name ??
+    (isListing ? "Deleted listing" : "Deleted account");
 
   const decide = (takeAction: boolean) => {
     if (takeAction && isListing && !note.trim()) {
@@ -76,18 +90,16 @@ function ReportItem({ report }: { report: OpenReport }) {
       <Text style={styles.kind}>{isListing ? "Listing" : "Profile"}</Text>
       <Text style={styles.target}>{targetLabel}</Text>
       {report.details ? <Text style={styles.details}>{report.details}</Text> : null}
-      <Button
-        label={isListing ? "Open listing" : "Open profile"}
-        variant="ghost"
-        size="sm"
-        icon="open-outline"
-        onPress={() =>
-          router.push(
-            isListing ? `/listing/${report.project!.id}` : `/people/${report.profile!.id}`,
-          )
-        }
-        style={styles.open}
-      />
+      {targetId ? (
+        <Button
+          label={isListing ? "Open listing" : "Open profile"}
+          variant="ghost"
+          size="sm"
+          icon="open-outline"
+          onPress={() => router.push(isListing ? `/listing/${targetId}` : `/people/${targetId}`)}
+          style={styles.open}
+        />
+      ) : null}
       {isListing ? (
         <TextField
           label="Note to the owner (needed to take it down)"
@@ -175,3 +187,6 @@ const styles = StyleSheet.create({
     color: colors.danger,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../components/RouteErrorBoundary";

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Local pre-commit guard. Turn it on once per clone: npm run hooks:install
+# (which runs: git config core.hooksPath scripts/git-hooks).
+exec node scripts/secret-scan.js

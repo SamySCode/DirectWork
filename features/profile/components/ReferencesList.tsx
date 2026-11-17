@@ -31,10 +31,10 @@ export function ReferencesList({ references }: { references: WorkReference[] }) 
             </View>
             <View
               style={styles.verified}
-              accessibilityLabel="Verified: from a completed collaboration both sides confirmed"
+              accessibilityLabel="From a completed collaboration both sides confirmed"
             >
               <Ionicons name="shield-checkmark" size={14} color={colors.mintInk} />
-              <Text style={styles.verifiedText}>Verified collaboration</Text>
+              <Text style={styles.verifiedText}>Confirmed by both sides</Text>
             </View>
           </Card>
         );

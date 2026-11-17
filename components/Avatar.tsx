@@ -1,7 +1,7 @@
-import { Image } from "expo-image";
 import { StyleSheet, View } from "react-native";
 import { colors, typography } from "../lib/theme";
 import { Text } from "./Text";
+import { ThumbnailImage } from "./ThumbnailImage";
 
 const palette = ["#5B4CF0", "#2E2690", "#0B7A59", "#B86E00", "#C2417A", "#2563A8"];
 
@@ -34,15 +34,7 @@ export function Avatar({ name, uri, size = 44 }: AvatarProps) {
       style={[styles.avatar, { width: size, height: size, backgroundColor }]}
     >
       <Text style={[styles.text, { fontSize: size * 0.38 }]}>{initials(name)}</Text>
-      {uri ? (
-        <Image
-          source={{ uri }}
-          style={StyleSheet.absoluteFill}
-          contentFit="cover"
-          transition={150}
-          cachePolicy="memory-disk"
-        />
-      ) : null}
+      {uri ? <ThumbnailImage uri={uri} style={StyleSheet.absoluteFill} /> : null}
     </View>
   );
 }

@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from "react-native";
 import { colors, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
+import { a11yState } from "../lib/accessibility";
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -29,7 +30,7 @@ export function SegmentedTabs<T extends string>({
             key={option.value}
             onPress={() => onChange(option.value)}
             accessibilityRole="tab"
-            accessibilityState={{ selected }}
+            {...a11yState({ selected })}
             accessibilityLabel={option.label}
             style={[styles.tab, selected ? [styles.selected, { backgroundColor: tint }] : null]}
           >

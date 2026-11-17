@@ -25,6 +25,10 @@ export function PageHero({ theme, title, subtitle, top, children }: PageHeroProp
       end={{ x: 1, y: 1 }}
       style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}
     >
+      {/* Layered tint: a soft glow in the tab colour, clipped to the band. */}
+      <View pointerEvents="none" style={styles.glowClip}>
+        <View style={[styles.glow, { backgroundColor: theme.gradient[2] }]} />
+      </View>
       <View style={styles.inner}>
         {top}
         <Text style={styles.title} accessibilityRole="header">
@@ -58,6 +62,21 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xl,
     borderBottomLeftRadius: radius.lg,
     borderBottomRightRadius: radius.lg,
+  },
+  glowClip: {
+    ...StyleSheet.absoluteFill,
+    overflow: "hidden",
+    borderBottomLeftRadius: radius.lg,
+    borderBottomRightRadius: radius.lg,
+  },
+  glow: {
+    position: "absolute",
+    top: -120,
+    right: -80,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    opacity: 0.35,
   },
   inner: {
     width: "100%",

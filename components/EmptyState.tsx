@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { ComponentProps } from "react";
 import { StyleSheet, View } from "react-native";
-import { colors, radius, spacing, typography } from "../lib/theme";
+import { colors, radius, spacing, surfaces, typography } from "../lib/theme";
 import { Button } from "./Button";
 import { Text } from "./Text";
 
@@ -53,6 +53,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.lg,
+    ...surfaces.well,
     borderWidth: 1,
     borderStyle: "dashed",
     borderColor: colors.border,

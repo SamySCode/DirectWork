@@ -1,11 +1,11 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Image } from "expo-image";
 import { memo } from "react";
 import { StyleSheet, View } from "react-native";
 import { Badge } from "../../../components/Badge";
 import { PressableCard } from "../../../components/Card";
 import { NodeMeter } from "../../../components/NodeMeter";
 import { Text } from "../../../components/Text";
+import { ThumbnailImage } from "../../../components/ThumbnailImage";
 import { colors, radius, spacing, typography } from "../../../lib/theme";
 import type { ListingDetail } from "../api";
 import {
@@ -19,7 +19,12 @@ import {
 
 type ListingCardProps = {
   listing: ListingDetail;
-  onPress: () => void;
+  /**
+   * Called with the listing, so a list can pass one stable function to
+   * every card. A new closure per row would re-render every card on every
+   * parent render and make the `memo` below pointless.
+   */
+  onPress: (listing: ListingDetail) => void;
   /** Lowercased skill names of the viewer - matching ones are highlighted. */
   mySkills?: Set<string>;
   /** Owner's view shows lifecycle status instead of the owner's name. */
@@ -35,16 +40,26 @@ function ListingCardBase({ listing, onPress, mySkills, showStatus = false }: Lis
     listing.commitment ? commitmentLabels[listing.commitment] : null,
   ].filter(Boolean);
   const status = listingStatusMeta[listing.status];
+  // One label with the facts a sighted person scans for, so screen-reader
+  // users don't have to open every card to compare them.
+  const label = [
+    listing.title,
+    opportunityLabels[listing.opportunity_type],
+    listing.is_featured && !showStatus ? "Featured, paid placement" : null,
+    showStatus ? status.label : null,
+    pay,
+    ...meta,
+    matches.length > 0 ? `matches ${matches.length} of your skills` : null,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
-    <PressableCard onPress={onPress} accessibilityLabel={listing.title} style={styles.card}>
+    <PressableCard onPress={() => onPress(listing)} accessibilityLabel={label} style={styles.card}>
       {listing.images[0] ? (
-        <Image
-          source={{ uri: listing.images[0].url }}
+        <ThumbnailImage
+          uri={listing.images[0].url}
           style={styles.cover}
-          contentFit="cover"
-          transition={150}
-          cachePolicy="memory-disk"
           accessibilityIgnoresInvertColors
         />
       ) : null}
@@ -54,7 +69,9 @@ function ListingCardBase({ listing, onPress, mySkills, showStatus = false }: Lis
             label={opportunityLabels[listing.opportunity_type]}
             tone={listing.opportunity_type === "partner" ? "ink" : "accent"}
           />
-          {listing.is_featured && !showStatus ? <Badge label="Featured" tone="warning" /> : null}
+          {listing.is_featured && !showStatus ? (
+            <Badge label="Featured · paid" tone="warning" />
+          ) : null}
           {showStatus ? <Badge label={status.label} tone={status.tone} /> : null}
         </View>
         {listing.published_at && !showStatus ? (

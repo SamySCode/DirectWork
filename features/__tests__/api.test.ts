@@ -15,9 +15,10 @@ jest.mock("../../lib/images", () => ({
   removeImages: (...args: unknown[]) => mockRemove(...args),
 }));
 
-import { applyToListing, attachImages } from "../applications/api";
-import { deleteDraft, discoverListings, syncListingImages } from "../listings/api";
-import { ensureSkillIds, setAvatar } from "../profile/api";
+import { applyToListing, attachImages, getApplication } from "../applications/api";
+import { markRead } from "../activity/api";
+import { deleteDraft, discoverListings, getListing, syncListingImages } from "../listings/api";
+import { ensureSkillIds, getPortfolio, getProfile, setAvatar } from "../profile/api";
 
 const image = { uri: "file://x.jpg", width: 1, height: 1 };
 
@@ -126,6 +127,7 @@ describe("syncListingImages", () => {
 describe("deleteDraft", () => {
   it("collects image paths before deleting the row, then removes the files", async () => {
     mock.queue("listing_images", { data: [{ storage_path: "o/p/a.jpg" }] });
+    mock.queue("projects", { data: [{ id: "p" }] });
     await deleteDraft("p");
     expect(mock.callsTo("projects").some((c) => c.method === "delete")).toBe(true);
     expect(mockRemove).toHaveBeenCalledWith("listing-images", ["o/p/a.jpg"]);
@@ -135,6 +137,13 @@ describe("deleteDraft", () => {
     mock.queue("listing_images", { data: [{ storage_path: "o/p/a.jpg" }] });
     mock.queue("projects", { error: new Error("not a draft") });
     await expect(deleteDraft("p")).rejects.toThrow("not a draft");
+    expect(mockRemove).not.toHaveBeenCalled();
+  });
+
+  it("keeps the files when RLS silently deletes nothing (a once-live draft)", async () => {
+    mock.queue("listing_images", { data: [{ storage_path: "o/p/a.jpg" }] });
+    mock.queue("projects", { data: [] });
+    await expect(deleteDraft("p")).rejects.toThrow(/can't be deleted/);
     expect(mockRemove).not.toHaveBeenCalled();
   });
 });
@@ -233,5 +242,29 @@ describe("ensureSkillIds", () => {
   it("skips the round trip for an empty list", async () => {
     await expect(ensureSkillIds([])).resolves.toEqual([]);
     expect(mock.calls).toHaveLength(0);
+  });
+});
+
+describe("markRead", () => {
+  it("marks only the given rows, never every unread row", async () => {
+    await markRead(["a1", "a2"]);
+    const calls = mock.callsTo("activity");
+    expect(calls.find((c) => c.method === "in")?.args).toEqual(["id", ["a1", "a2"]]);
+    expect(calls.some((c) => c.method === "update")).toBe(true);
+  });
+
+  it("skips the request when nothing new was shown", async () => {
+    await markRead([]);
+    expect(mock.callsTo("activity")).toHaveLength(0);
+  });
+});
+
+describe("malformed ids from links", () => {
+  it("are 'not found' without a request", async () => {
+    await expect(getListing("not-a-uuid")).resolves.toBeNull();
+    await expect(getApplication("<garbage>")).resolves.toBeNull();
+    await expect(getProfile("1 or 1=1")).resolves.toBeNull();
+    await expect(getPortfolio("x")).resolves.toEqual([]);
+    expect(mock.calls).toEqual([]);
   });
 });

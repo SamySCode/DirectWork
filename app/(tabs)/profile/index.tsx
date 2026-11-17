@@ -1,19 +1,21 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Href, useRouter } from "expo-router";
-import { ComponentProps } from "react";
+import { ComponentProps, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { Avatar } from "../../../components/Avatar";
 import { Badge } from "../../../components/Badge";
 import { Card } from "../../../components/Card";
 import { ErrorState } from "../../../components/ErrorState";
-import { LoadingState } from "../../../components/LoadingState";
 import { PageHero } from "../../../components/PageHero";
 import { Screen } from "../../../components/Screen";
 import { Text } from "../../../components/Text";
 import { useIsAdmin } from "../../../features/admin/hooks";
 import { signOut } from "../../../features/auth/api";
 import { useAuth } from "../../../features/auth/SessionProvider";
+import { ProfileSkeleton } from "../../../features/profile/components/ProfileSkeleton";
 import { ProfileStrengthCard } from "../../../features/profile/components/ProfileStrengthCard";
+import { PayRecordLine } from "../../../features/deals/components/PayRecordLine";
 import { ProfileView } from "../../../features/profile/components/ProfileView";
 import { profileStrength } from "../../../features/profile/strength";
 import { avatarUrl } from "../../../features/profile/api";
@@ -21,6 +23,7 @@ import {
   useMyProfile,
   usePortfolio,
   useReferences,
+  useRefreshProfile,
   useTrackRecord,
 } from "../../../features/profile/hooks";
 import { billingAvailable } from "../../../features/billing/availability";
@@ -36,22 +39,52 @@ type Row = {
 export default function ProfileScreen() {
   const router = useRouter();
   const { session } = useAuth();
-  const { profile, skills, loading, error, refetch, userId } = useMyProfile();
+  const { profile, skills, loading, refetch, isRefetching, userId } = useMyProfile();
   const trackRecord = useTrackRecord(userId);
   const portfolio = usePortfolio(userId);
   const references = useReferences(userId);
   const isAdmin = useIsAdmin();
+  const [signOutFailed, setSignOutFailed] = useState(false);
+  // Pull-to-refresh reloads every profile section and keeps the spinner up
+  // until they're done, like the other tabs.
+  const refresh = useRefreshProfile(userId);
+  const refreshing =
+    isRefetching ||
+    !!trackRecord.isRefetching ||
+    !!portfolio.isRefetching ||
+    !!references.isRefetching;
 
-  if (loading) return <LoadingState />;
-  if (error || !profile) return <ErrorState title="Couldn't load your profile" onRetry={refetch} />;
+  // Cached data wins over a failed background refresh (F10).
+  if (!profile) {
+    if (loading) {
+      // No hero yet to clear the status bar, so the safe area does it.
+      return (
+        <SafeAreaView edges={["top"]} style={styles.loading}>
+          <ProfileSkeleton />
+        </SafeAreaView>
+      );
+    }
+    return <ErrorState title="Couldn't load your profile" onRetry={refetch} />;
+  }
 
   const go = (href: Href) => () => router.push(href);
+  // The root layout covers the app with "Signing out" while this runs; all
+  // that is left to handle here is the rare case where it didn't work.
+  const onSignOut = async () => {
+    setSignOutFailed(false);
+    try {
+      await signOut();
+    } catch {
+      setSignOutFailed(true);
+    }
+  };
 
   const rows: Row[] = [
     { icon: "create-outline", label: "Edit profile", onPress: go("/account/edit") },
     { icon: "eye-outline", label: "See your public profile", onPress: go(`/people/${profile.id}`) },
     { icon: "notifications-outline", label: "Activity", onPress: go("/inbox") },
     { icon: "bulb-outline", label: "Guide & tips", onPress: go("/guide") },
+    { icon: "help-circle-outline", label: "Help & legal", onPress: go("/help") },
     ...(billingAvailable
       ? [{ icon: "card-outline" as const, label: "Plans & billing", onPress: go("/billing") }]
       : []),
@@ -70,7 +103,7 @@ export default function ProfileScreen() {
         ]
       : []),
     { icon: "eye-off-outline", label: "Blocked people", onPress: go("/account/blocked") },
-    { icon: "log-out-outline", label: "Sign out", onPress: () => signOut() },
+    { icon: "log-out-outline", label: "Sign out", onPress: onSignOut },
     {
       icon: "trash-outline",
       label: "Delete account",
@@ -81,7 +114,8 @@ export default function ProfileScreen() {
 
   return (
     <Screen
-      onRefresh={refetch}
+      onRefresh={refresh}
+      refreshing={refreshing}
       header={
         <PageHero
           theme={tabThemes.profile}
@@ -109,6 +143,7 @@ export default function ProfileScreen() {
         portfolio={portfolio.data}
         references={references.data}
         showHeader={false}
+        afterHeader={<PayRecordLine ownerId={profile.id} />}
       />
 
       <Card style={styles.menu}>
@@ -131,6 +166,11 @@ export default function ProfileScreen() {
           </Pressable>
         ))}
       </Card>
+      {signOutFailed ? (
+        <Text style={styles.error} accessibilityLiveRegion="polite">
+          Couldn't sign you out. Try again.
+        </Text>
+      ) : null}
       {session?.user.email ? (
         <Text style={styles.email}>Signed in as {session.user.email}</Text>
       ) : null}
@@ -139,6 +179,10 @@ export default function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  loading: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   heroBadges: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -177,3 +221,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../../components/RouteErrorBoundary";

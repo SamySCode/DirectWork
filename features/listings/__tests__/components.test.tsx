@@ -10,6 +10,10 @@ import { useDeleteDraft, useSetListingStatus, useSubmitListing } from "../hooks"
 
 const mockPush = jest.fn();
 const mockBack = jest.fn();
+jest.mock("../../deals/hooks", () => ({
+  useDealSheet: jest.fn(() => ({ data: null, isPending: false })),
+  usePayRecord: jest.fn(() => ({ data: null })),
+}));
 jest.mock("expo-router", () => ({
   useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn() }),
 }));
@@ -63,10 +67,10 @@ describe("ListingCard", () => {
   it("shows Featured to others, and lifecycle status to the owner", () => {
     const listing = makeListing({ is_featured: true, status: "in_review" });
     const { rerender } = render(<ListingCard listing={listing} onPress={jest.fn()} />);
-    expect(screen.getByText("Featured")).toBeTruthy();
+    expect(screen.getByText("Featured · paid")).toBeTruthy();
     rerender(<ListingCard listing={listing} onPress={jest.fn()} showStatus />);
     expect(screen.getByText("In review")).toBeTruthy();
-    expect(screen.queryByText("Featured")).toBeNull();
+    expect(screen.queryByText("Featured · paid")).toBeNull();
   });
 
   it("collapses more than six skills", () => {
@@ -158,12 +162,17 @@ describe("OwnerPanel", () => {
   });
 
   it("offers submit / edit / delete for drafts", () => {
-    render(<OwnerPanel listing={makeListing({ status: "draft" })} />);
+    render(<OwnerPanel listing={makeListing({ status: "draft", published_at: null })} />);
     fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
     expect(mutate).toHaveBeenCalledWith("listing-1", expect.any(Object));
     fireEvent.press(screen.getByRole("button", { name: "Edit" }));
     expect(mockPush).toHaveBeenCalledWith("/listing/listing-1/edit");
     expect(screen.getByRole("button", { name: "Delete draft" })).toBeTruthy();
+  });
+
+  it("doesn't offer Delete on a draft that was live before", () => {
+    render(<OwnerPanel listing={makeListing({ status: "draft" })} />);
+    expect(screen.queryByRole("button", { name: "Delete draft" })).toBeNull();
   });
 
   it("shows the reviewer's note when changes are requested", () => {

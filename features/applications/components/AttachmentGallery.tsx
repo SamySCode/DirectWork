@@ -11,7 +11,12 @@ export function AttachmentGallery({ attachments }: { attachments: Application["a
       height={110}
       images={attachments
         .filter((attachment) => urls.data[attachment.storage_path])
-        .map((attachment) => ({ key: attachment.id, uri: urls.data[attachment.storage_path]! }))}
+        .map((attachment) => ({
+          key: attachment.id,
+          uri: urls.data[attachment.storage_path]!,
+          // Signed URLs change; the file doesn't. Cache by path.
+          cacheKey: attachment.storage_path,
+        }))}
     />
   );
 }

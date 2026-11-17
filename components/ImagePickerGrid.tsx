@@ -1,8 +1,8 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Image } from "expo-image";
 import { ActivityIndicator, Pressable, StyleSheet, View } from "react-native";
 import { colors, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
+import { ThumbnailImage } from "./ThumbnailImage";
 
 export type GridImage = { key: string; uri: string };
 
@@ -44,7 +44,7 @@ export function ImagePickerGrid({
       <View style={styles.grid}>
         {images.map((image) => (
           <View key={image.key} style={styles.tile}>
-            <Image source={{ uri: image.uri }} style={styles.image} contentFit="cover" />
+            <ThumbnailImage uri={image.uri} style={styles.image} transition={0} />
             {!disabled ? (
               <Pressable
                 onPress={() => onRemove(image.key)}

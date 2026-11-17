@@ -21,7 +21,10 @@ export function describeActivity(item: ActivityItem, viewerId: string | undefine
     ? `/application/${item.application_id}`
     : null;
   // Outcome and reference rows go to whichever side of the collaboration you're on.
-  const collaboration = item.project?.owner_id === viewerId ? listing : application;
+  const isOwner = item.project?.owner_id === viewerId;
+  const collaboration = isOwner ? listing : application;
+  // Deal Sheet rows open the Deal Sheet itself (keyed by the application).
+  const deal: Href | null = item.application_id ? `/deal/${item.application_id}` : collaboration;
 
   switch (item.kind) {
     case "application_received":
@@ -95,6 +98,50 @@ export function describeActivity(item: ActivityItem, viewerId: string | undefine
         tone: "accent",
         text: `${who} answered your question on ${title}`,
         href: listing,
+      };
+    case "deal_proposed":
+      return {
+        icon: "document-text",
+        tone: "warning",
+        text: `${who} proposed Deal Sheet terms for ${title} - review and confirm`,
+        href: deal,
+      };
+    case "deal_agreed":
+      return {
+        icon: "checkmark-circle",
+        tone: "mint",
+        text: `The Deal Sheet for ${title} is agreed by you both`,
+        href: deal,
+      };
+    case "payment_due":
+      return {
+        icon: "calendar",
+        tone: "accent",
+        text: isOwner
+          ? `A payment on ${title} is due today`
+          : `A payment on ${title} is due - record it once you know`,
+        href: deal,
+      };
+    case "payment_reported":
+      return {
+        icon: "receipt",
+        tone: "accent",
+        text: `${who} recorded a payment on ${title} - you can dispute it within 14 days`,
+        href: deal,
+      };
+    case "payment_disputed":
+      return {
+        icon: "flag",
+        tone: "warning",
+        text: `${who} disputed your payment report on ${title}`,
+        href: deal,
+      };
+    case "payment_dispute_resolved":
+      return {
+        icon: "shield-checkmark",
+        tone: "neutral",
+        text: `A moderator decided the payment dispute on ${title}`,
+        href: deal,
       };
   }
 }

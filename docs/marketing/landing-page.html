@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DirectWork – Know the terms. Know they pay.</title>
+    <meta
+      name="description"
+      content="A curated UK marketplace for paid work and co-founder roles. Every listing reviewed by a person. Terms agreed in writing before work starts. Launching in [CITY]."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <style>
+      :root {
+        --paper: #f4f1e9;
+        --surface: #fffdf7;
+        --ink: #1b1e1a;
+        --muted: #565b53;
+        --rule: #d8d2c3;
+        --rule-strong: #1b1e1a;
+        --accent: #1d5a44;
+        --accent-hover: #164735;
+        --on-accent: #ffffff;
+        --mark: #a64f1c;
+        --tint: #e6ede5;
+        --focus: #1d5a44;
+        --serif:
+          "Iowan Old Style", "Charter", "Bitstream Charter", "Sitka Text", Cambria, Georgia, serif;
+        --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+        --gutter: 16px;
+        --max: 1080px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --paper: #111412;
+          --surface: #191d1a;
+          --ink: #ebe7dc;
+          --muted: #a5aa9f;
+          --rule: #2f3530;
+          --rule-strong: #ebe7dc;
+          --accent: #82c7a8;
+          --accent-hover: #9fd8be;
+          --on-accent: #0d1a13;
+          --mark: #e3956a;
+          --tint: #1b2620;
+          --focus: #82c7a8;
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 17px/1.6 var(--sans);
+      }
+      img {
+        max-width: 100%;
+      }
+      a {
+        color: var(--accent);
+        text-underline-offset: 3px;
+      }
+      a:hover {
+        color: var(--accent-hover);
+      }
+      :focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+        border-radius: 2px;
+      }
+
+      .skip {
+        position: absolute;
+        left: var(--gutter);
+        top: -60px;
+        background: var(--accent);
+        color: var(--on-accent);
+        padding: 10px 14px;
+        z-index: 10;
+        text-decoration: none;
+      }
+      .skip:focus {
+        top: 12px;
+      }
+
+      .wrap {
+        max-width: var(--max);
+        margin: 0 auto;
+        padding: 0 var(--gutter);
+      }
+
+      h1,
+      h2,
+      h3 {
+        font-family: var(--serif);
+        font-weight: 600;
+        line-height: 1.15;
+        margin: 0;
+        letter-spacing: -0.01em;
+      }
+      h1 {
+        font-size: clamp(2.4rem, 9vw, 4.4rem);
+      }
+      h2 {
+        font-size: clamp(1.7rem, 5vw, 2.5rem);
+      }
+      h3 {
+        font-size: 1.25rem;
+      }
+      p {
+        margin: 0 0 1em;
+      }
+
+      .label {
+        font: 600 0.75rem/1 var(--mono);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        margin: 0 0 14px;
+      }
+
+      /* Header */
+      .site-head {
+        border-bottom: 1px solid var(--rule);
+      }
+      .site-head .wrap {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 60px;
+        gap: 12px;
+      }
+      .wordmark {
+        font: 700 1.2rem/1 var(--serif);
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .wordmark span {
+        color: var(--accent);
+      }
+      .head-cta {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      /* Buttons */
+      .btn {
+        display: inline-block;
+        background: var(--accent);
+        color: var(--on-accent);
+        border: 0;
+        border-radius: 4px;
+        padding: 14px 22px;
+        min-height: 48px;
+        font: 600 1rem/1.2 var(--sans);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .btn:hover {
+        background: var(--accent-hover);
+        color: var(--on-accent);
+      }
+
+      /* Hero */
+      .hero {
+        padding: 48px 0 56px;
+      }
+      .hero-grid {
+        display: grid;
+        gap: 40px;
+      }
+      .hero .lede {
+        font-size: 1.15rem;
+        max-width: 34em;
+        margin-top: 20px;
+      }
+      .hero .city {
+        font-family: var(--mono);
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin: 0 0 24px;
+      }
+      .hero .fine {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-top: 14px;
+      }
+
+      /* Deal Sheet specimen */
+      .sheet {
+        background: var(--surface);
+        border: 1px solid var(--rule-strong);
+        border-radius: 3px;
+        padding: 20px;
+        font-size: 0.95rem;
+        box-shadow: 6px 6px 0 var(--rule);
+        max-width: 440px;
+      }
+      .sheet-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        border-bottom: 2px solid var(--rule-strong);
+        padding-bottom: 10px;
+        margin-bottom: 4px;
+      }
+      .sheet-head strong {
+        font: 600 1.15rem/1.2 var(--serif);
+      }
+      .sheet-head span {
+        font: 0.75rem/1 var(--mono);
+        color: var(--muted);
+      }
+      .sheet dl {
+        margin: 0;
+      }
+      .sheet .row {
+        display: grid;
+        grid-template-columns: 7.5em 1fr;
+        gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px dashed var(--rule);
+      }
+      .sheet dt {
+        font: 0.75rem/1.6 var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--muted);
+      }
+      .sheet dd {
+        margin: 0;
+      }
+      .confirms {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 14px;
+      }
+      .confirm {
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        border-radius: 3px;
+        padding: 8px 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+      .confirm::before {
+        content: "";
+        display: inline-block;
+        width: 0.5em;
+        height: 0.9em;
+        border: solid currentColor;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+        margin: 0 8px 2px 2px;
+      }
+      .illus {
+        font: 0.75rem/1.4 var(--mono);
+        color: var(--muted);
+        margin: 12px 0 0;
+      }
+
+      /* Sections */
+      section {
+        padding: 56px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .intro {
+        max-width: 40em;
+        margin-bottom: 32px;
+      }
+      .intro p:last-child {
+        margin-bottom: 0;
+      }
+      .intro h2 + p {
+        margin-top: 16px;
+      }
+
+      /* Stats */
+      .stats {
+        display: grid;
+        gap: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 2px solid var(--rule-strong);
+      }
+      .stats li {
+        padding: 20px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      .stat-num {
+        display: block;
+        font: 600 clamp(2.4rem, 8vw, 3.4rem)/1 var(--serif);
+        color: var(--mark);
+        margin-bottom: 8px;
+        font-variant-numeric: lining-nums;
+      }
+      .source {
+        display: block;
+        font: 0.8rem/1.4 var(--mono);
+        color: var(--muted);
+        margin-top: 6px;
+      }
+      .source a {
+        color: var(--muted);
+      }
+
+      /* Steps */
+      .steps {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        counter-reset: step;
+      }
+      .steps li {
+        counter-increment: step;
+        display: grid;
+        grid-template-columns: 3rem 1fr;
+        gap: 12px;
+        padding: 20px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .steps li::before {
+        content: counter(step, decimal-leading-zero);
+        font: 600 1rem/1.6 var(--mono);
+        color: var(--accent);
+      }
+      .steps h3 {
+        margin-bottom: 6px;
+      }
+      .steps p {
+        margin: 0;
+        color: var(--muted);
+      }
+      .tag {
+        font: 600 0.7rem/1 var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border: 1px solid currentColor;
+        border-radius: 2px;
+        padding: 3px 5px;
+        vertical-align: 2px;
+        color: var(--mark);
+        white-space: nowrap;
+      }
+
+      /* Deal Sheet section */
+      .deal-grid {
+        display: grid;
+        gap: 32px;
+      }
+      .fields {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        border-top: 2px solid var(--rule-strong);
+      }
+      .fields li {
+        padding: 12px 0;
+        border-bottom: 1px solid var(--rule);
+      }
+      .fields b {
+        font-weight: 600;
+      }
+      .record {
+        background: var(--tint);
+        border: 1px solid var(--rule-strong);
+        border-radius: 6px;
+        padding: 20px;
+      }
+      .record-line {
+        font: 600 1.35rem/1.3 var(--serif);
+        margin: 6px 0 10px;
+      }
+      .record p:last-child {
+        margin-bottom: 0;
+      }
+      .small {
+        font-size: 0.92rem;
+        color: var(--muted);
+      }
+
+      /* Audiences */
+      .two {
+        display: grid;
+        gap: 40px;
+      }
+      .ticks {
+        list-style: none;
+        margin: 20px 0 24px;
+        padding: 0;
+      }
+      .ticks li {
+        position: relative;
+        padding: 8px 0 8px 26px;
+        border-bottom: 1px solid var(--rule);
+      }
+      .ticks li::before {
+        content: "";
+        position: absolute;
+        left: 4px;
+        top: 0.95em;
+        width: 9px;
+        height: 9px;
+        background: var(--accent);
+      }
+
+      /* Trust */
+      .trust {
+        display: grid;
+        gap: 0;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .trust li {
+        padding: 16px 0;
+        border-top: 1px solid var(--rule);
+      }
+      .trust strong {
+        display: block;
+        font-family: var(--serif);
+        font-size: 1.1rem;
+        margin-bottom: 2px;
+      }
+      .trust span {
+        color: var(--muted);
+      }
+
+      /* FAQ */
+      .faq details {
+        border-top: 1px solid var(--rule);
+      }
+      .faq details:last-child {
+        border-bottom: 1px solid var(--rule);
+      }
+      .faq summary {
+        cursor: pointer;
+        padding: 18px 32px 18px 0;
+        font: 600 1.1rem/1.4 var(--serif);
+        list-style: none;
+        position: relative;
+      }
+      .faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq summary::after {
+        content: "+";
+        position: absolute;
+        right: 4px;
+        top: 16px;
+        font: 400 1.4rem/1 var(--mono);
+        color: var(--accent);
+      }
+      .faq details[open] summary::after {
+        content: "\2212";
+      }
+      .faq details p {
+        color: var(--muted);
+        max-width: 40em;
+        padding-bottom: 6px;
+      }
+
+      /* Waitlist */
+      .join {
+        background: var(--surface);
+      }
+      .join-box {
+        max-width: 560px;
+      }
+      form {
+        margin-top: 24px;
+      }
+      .field {
+        margin-bottom: 20px;
+      }
+      label,
+      legend {
+        font-weight: 600;
+        display: block;
+        margin-bottom: 6px;
+      }
+      input[type="email"] {
+        width: 100%;
+        min-height: 48px;
+        padding: 12px 14px;
+        font: 1rem var(--sans);
+        color: var(--ink);
+        background: var(--paper);
+        border: 1px solid var(--muted);
+        border-radius: 4px;
+      }
+      fieldset {
+        border: 0;
+        margin: 0 0 20px;
+        padding: 0;
+      }
+      .choices {
+        display: grid;
+        gap: 8px;
+      }
+      .choice {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-weight: 400;
+        margin: 0;
+        padding: 10px 12px;
+        border: 1px solid var(--rule);
+        border-radius: 4px;
+        background: var(--paper);
+        cursor: pointer;
+      }
+      .choice input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--accent);
+        margin: 0;
+      }
+      .hint {
+        font-size: 0.9rem;
+        color: var(--muted);
+        margin-top: 14px;
+      }
+
+      /* Footer */
+      footer {
+        border-top: 1px solid var(--rule);
+        padding: 32px 0 48px;
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+      footer p {
+        max-width: 46em;
+      }
+
+      /* Larger screens */
+      @media (min-width: 720px) {
+        :root {
+          --gutter: 32px;
+        }
+        .hero {
+          padding: 80px 0 88px;
+        }
+        .hero-grid {
+          grid-template-columns: 1.15fr 1fr;
+          align-items: center;
+          gap: 56px;
+        }
+        .sheet {
+          justify-self: end;
+          padding: 24px;
+        }
+        .stats {
+          grid-template-columns: repeat(3, 1fr);
+          border-bottom: 1px solid var(--rule);
+        }
+        .stats li {
+          padding: 24px 24px 24px 0;
+          border-bottom: 0;
+        }
+        .stats li + li {
+          padding-left: 24px;
+          border-left: 1px solid var(--rule);
+        }
+        .deal-grid {
+          grid-template-columns: 1fr 1fr;
+          gap: 56px;
+          align-items: start;
+        }
+        .two {
+          grid-template-columns: 1fr 1fr;
+          gap: 56px;
+        }
+        .trust {
+          grid-template-columns: 1fr 1fr;
+          column-gap: 40px;
+        }
+        .choices {
+          grid-template-columns: 1fr 1fr;
+        }
+        section {
+          padding: 80px 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="site-head">
+      <div class="wrap">
+        <a class="wordmark" href="#top" aria-label="DirectWork home">Direct<span>Work</span></a>
+        <a class="head-cta" href="#join">Join the waitlist</a>
+      </div>
+    </header>
+
+    <main id="main">
+      <div class="hero" id="top">
+        <div class="wrap hero-grid">
+          <div>
+            <p class="city">Launching in [CITY]</p>
+            <h1>Know the terms. Know they pay.</h1>
+            <p class="lede">
+              A curated marketplace for paid work and co-founder roles at early-stage ventures and
+              small businesses. A person reviews every listing. Terms are agreed in writing before
+              work starts. Owners carry a record of how they reply and how they pay.
+            </p>
+            <a class="btn" href="#join">Join the waitlist</a>
+            <p class="fine">
+              Free for professionals, with no feed, likes or follower counts to manage.
+            </p>
+          </div>
+
+          <figure class="sheet" aria-labelledby="sheet-caption">
+            <div class="sheet-head">
+              <strong>Deal Sheet</strong>
+              <span>Version 2</span>
+            </div>
+            <dl>
+              <div class="row">
+                <dt>Scope</dt>
+                <dd>Brand identity: logo, colour palette, type, and a one-page guide</dd>
+              </div>
+              <div class="row">
+                <dt>Pay</dt>
+                <dd>£1,800 fixed</dd>
+              </div>
+              <div class="row">
+                <dt>Payment terms</dt>
+                <dd>14 days after each milestone</dd>
+              </div>
+              <div class="row">
+                <dt>Milestones</dt>
+                <dd>Concepts, 12 Jan, £600<br />Final files, 2 Feb, £1,200</dd>
+              </div>
+              <div class="row">
+                <dt>IP</dt>
+                <dd>Client owns on full payment</dd>
+              </div>
+            </dl>
+            <div class="confirms">
+              <div class="confirm">Owner confirmed</div>
+              <div class="confirm">Professional confirmed</div>
+            </div>
+            <figcaption class="illus" id="sheet-caption">
+              Illustration with example details. Deal Sheets arrive at launch.
+            </figcaption>
+          </figure>
+        </div>
+      </div>
+
+      <section aria-labelledby="problem-h">
+        <div class="wrap">
+          <div class="intro">
+            <p class="label">The problem</p>
+            <h2 id="problem-h">
+              Most unpaid work starts with a friendly &ldquo;let&rsquo;s just get going&rdquo;.
+            </h2>
+          </div>
+          <ul class="stats">
+            <li>
+              <span class="stat-num">~20 days</span>
+              a year spent by freelancers chasing payments.
+              <span class="source"
+                >Source:
+                <a
+                  href="https://www.ipse.co.uk/articles/how-ipse-is-tackling-the-crisis-of-late-payment"
+                  >IPSE</a
+                ></span
+              >
+            </li>
+            <li>
+              <span class="stat-num">43%</span>
+              of freelancers have done work they were never paid for.
+              <span class="source"
+                >Source:
+                <a
+                  href="https://www.ipse.co.uk/articles/how-ipse-is-tackling-the-crisis-of-late-payment"
+                  >IPSE</a
+                ></span
+              >
+            </li>
+            <li>
+              <span class="stat-num">54%</span>
+              of invoices are paid on time. The rest aren&rsquo;t.
+              <span class="source"
+                >Source:
+                <a href="https://www.freeagent.com/en/company/press-room/late-payment-research"
+                  >FreeAgent</a
+                ></span
+              >
+            </li>
+          </ul>
+          <p class="small" style="margin-top: 24px">
+            DirectWork doesn&rsquo;t hold or move money. It makes the terms clear before work
+            starts, and makes payment behaviour visible after it.
+          </p>
+        </div>
+      </section>
+
+      <section aria-labelledby="how-h">
+        <div class="wrap">
+          <div class="intro">
+            <p class="label">How it works</p>
+            <h2 id="how-h">Five steps, all of them written down.</h2>
+          </div>
+          <ol class="steps">
+            <li>
+              <div>
+                <h3>An owner posts a listing</h3>
+                <p>
+                  Paid work, or a co-founder or partner role. A person reviews it before it goes
+                  live. Partner listings must say what&rsquo;s already built, the weekly hours, the
+                  first milestone and the proposed terms.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>You apply in a few minutes</h3>
+                <p>
+                  A short note, up to 3 work samples, and answers to up to 3 questions from the
+                  owner.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>You both accept</h3>
+                <p>
+                  Only then are contact details shared, with a short safety card on what to agree
+                  before you start.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>You agree a Deal Sheet <span class="tag">At launch</span></h3>
+                <p>
+                  Scope, pay, payment terms, milestones and who owns the work. You both confirm the
+                  same version.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>You do the work, then confirm how it went</h3>
+                <p>
+                  Both sides confirm the outcome and write references. That becomes a track record
+                  confirmed by both sides.
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section aria-labelledby="deal-h">
+        <div class="wrap deal-grid">
+          <div>
+            <p class="label">The Deal Sheet <span class="tag">At launch</span></p>
+            <h2 id="deal-h">One page. Both sides confirm it.</h2>
+            <p style="margin-top: 16px">
+              Nobody has to remember what was said on a call. After an application is accepted,
+              either side can propose a Deal Sheet.
+            </p>
+            <ul class="fields">
+              <li><b>Scope</b> of the work</li>
+              <li><b>Pay:</b> fixed, hourly, daily, equity-only or mixed</li>
+              <li><b>Payment terms:</b> days after invoice or milestone, 14 by default</li>
+              <li><b>Milestones:</b> up to 12, each with a date and amount</li>
+              <li><b>IP:</b> who owns the work</li>
+              <li><b>Partner deals:</b> equity, vesting, cliff and decision rights</li>
+            </ul>
+            <p class="small" style="margin-top: 16px">
+              Any edit creates a new version, and both of you confirm again. Either of you can save
+              a dated PDF. The Deal Sheet is a record of what you agreed: DirectWork doesn&rsquo;t
+              draft it and isn&rsquo;t a party to it.
+            </p>
+          </div>
+          <div>
+            <div class="record">
+              <p class="label">Pays-on-time record, example</p>
+              <p class="record-line">Paid on time on 4 of 5 reported payments</p>
+              <p>
+                After each payment is due, the professional records whether it was paid on time,
+                paid late or not paid yet. The record appears on an owner&rsquo;s profile once there
+                are 3 or more undisputed reports.
+              </p>
+              <p class="small">
+                Owners can dispute a report within 14 days. Disputed reports don&rsquo;t count while
+                we review them. We show counts, never scores or labels.
+              </p>
+            </div>
+            <h3 style="margin: 32px 0 8px">Paid late on a business deal?</h3>
+            <p class="small">
+              For business-to-business deals there&rsquo;s a prefilled letter citing the Late
+              Payment of Commercial Debts (Interest) Act 1998, with statutory interest and fixed
+              compensation worked out. It&rsquo;s a template, not legal advice.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="owners-h">
+        <div class="wrap two">
+          <div>
+            <p class="label">For owners</p>
+            <h2 id="owners-h">Serious people read reviewed listings.</h2>
+            <ul class="ticks">
+              <li>Short applications you can compare: a note, up to 3 samples, your questions.</li>
+              <li>Your reply record and pays-on-time record show what you do, not what you say.</li>
+              <li>Agree scope and payment terms early, in writing.</li>
+              <li>Your contact details are shared only when you accept someone.</li>
+              <li>
+                One live listing free. Pro ([PRICE]) gives you up to 10 and a labelled Featured
+                spot. Featured listings are reviewed like every other.
+              </li>
+            </ul>
+            <a class="btn" href="#join">Join as an owner</a>
+          </div>
+          <div>
+            <p class="label">For professionals</p>
+            <h2>See how an owner replies and pays first.</h2>
+            <ul class="ticks">
+              <li>You never pay: there are no credits, fees or paid boosts for professionals.</li>
+              <li>
+                Apply with a short note and up to 3 work samples instead of a long cover letter.
+              </li>
+              <li>
+                Check an owner&rsquo;s reply record and, once they have one, their pays-on-time
+                record.
+              </li>
+              <li>Agree the terms on a Deal Sheet before you start.</li>
+              <li>Build a track record confirmed by both sides, with references.</li>
+            </ul>
+            <a class="btn" href="#join">Join as a professional</a>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="trust-h">
+        <div class="wrap">
+          <div class="intro">
+            <p class="label">Trust and safety</p>
+            <h2 id="trust-h">What we do, and what we don&rsquo;t.</h2>
+          </div>
+          <ul class="trust">
+            <li>
+              <strong>Every listing is reviewed by a person</strong
+              ><span>before it goes live.</span>
+            </li>
+            <li>
+              <strong>Contact details stay private</strong><span>until both sides accept.</span>
+            </li>
+            <li>
+              <strong>A &ldquo;Before you start&rdquo; card</strong
+              ><span
+                >when you&rsquo;re accepted: DirectWork never asks for money, never pay to get work,
+                agree terms in writing, check companies on Companies House.</span
+              >
+            </li>
+            <li>
+              <strong>Report or block anyone</strong
+              ><span
+                >from their profile or listing. Decisions are made by people, and you can
+                appeal.</span
+              >
+            </li>
+            <li>
+              <strong>Records are reported, not scored</strong
+              ><span>We show counts, never labels or ratings, and owners can dispute reports.</span>
+            </li>
+            <li>
+              <strong>18 and over only</strong
+              ><span>We don&rsquo;t run identity checks, and we won&rsquo;t pretend to.</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="faq" aria-labelledby="faq-h">
+        <div class="wrap">
+          <div class="intro">
+            <p class="label">Questions</p>
+            <h2 id="faq-h">Frequently asked</h2>
+          </div>
+          <details>
+            <summary>Is DirectWork a social network?</summary>
+            <p>
+              No. There&rsquo;s no feed, no posts, no likes and no followers. It&rsquo;s for finding
+              work and finding people.
+            </p>
+          </details>
+          <details>
+            <summary>Who pays?</summary>
+            <p>
+              Professionals never pay. Owners can post one live listing free, or use Pro for more
+              listings and Featured placement.
+            </p>
+          </details>
+          <details>
+            <summary>Does DirectWork handle payments?</summary>
+            <p>
+              No. You pay each other directly. DirectWork helps you agree the terms and records how
+              payment went.
+            </p>
+          </details>
+          <details>
+            <summary>Is the Deal Sheet a legal contract?</summary>
+            <p>
+              It&rsquo;s a written record of terms you both confirmed. DirectWork doesn&rsquo;t
+              draft it and isn&rsquo;t a party to it. For anything significant, especially equity,
+              take your own legal advice.
+            </p>
+          </details>
+          <details>
+            <summary>How does the pays-on-time record work?</summary>
+            <p>
+              After each payment due date, the professional reports whether it was paid on time,
+              late, or not yet. The owner&rsquo;s record shows how many reported payments were on
+              time, once there are 3 or more undisputed reports. Owners can dispute any report
+              within 14 days.
+            </p>
+          </details>
+          <details>
+            <summary>What stops false reports?</summary>
+            <p>
+              Reports can only be made on a Deal Sheet both sides confirmed, after the due date,
+              from accounts that weren&rsquo;t brand new. Disputed reports don&rsquo;t count until
+              we&rsquo;ve reviewed them. Reporting falsely breaks our terms.
+            </p>
+          </details>
+          <details>
+            <summary>What&rsquo;s a partner listing?</summary>
+            <p>
+              A co-founder or partner role, usually for equity. It must say what already exists, the
+              weekly hours, the first milestone, the proposed terms and what the owner brings beyond
+              the idea.
+            </p>
+          </details>
+          <details>
+            <summary>Why [CITY] first?</summary>
+            <p>
+              Reviewing listings properly takes a person who knows the local market. We&rsquo;d
+              rather start in one place and do it well.
+            </p>
+          </details>
+          <details>
+            <summary>When does it open?</summary>
+            <p>[LAUNCH DATE]. Waitlist members get in first.</p>
+          </details>
+        </div>
+      </section>
+
+      <section class="join" id="join" aria-labelledby="join-h">
+        <div class="wrap join-box">
+          <p class="label">Waitlist</p>
+          <h2 id="join-h">Agree it first. Then do the work.</h2>
+          <p style="margin-top: 16px">Join the [CITY] waitlist. Free for professionals.</p>
+
+          <!-- Placeholder: no backend yet. Set action (and method) to the waitlist
+           endpoint before this page goes live. Submitting now just reloads the page. -->
+          <form action="" method="post">
+            <div class="field">
+              <label for="email">Email address</label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autocomplete="email"
+                inputmode="email"
+                required
+                aria-describedby="privacy-note"
+              />
+            </div>
+            <fieldset>
+              <legend>I&rsquo;m&hellip;</legend>
+              <div class="choices">
+                <label class="choice"
+                  ><input type="radio" name="role" value="professional" required /> Looking for
+                  work</label
+                >
+                <label class="choice"
+                  ><input type="radio" name="role" value="owner" /> Hiring or looking for a
+                  partner</label
+                >
+              </div>
+            </fieldset>
+            <button class="btn" type="submit">Join the waitlist</button>
+            <p class="hint" id="privacy-note">
+              We&rsquo;ll only email you about DirectWork&rsquo;s launch. Unsubscribe any time.
+              <a href="#">Privacy notice</a>
+            </p>
+          </form>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <p>
+          <strong>DirectWork</strong> &middot; Launching in [CITY]. For people aged 18 and over.
+        </p>
+        <p>
+          DirectWork doesn&rsquo;t handle payments and isn&rsquo;t a party to agreements between
+          users. Deal Sheets, payment records and late-payment letters arrive at launch. The
+          late-payment letter is a template, not legal advice.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

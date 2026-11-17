@@ -23,7 +23,7 @@ const promises = [
     body: "When you both say yes, you get each other's contact details. No recruiters, no inbox games.",
   },
   {
-    title: "A record you can't fake",
+    title: "A record confirmed by both sides",
     body: "Finished collaborations count only when both sides confirm them.",
   },
 ];
@@ -89,6 +89,24 @@ export default function WelcomeScreen() {
               onPress={() => router.push("/sign-in")}
             />
             <Text style={styles.free}>Free for professionals, always.</Text>
+            <View style={styles.footer}>
+              {(
+                [
+                  ["Terms", "/legal/terms"],
+                  ["Privacy", "/legal/privacy"],
+                  ["Help", "/help"],
+                ] as const
+              ).map(([label, href]) => (
+                <Text
+                  key={href}
+                  accessibilityRole="link"
+                  style={styles.footerLink}
+                  onPress={() => router.push(href)}
+                >
+                  {label}
+                </Text>
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -173,5 +191,16 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     color: colors.onInkMuted,
     marginTop: spacing.xs,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: spacing.lg,
+  },
+  footerLink: {
+    fontSize: typography.size.xs,
+    color: colors.onInkMuted,
+    textDecorationLine: "underline",
+    paddingVertical: spacing.sm,
   },
 });

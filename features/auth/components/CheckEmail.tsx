@@ -15,6 +15,11 @@ type CheckEmailProps = {
   email: string;
   /** Go back and fix a mistyped address. */
   onChangeEmail: () => void;
+  /**
+   * False when shown for an earlier sign-up (e.g. signing in before
+   * confirming): nothing was sent just now, so Resend isn't held back.
+   */
+  justSent?: boolean;
 };
 
 /**
@@ -22,10 +27,10 @@ type CheckEmailProps = {
  * stuck (email in spam, typo in the address). So it says exactly where the
  * email went, and offers both fixes right there.
  */
-export function CheckEmail({ email, onChangeEmail }: CheckEmailProps) {
+export function CheckEmail({ email, onChangeEmail, justSent = true }: CheckEmailProps) {
   // A deadline rather than a decrementing counter: stays correct if ticks
   // are late (backgrounded app, slow device).
-  const [until, setUntil] = useState(() => Date.now() + COOLDOWN_SECONDS * 1000);
+  const [until, setUntil] = useState(() => (justSent ? Date.now() + COOLDOWN_SECONDS * 1000 : 0));
   const [now, setNow] = useState(() => Date.now());
   const [status, setStatus] = useState<{ ok: boolean; text: string } | null>(null);
   const [sending, setSending] = useState(false);
@@ -55,11 +60,24 @@ export function CheckEmail({ email, onChangeEmail }: CheckEmailProps) {
 
   return (
     <View style={styles.group}>
-      <Text style={styles.body}>
-        We sent a confirmation link to <Text style={styles.email}>{email}</Text>. Open it on this
-        device to finish signing up.
+      {justSent ? (
+        <Text style={styles.body}>
+          We sent a confirmation link to <Text style={styles.email}>{email}</Text>. Open it on this
+          device to finish signing up.
+        </Text>
+      ) : (
+        <Text style={styles.body}>
+          <Text style={styles.email}>{email}</Text> isn't confirmed yet. Open the link we emailed
+          when you signed up, or send a new one.
+        </Text>
+      )}
+      {/* Supabase answers a sign-up for an existing address with the same
+          success (so nobody can probe who has an account) but sends nothing -
+          point those people at the way back in without confirming it. */}
+      <Text style={styles.hint}>
+        Can't see it? Check spam or promotions. If you've signed up before with this email, sign in
+        or reset your password instead.
       </Text>
-      <Text style={styles.hint}>Can't see it? Check spam or promotions.</Text>
       <Button
         label={cooldown > 0 ? `Resend email in ${cooldown}s` : "Resend email"}
         variant="secondary"

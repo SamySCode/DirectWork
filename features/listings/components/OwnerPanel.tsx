@@ -21,7 +21,7 @@ const notices: Record<string, { text: string; tone: "mint" | "warning" }> = {
     tone: "warning",
   },
   limit: {
-    text: "Saved as a draft. You've reached your plan's live listing limit - pause or close another listing to submit this one.",
+    text: "Saved as a draft. Your plan's listing limit is reached - live, in review and paused listings all count. Close or complete one to submit this.",
     tone: "warning",
   },
 };
@@ -125,7 +125,9 @@ export function OwnerPanel({ listing, notice }: OwnerPanelProps) {
               onPress={() => router.push(`/listing/${listing.id}/edit`)}
               disabled={busy}
             />
-            {listing.status === "draft" ? (
+            {/* A listing that was ever live keeps its history (applicants,
+                reply record), so the database refuses to delete it. */}
+            {listing.status === "draft" && !listing.published_at ? (
               <Button
                 label="Delete draft"
                 variant="danger"
@@ -191,7 +193,15 @@ export function OwnerPanel({ listing, notice }: OwnerPanelProps) {
 
       {error ? (
         <View style={styles.errorBox}>
-          <Text style={styles.error}>{error.message}</Text>
+          <Text style={styles.error} accessibilityLiveRegion="polite">
+            {error.message}
+          </Text>
+          {error.limit ? (
+            <Text style={styles.hint}>
+              Live, in review and paused listings all count towards the limit. Close or complete one
+              to make room.
+            </Text>
+          ) : null}
           {error.limit && billingAvailable ? (
             <Button label="See plans" size="sm" onPress={() => router.push("/billing")} />
           ) : null}

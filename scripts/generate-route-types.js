@@ -7,10 +7,12 @@ const path = require("path");
 const projectRoot = path.resolve(__dirname, "..");
 process.env.EXPO_ROUTER_APP_ROOT = path.join(projectRoot, "app");
 
+// @expo/cli may be hoisted to the root or nested under expo depending on the
+// install, so resolve it from expo's own folder (which finds either).
+const expoDir = path.dirname(require.resolve("expo/package.json"));
+const cliPackage = require.resolve("@expo/cli/package.json", { paths: [expoDir] });
 const typedRoutes = require(
-  require.resolve("@expo/router-server/build/typed-routes", {
-    paths: [require.resolve("@expo/cli/package.json")],
-  }),
+  require.resolve("@expo/router-server/build/typed-routes", { paths: [cliPackage] }),
 );
 const typesDirectory = path.join(projectRoot, ".expo", "types");
 require("fs").mkdirSync(typesDirectory, { recursive: true });

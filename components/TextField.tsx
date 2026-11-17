@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useState } from "react";
 import { Pressable, StyleSheet, TextInput, TextInputProps, View } from "react-native";
-import { colors, radius, spacing, typography } from "../lib/theme";
+import { colors, radius, spacing, surfaces, typography } from "../lib/theme";
 import { Text } from "./Text";
 
 type TextFieldProps = TextInputProps & {
@@ -130,8 +130,8 @@ const styles = StyleSheet.create({
     fontFamily: typography.fontFamily,
     fontSize: typography.size.md,
     color: colors.textPrimary,
-    backgroundColor: colors.surface,
-    outlineColor: colors.accent,
+    backgroundColor: surfaces.well.backgroundColor,
+    outlineColor: colors.focusRing,
     outlineOffset: 2,
   },
   inputWithToggle: {
@@ -151,8 +151,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     textAlignVertical: "top",
   },
+  // Visible ring (3:1 against the page): border colour plus a 2px outline.
   inputFocused: {
-    borderColor: colors.accent,
+    borderColor: colors.focusRing,
+    outlineWidth: 2,
+    outlineStyle: "solid",
   },
   inputError: {
     borderColor: colors.danger,

@@ -4,7 +4,7 @@ import { StyleSheet, View } from "react-native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
 import { Chip } from "../../components/Chip";
-import { LoadingState } from "../../components/LoadingState";
+import { SkeletonForm } from "../../components/Skeleton";
 import { Screen } from "../../components/Screen";
 import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
@@ -82,7 +82,7 @@ export default function EditProfileScreen() {
   };
 
   if (loading) {
-    return <LoadingState />;
+    return <SkeletonForm />;
   }
 
   return (
@@ -90,9 +90,15 @@ export default function EditProfileScreen() {
       footer={
         <View style={styles.footer}>
           {form.hasErrors ? (
-            <Text style={styles.formError}>Fix the highlighted fields to save.</Text>
+            <Text style={styles.formError} accessibilityLiveRegion="polite">
+              Fix the highlighted fields to save.
+            </Text>
           ) : null}
-          {save.isError ? <Text style={styles.formError}>{errorMessage(save.error)}</Text> : null}
+          {save.isError ? (
+            <Text style={styles.formError} accessibilityLiveRegion="polite">
+              {errorMessage(save.error)}
+            </Text>
+          ) : null}
           <Button label="Save profile" onPress={handleSave} loading={save.isPending} />
         </View>
       }
@@ -279,3 +285,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
 });
+
+// A crash here shows a retry prompt in place of this screen only.
+export { RouteErrorBoundary as ErrorBoundary } from "../../components/RouteErrorBoundary";

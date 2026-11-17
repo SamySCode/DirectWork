@@ -5,6 +5,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+import { useRef } from "react";
 import { runAction } from "../../lib/functions";
 import { useAuth } from "../auth/SessionProvider";
 import {
@@ -23,22 +24,51 @@ import {
 } from "./api";
 import type { ListingInput } from "./schemas";
 
+/**
+ * The part of the filters that changes what the server returns. Home and
+ * Discover both show the default first page; without this they cached (and
+ * fetched) it twice, because Discover spells the same request with
+ * `sort: "newest"` and Home leaves it out.
+ */
+export function discoverKeyFilters(filters: DiscoverFilters): DiscoverFilters {
+  const { sort, excludeOwners, query, ...rest } = filters;
+  return {
+    ...rest,
+    query: query.trim(),
+    ...(sort === "pay" ? { sort } : {}),
+    ...(excludeOwners?.length ? { excludeOwners: [...excludeOwners].sort() } : {}),
+  };
+}
+
 export const listingKeys = {
   all: ["listings"] as const,
-  discover: (filters: DiscoverFilters) => ["listings", "discover", filters] as const,
+  discover: (filters: DiscoverFilters) =>
+    ["listings", "discover", discoverKeyFilters(filters)] as const,
   detail: (id: string) => ["listings", "detail", id] as const,
   mine: (userId: string) => ["listings", "mine", userId] as const,
   reviewQueue: ["listings", "review-queue"] as const,
   quota: ["listings", "quota"] as const,
 };
 
+/** Pages of Discover results kept in memory (and refetched) at once. */
+export const DISCOVER_MAX_PAGES = 5;
+
 export function useDiscover(filters: DiscoverFilters) {
   return useInfiniteQuery({
     queryKey: listingKeys.discover(filters),
     queryFn: ({ pageParam }) => discoverListings(filters, pageParam),
     initialPageParam: 0,
-    getNextPageParam: (lastPage, pages) =>
-      lastPage.length === DISCOVER_PAGE_SIZE ? pages.length : undefined,
+    // Page params are page numbers. Count from the param, not pages.length:
+    // with maxPages the stored pages no longer start at page 0.
+    getNextPageParam: (lastPage, _pages, lastPageParam) =>
+      lastPage.length === DISCOVER_PAGE_SIZE ? lastPageParam + 1 : undefined,
+    getPreviousPageParam: (_firstPage, _pages, firstPageParam) =>
+      firstPageParam > 0 ? firstPageParam - 1 : undefined,
+    // Keep at most DISCOVER_MAX_PAGES in the cache, so a refetch on returning
+    // to the app (or pull-to-refresh) costs at most that many requests.
+    // Scrolling on drops the oldest page off the top; the screen fetches it
+    // back with fetchPreviousPage when the user scrolls up to it.
+    maxPages: DISCOVER_MAX_PAGES,
     // Keep showing the last results while a new filter loads.
     placeholderData: keepPreviousData,
   });
@@ -79,18 +109,24 @@ function useInvalidateListings() {
 export function useSaveListing(id?: string) {
   const invalidate = useInvalidateListings();
   const { session } = useAuth();
+  // Set once the first attempt has inserted the row: if skills or images
+  // failed after that, the retry updates this draft rather than adding a twin.
+  const createdId = useRef<string | undefined>(undefined);
   return useMutation({
     mutationFn: async ({ input, images }: { input: ListingInput; images: ImageDraft }) => {
-      let projectId = id;
+      let projectId = id ?? createdId.current;
       if (projectId) {
         await updateListing(projectId, input);
       } else {
-        projectId = await createListing(input);
+        projectId = await createListing(input, (newId) => {
+          createdId.current = newId;
+        });
       }
       await syncListingImages(projectId, session!.user.id, images);
       return projectId;
     },
-    onSuccess: invalidate,
+    // Settled: a half-finished create still left a draft in My listings.
+    onSettled: invalidate,
   });
 }
 
@@ -110,7 +146,8 @@ export function useSetListingStatus() {
       projectId: string;
       status: "draft" | "published" | "paused" | "completed" | "abandoned";
     }) => runAction({ action: "set_listing_status", ...vars }),
-    onSuccess: () => {
+    // Settled: a refusal usually means the state moved on elsewhere - redraw it.
+    onSettled: () => {
       invalidate();
       // Closing a listing auto-rejects pending applicants.
       queryClient.invalidateQueries({ queryKey: ["applications"] });
@@ -129,5 +166,5 @@ export function useReviewListing() {
 
 export function useDeleteDraft() {
   const invalidate = useInvalidateListings();
-  return useMutation({ mutationFn: deleteDraft, onSuccess: invalidate });
+  return useMutation({ mutationFn: deleteDraft, onSettled: invalidate });
 }

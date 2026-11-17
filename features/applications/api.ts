@@ -1,5 +1,6 @@
 import { PreparedImage, removeImages, signedImageUrls, uploadImage } from "../../lib/images";
 import { supabase } from "../../lib/supabase";
+import { isUuid } from "../../lib/validation";
 import type { ListingStatus } from "../listings/api";
 
 export type ApplicationStatus = "submitted" | "accepted" | "rejected" | "withdrawn";
@@ -137,6 +138,7 @@ export async function getIncomingPending(ownerId: string): Promise<Application[]
 }
 
 export async function getApplication(id: string): Promise<Application | null> {
+  if (!isUuid(id)) return null;
   const { data, error } = await supabase
     .from("applications")
     .select(SELECT)

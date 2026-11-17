@@ -10,8 +10,21 @@ import { Appearance, Platform } from "react-native";
 const light = {
   background: "#F5F4FC",
   surface: "#FFFFFF",
+  // Elevation by tone: background < surface < surfaceRaised (sheets, menus,
+  // anything floating). surfaceSunken is the well: inset fills, tracks, tiles.
+  surfaceRaised: "#FFFFFF",
   surfaceSunken: "#EEEDF8",
+  // Loading placeholders (components/Skeleton.tsx): reads as "not here yet" on
+  // both the page and a card, without looking like a control or a divider.
+  skeleton: "#D9D6EC",
+  // border: decorative edge of a card. divider: hairline inside a surface.
+  // borderStrong: the edge of a control someone has to find (inputs,
+  // unselected chips, checkboxes) - 3:1 against every surface (WCAG 1.4.11).
   border: "#E3E1F0",
+  divider: "#ECEAF6",
+  borderStrong: "#8783AE",
+  focusRing: "#5B4CF0",
+  focusHalo: "#FFFFFF",
   textPrimary: "#16133D",
   textSecondary: "#4E4A72",
   textMuted: "#68648C",
@@ -41,8 +54,16 @@ export type Palette = typeof light;
 const dark: Palette = {
   background: "#0D0B22",
   surface: "#17143A",
+  // Shadows don't read on dark, so height is carried by tone: each level
+  // up is a lighter surface with a lighter edge.
+  surfaceRaised: "#221E52",
   surfaceSunken: "#211D4B",
+  skeleton: "#322D70",
   border: "#2E2A5E",
+  divider: "#262257",
+  borderStrong: "#7772B3",
+  focusRing: "#B3ABFF",
+  focusHalo: "#0D0B22",
   textPrimary: "#F2F0FF",
   textSecondary: "#C2BEEA",
   textMuted: "#9C97C8",
@@ -90,10 +111,10 @@ export type TabTheme = { gradient: readonly [string, string, string]; tint: stri
 
 const lightTabs = {
   home: { gradient: ["#16133D", "#2E2690", "#5B4CF0"], tint: "#5B4CF0", muted: "#ECEAFE" },
-  discover: { gradient: ["#0B1B3F", "#123E8C", "#2F7BEA"], tint: "#1F63D1", muted: "#E3EEFD" },
-  applications: { gradient: ["#2A0E34", "#7A1F5E", "#D9467A"], tint: "#C2336B", muted: "#FCE6EE" },
-  listings: { gradient: ["#2A1407", "#8A3A12", "#E8742A"], tint: "#AE4C16", muted: "#FDEDE1" },
-  profile: { gradient: ["#062A30", "#0B5563", "#14A3B8"], tint: "#0E7F92", muted: "#DDF3F6" },
+  discover: { gradient: ["#0B1B3F", "#123E8C", "#2A6FDB"], tint: "#1F63D1", muted: "#E3EEFD" },
+  applications: { gradient: ["#2A0E34", "#7A1F5E", "#CC3A70"], tint: "#C2336B", muted: "#FCE6EE" },
+  listings: { gradient: ["#2A1407", "#8A3A12", "#B85416"], tint: "#AE4C16", muted: "#FDEDE1" },
+  profile: { gradient: ["#062A30", "#0B5563", "#0D7F91"], tint: "#0E7F92", muted: "#DDF3F6" },
 } as const satisfies Record<string, TabTheme>;
 
 // Same gradients (they already sit on ink); tints lifted so tab labels and
@@ -126,28 +147,126 @@ export const radius = {
   pill: 999,
 } as const;
 
-export const shadow = {
-  card: Platform.select({
-    web: { boxShadow: "0 1px 2px rgba(22,19,61,0.04), 0 4px 16px rgba(22,19,61,0.06)" },
-    default: {
-      shadowColor: "#16133D",
-      shadowOpacity: 0.07,
-      shadowRadius: 12,
-      shadowOffset: { width: 0, height: 4 },
-      elevation: 2,
-    },
-  }),
-  raised: Platform.select({
-    web: { boxShadow: "0 8px 32px rgba(46,38,144,0.28)" },
-    default: {
-      shadowColor: "#2E2690",
-      shadowOpacity: 0.28,
-      shadowRadius: 24,
-      shadowOffset: { width: 0, height: 8 },
-      elevation: 6,
-    },
-  }),
+const isDark = colorScheme === "dark";
+
+type Level = {
+  /** CSS box-shadow for light and dark. */
+  web: [light: string, dark: string];
+  /** iOS shadow. */
+  ios: { opacity: number; radius: number; y: number };
+  /** Android elevation (dp). Kept small: it is cheap, large blurs are not. */
+  android: number;
 };
+
+function level({ web, ios, android }: Level) {
+  return Platform.select({
+    web: { boxShadow: web[isDark ? 1 : 0] },
+    android: { elevation: android, shadowColor: isDark ? "#000000" : "#16133D" },
+    default: {
+      shadowColor: isDark ? "#000000" : "#16133D",
+      shadowOpacity: isDark ? ios.opacity * 2.5 : ios.opacity,
+      shadowRadius: ios.radius,
+      shadowOffset: { width: 0, height: ios.y },
+    },
+  }) as object;
+}
+
+/**
+ * The elevation scale. Pick by what the thing is, not by how it looks:
+ *
+ * - `none`  flush with the page (wells, inline panels)
+ * - `sm`    resting cards and list rows - safe inside long lists
+ * - `md`    things that sit above the page: hovered cards, the primary
+ *            button, pinned footers, the tab bar
+ * - `lg`    sheets and dialogs: auth cards, plan cards, floating panels
+ *
+ * Light mode layers a tight contact shadow under a wide soft one, tinted
+ * ink rather than black. Dark mode can't show a shadow against a near-black
+ * page, so the web shadow adds a 1px top highlight and the surface itself
+ * steps up a tone (`colors.surfaceRaised`, see `surfaces` below).
+ */
+export const elevation = {
+  none: Platform.select({ web: { boxShadow: "none" }, default: {} }) as object,
+  sm: level({
+    web: [
+      "0 1px 1px rgba(22,19,61,0.04), 0 2px 4px rgba(22,19,61,0.04), 0 10px 24px -8px rgba(22,19,61,0.10)",
+      "inset 0 1px 0 rgba(255,255,255,0.04), 0 1px 2px rgba(0,0,0,0.30)",
+    ],
+    ios: { opacity: 0.08, radius: 10, y: 4 },
+    android: 1,
+  }),
+  md: level({
+    web: [
+      "0 1px 2px rgba(22,19,61,0.06), 0 6px 12px -2px rgba(22,19,61,0.08), 0 18px 36px -10px rgba(22,19,61,0.16)",
+      "inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 14px rgba(0,0,0,0.40)",
+    ],
+    ios: { opacity: 0.12, radius: 16, y: 8 },
+    android: 3,
+  }),
+  lg: level({
+    web: [
+      "0 2px 4px rgba(22,19,61,0.06), 0 12px 24px -6px rgba(22,19,61,0.12), 0 32px 64px -16px rgba(46,38,144,0.26)",
+      "inset 0 1px 0 rgba(255,255,255,0.08), 0 16px 40px rgba(0,0,0,0.55)",
+    ],
+    ios: { opacity: 0.18, radius: 28, y: 14 },
+    android: 8,
+  }),
+  /** Shadow cast upwards, for bars pinned to the bottom edge. */
+  up: Platform.select({
+    web: {
+      boxShadow: isDark
+        ? "inset 0 1px 0 rgba(255,255,255,0.05)"
+        : "0 -1px 0 rgba(22,19,61,0.03), 0 -8px 24px -8px rgba(22,19,61,0.10)",
+    },
+    android: { elevation: 8 },
+    default: {
+      shadowColor: isDark ? "#000000" : "#16133D",
+      shadowOpacity: isDark ? 0.3 : 0.07,
+      shadowRadius: 12,
+      shadowOffset: { width: 0, height: -4 },
+    },
+  }) as object,
+};
+
+/**
+ * Surface recipes: fill + edge for each height, so a component asks for
+ * "a raised surface" and gets the right pair in both themes.
+ */
+export const surfaces = {
+  page: { backgroundColor: colors.background },
+  card: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  raised: {
+    backgroundColor: colors.surfaceRaised,
+    borderWidth: 1,
+    borderColor: isDark ? "#3A3572" : colors.border,
+  },
+  well: { backgroundColor: colors.surfaceSunken },
+} as const;
+
+/** @deprecated Use `elevation`. Kept so older call sites keep compiling. */
+export const shadow = { card: elevation.sm, raised: elevation.lg };
+
+// Motion: short and eased, never bouncy. Everything that uses these also
+// honours reduced motion (lib/accessibility.ts).
+export const motion = {
+  fast: 120,
+  base: 180,
+  easing: "cubic-bezier(0.2, 0, 0, 1)",
+} as const;
+
+/** Web-only CSS transition for hover/press/focus changes (ignored natively). */
+export function webTransition(properties: string): object {
+  return Platform.OS === "web"
+    ? {
+        transitionProperty: properties,
+        transitionDuration: `${motion.base}ms`,
+        transitionTimingFunction: motion.easing,
+      }
+    : {};
+}
+
+/** Smallest touch target for anything tappable (WCAG 2.5.8 asks 24; we use 44). */
+export const minTouchTarget = 44;
 
 export const layout = {
   // Content column on wide (web/tablet) screens - forms and lists read badly

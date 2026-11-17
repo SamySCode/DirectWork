@@ -28,6 +28,13 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      # Fails on a high or critical advisory in production dependencies unless
+      # it is listed, with a reason and an expiry date, in
+      # .github/audit-allowlist.json (docs/OPERATIONS.md).
+      - run: npm run audit:prod
+      # The project's own secret patterns over every tracked file. The
+      # gitleaks job below scans the full history with a much larger rule set.
+      - run: npm run scan:secrets
       - run: npm run lint
       - run: npm run typecheck
       - run: npm run format:check
@@ -39,5 +46,28 @@ jobs:
       # Edge Functions: Deno type-check + middleware tests.
       - run: npm run check:functions
       - run: npm run test:functions
-      # Proves the app still bundles for web.
-      - run: npx expo export --platform web
+      # Proves the app still bundles for web, and that the build step can
+      # write the Supabase host into the Content-Security-Policy.
+      - run: npm run build:web
+      - run: "! grep -v '^#' dist/_headers | grep -q SUPABASE_PROJECT_HOST"
+
+  # Secret scan over the whole git history. gitleaks-action needs no licence
+  # key for a repository owned by a personal account. If the repository ever
+  # moves to a GitHub organisation, request the free key at gitleaks.io and
+  # add it as the GITLEAKS_LICENSE secret (docs/OPERATIONS.md).
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+          GITLEAKS_ENABLE_COMMENTS: "false"
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
