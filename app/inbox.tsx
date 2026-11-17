@@ -92,7 +92,7 @@ export default function InboxScreen() {
       ListFooterComponent={
         (activity.data?.length ?? 0) > 0 ? (
           <Text style={styles.footer}>Showing your most recent activity.</Text>
-        ) : null
+        ) : undefined
       }
     />
   );

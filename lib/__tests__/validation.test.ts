@@ -104,26 +104,26 @@ describe("useFormValidation", () => {
     body: z.string().min(5, "Body too short"),
   });
 
-  it("hides errors until a field is touched, then keeps them live", () => {
-    const { result, rerender } = renderHook(
+  it("hides errors until a field is touched, then keeps them live", async () => {
+    const { result, rerender } = await renderHook(
       ({ values }: { values: { title: string; body: string } }) =>
         useFormValidation(schema, values),
       { initialProps: { values: { title: "", body: "" } } },
     );
     expect(result.current.errors).toEqual({});
 
-    act(() => result.current.touch("title"));
+    await act(() => result.current.touch("title"));
     expect(result.current.errors).toEqual({ title: "Title too short" });
 
-    rerender({ values: { title: "Good title", body: "" } });
+    await rerender({ values: { title: "Good title", body: "" } });
     expect(result.current.errors).toEqual({});
     expect(result.current.allErrors).toEqual({ body: "Body too short" });
   });
 
-  it("submit reveals every error and returns null when invalid", () => {
-    const { result } = renderHook(() => useFormValidation(schema, { title: "", body: "" }));
+  it("submit reveals every error and returns null when invalid", async () => {
+    const { result } = await renderHook(() => useFormValidation(schema, { title: "", body: "" }));
     let data: unknown;
-    act(() => {
+    await act(() => {
       data = result.current.submit();
     });
     expect(data).toBeNull();
@@ -131,12 +131,12 @@ describe("useFormValidation", () => {
     expect(result.current.hasErrors).toBe(true);
   });
 
-  it("submit returns the parsed data when valid", () => {
-    const { result } = renderHook(() =>
+  it("submit returns the parsed data when valid", async () => {
+    const { result } = await renderHook(() =>
       useFormValidation(schema, { title: "A title", body: "A long enough body" }),
     );
     let data: unknown;
-    act(() => {
+    await act(() => {
       data = result.current.submit();
     });
     expect(data).toEqual({ title: "A title", body: "A long enough body" });

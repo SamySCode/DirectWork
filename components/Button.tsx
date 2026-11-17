@@ -17,7 +17,8 @@ import { Text } from "./Text";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "light" | "onDark";
+type ButtonVariant =
+  "primary" | "secondary" | "ghost" | "danger" | "destructive" | "light" | "onDark";
 
 type ButtonProps = Omit<PressableProps, "children" | "style"> & {
   label: string;
@@ -42,6 +43,12 @@ const variantStyles: Record<ButtonVariant, { container: ViewStyle; text: string 
     container: { backgroundColor: colors.dangerMuted },
     text: colors.danger,
   },
+  // Solid: the confirm button of a destructive dialog, where the action has
+  // to be unmistakable. Use `danger` for a destructive button on a page.
+  destructive: {
+    container: { backgroundColor: colors.danger, ...elevation.md },
+    text: colors.onAccent,
+  },
   light: { container: { backgroundColor: colors.onInk }, text: colors.ink },
   onDark: {
     container: { borderWidth: 1, borderColor: "rgba(255,255,255,0.3)" },
@@ -55,6 +62,7 @@ const hoverStyles: Record<ButtonVariant, ViewStyle> = {
   secondary: { borderColor: colors.accent },
   ghost: { backgroundColor: colors.accentMuted },
   danger: { borderWidth: 1, borderColor: colors.danger },
+  destructive: { opacity: 0.92 },
   light: { opacity: 0.92 },
   onDark: { backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.5)" },
 };
@@ -67,6 +75,7 @@ const pressedStyles: Record<ButtonVariant, ViewStyle> = {
   secondary: { backgroundColor: colors.surfaceSunken },
   ghost: { backgroundColor: colors.accentMuted },
   danger: { opacity: 0.85 },
+  destructive: { opacity: 0.85, ...elevation.none },
   light: { opacity: 0.85 },
   onDark: { backgroundColor: "rgba(255,255,255,0.16)" },
 };

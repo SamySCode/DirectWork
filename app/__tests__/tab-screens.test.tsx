@@ -100,21 +100,21 @@ beforeEach(() => {
 });
 
 describe("Home", () => {
-  it("greets by first name and leads a brand-new user with first steps, not an empty list", () => {
-    render(<HomeScreen />);
+  it("greets by first name and leads a brand-new user with first steps, not an empty list", async () => {
+    await render(<HomeScreen />);
     expect(screen.getByRole("header", { name: /, Sam$/ })).toBeTruthy();
     expect(screen.getByRole("header", { name: "Your first steps" })).toBeTruthy();
     expect(screen.queryByText("You're all caught up")).toBeNull();
     expect(screen.getByText("Right now on DirectWork")).toBeTruthy();
   });
 
-  it("first steps go to the right place for someone looking for work", () => {
-    render(<HomeScreen />);
-    fireEvent.press(screen.getByRole("button", { name: /Apply to a listing that fits/ }));
+  it("first steps go to the right place for someone looking for work", async () => {
+    await render(<HomeScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: /Apply to a listing that fits/ }));
     expect(mockPush).toHaveBeenCalledWith("/discover");
   });
 
-  it("someone only hiring is pointed at posting a listing", () => {
+  it("someone only hiring is pointed at posting a listing", async () => {
     (useMyProfile as jest.Mock).mockReturnValue({
       userId: "user-1",
       profile: makeProfile({ seeking_paid: false, wants_to_hire: true }),
@@ -123,27 +123,27 @@ describe("Home", () => {
       error: null,
       refetch: jest.fn(),
     });
-    render(<HomeScreen />);
-    fireEvent.press(screen.getByRole("button", { name: /Post your first listing/ }));
+    await render(<HomeScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: /Post your first listing/ }));
     expect(mockPush).toHaveBeenCalledWith("/listing/new");
   });
 
-  it("shows 'all caught up' once someone is active", () => {
+  it("shows 'all caught up' once someone is active", async () => {
     (useMyApplications as jest.Mock).mockReturnValue(
       query([makeApplication({ status: "rejected" })]),
     );
-    render(<HomeScreen />);
+    await render(<HomeScreen />);
     expect(screen.queryByRole("header", { name: "Your first steps" })).toBeNull();
     expect(screen.getByText("You're all caught up")).toBeTruthy();
   });
 
-  it("shows placeholders, not 'all caught up' or 'no matches', while it is still loading", () => {
+  it("shows placeholders, not 'all caught up' or 'no matches', while it is still loading", async () => {
     const pending = { data: undefined, isSuccess: false, isPending: true, refetch: jest.fn() };
     (useMyApplications as jest.Mock).mockReturnValue(pending);
     (useIncomingPending as jest.Mock).mockReturnValue(pending);
     (useMyListings as jest.Mock).mockReturnValue(pending);
     (useDiscover as jest.Mock).mockReturnValue(pending);
-    render(<HomeScreen />);
+    await render(<HomeScreen />);
     expect(screen.queryByText("You're all caught up")).toBeNull();
     expect(screen.queryByText("No close matches yet")).toBeNull();
     expect(screen.getByRole("progressbar", { name: "Loading" })).toBeTruthy();
@@ -152,7 +152,7 @@ describe("Home", () => {
     expect(screen.queryByText("0")).toBeNull();
   });
 
-  it("builds 'Needs you' from applicants, review notes, acceptances and confirmations", () => {
+  it("builds 'Needs you' from applicants, review notes, acceptances and confirmations", async () => {
     (useIncomingPending as jest.Mock).mockReturnValue(
       query([
         makeApplication({
@@ -192,17 +192,19 @@ describe("Home", () => {
         ),
       ]),
     );
-    render(<HomeScreen />);
+    await render(<HomeScreen />);
     expect(screen.getByText("2 people want to join")).toBeTruthy();
     expect(screen.getByText("A reviewer asked for changes")).toBeTruthy();
     expect(screen.getByText("You're in - contact details unlocked")).toBeTruthy();
     expect(screen.getByText("They marked this completed - confirm?")).toBeTruthy();
 
-    fireEvent.press(screen.getByRole("button", { name: "2 people want to join: My listing" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "2 people want to join: My listing" }),
+    );
     expect(mockPush).toHaveBeenCalledWith("/listing/mine-1");
   });
 
-  it("picks listings matching your skills, never your own", () => {
+  it("picks listings matching your skills, never your own", async () => {
     (useDiscover as jest.Mock).mockReturnValue(
       query({
         pages: [
@@ -214,14 +216,14 @@ describe("Home", () => {
         ],
       }),
     );
-    render(<HomeScreen />);
+    await render(<HomeScreen />);
     expect(screen.getByText("Matching gig")).toBeTruthy();
     expect(screen.queryByText("My own gig")).toBeNull();
     expect(screen.queryByText("Design job")).toBeNull();
   });
-  it("leaves blocked owners out of the picks, the same request Discover makes", () => {
+  it("leaves blocked owners out of the picks, the same request Discover makes", async () => {
     (useBlockedIds as jest.Mock).mockReturnValue({ data: ["blocked-owner"] });
-    render(<HomeScreen />);
+    await render(<HomeScreen />);
     expect(useDiscover).toHaveBeenLastCalledWith({
       query: "",
       remoteOnly: false,
@@ -232,24 +234,24 @@ describe("Home", () => {
 });
 
 describe("Discover", () => {
-  it("shows a clear-filters empty state when filters exclude everything", () => {
-    render(<DiscoverScreen />);
-    fireEvent.press(screen.getByRole("tab", { name: "Partnerships" }));
+  it("shows a clear-filters empty state when filters exclude everything", async () => {
+    await render(<DiscoverScreen />);
+    await fireEvent.press(screen.getByRole("tab", { name: "Partnerships" }));
     expect(screen.getByText("Nothing matches those filters")).toBeTruthy();
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ type: "partner" }));
-    fireEvent.press(screen.getByRole("button", { name: "Clear filters" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Clear filters" }));
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ type: undefined }));
   });
 
   it("debounces search into the query", async () => {
-    render(<DiscoverScreen />);
-    fireEvent.changeText(screen.getByLabelText("Search listings"), "booking");
+    await render(<DiscoverScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Search listings"), "booking");
     await waitFor(() =>
       expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ query: "booking" })),
     );
   });
 
-  it("lists other people's listings with a skill-match summary", () => {
+  it("lists other people's listings with a skill-match summary", async () => {
     (useDiscover as jest.Mock).mockReturnValue(
       query(
         {
@@ -267,13 +269,13 @@ describe("Discover", () => {
         },
       ),
     );
-    render(<DiscoverScreen />);
+    await render(<DiscoverScreen />);
     expect(screen.getByText("Match")).toBeTruthy();
     expect(screen.queryByText("Mine")).toBeNull();
     expect(screen.getByText("1 of 1 shown match your skills")).toBeTruthy();
   });
 
-  it("narrows the list to an in-demand skill", () => {
+  it("narrows the list to an in-demand skill", async () => {
     (useDiscover as jest.Mock).mockReturnValue(
       query(
         {
@@ -288,21 +290,21 @@ describe("Discover", () => {
         { hasNextPage: false, isFetchingNextPage: false, fetchNextPage: jest.fn() },
       ),
     );
-    render(<DiscoverScreen />);
+    await render(<DiscoverScreen />);
     expect(screen.getByText("In demand right now")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Show listings asking for Go" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Show listings asking for Go" }));
     expect(screen.getByText("Go job A")).toBeTruthy();
     expect(screen.queryByText("Design job")).toBeNull();
-    fireEvent.press(screen.getByRole("button", { name: "Show listings asking for Go" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Show listings asking for Go" }));
     expect(screen.getByText("Design job")).toBeTruthy();
   });
 
   it("sends commitment, pay type and minimum pay to the query, as removable chips", async () => {
-    render(<DiscoverScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Filters" }));
-    fireEvent.press(screen.getByRole("button", { name: "Part-time" }));
-    fireEvent.press(screen.getByRole("button", { name: "Day rate" }));
-    fireEvent.changeText(screen.getByLabelText("Minimum pay in pounds"), "4x00");
+    await render(<DiscoverScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Filters" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Part-time" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Day rate" }));
+    await fireEvent.changeText(screen.getByLabelText("Minimum pay in pounds"), "4x00");
     await waitFor(() =>
       expect(useDiscover).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -312,25 +314,25 @@ describe("Discover", () => {
         }),
       ),
     );
-    fireEvent.press(screen.getByRole("button", { name: "Done" }));
-    fireEvent.press(screen.getByRole("button", { name: "Remove filter: Day rate" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Done" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Remove filter: Day rate" }));
     expect(useDiscover).toHaveBeenLastCalledWith(
       expect.objectContaining({ compensationType: undefined, commitment: "part_time" }),
     );
   });
 
-  it("drops pay filters on the Partnerships tab", () => {
-    render(<DiscoverScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Filters" }));
-    fireEvent.press(screen.getByRole("button", { name: "Hourly" }));
-    fireEvent.press(screen.getByRole("tab", { name: "Partnerships" }));
+  it("drops pay filters on the Partnerships tab", async () => {
+    await render(<DiscoverScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Filters" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Hourly" }));
+    await fireEvent.press(screen.getByRole("tab", { name: "Partnerships" }));
     expect(screen.queryByLabelText("Minimum pay in pounds")).toBeNull();
     expect(useDiscover).toHaveBeenLastCalledWith(
       expect.objectContaining({ type: "partner", compensationType: undefined }),
     );
   });
 
-  it("sorts by pay on the server and by best match locally", () => {
+  it("sorts by pay on the server and by best match locally", async () => {
     (useDiscover as jest.Mock).mockReturnValue(
       query(
         {
@@ -348,17 +350,17 @@ describe("Discover", () => {
         { hasNextPage: false, isFetchingNextPage: false, fetchNextPage: jest.fn() },
       ),
     );
-    render(<DiscoverScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Highest pay" }));
+    await render(<DiscoverScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Highest pay" }));
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "pay" }));
-    fireEvent.press(screen.getByRole("button", { name: "Best match" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Best match" }));
     expect(useDiscover).toHaveBeenLastCalledWith(expect.objectContaining({ sort: "newest" }));
     // Order of the rendered titles - independent of the cards' accessibility labels.
     const titles = screen.getAllByText(/^(Strong|Weak) match$/).map((node) => node.props.children);
     expect(titles).toEqual(["Strong match", "Weak match"]);
   });
 
-  it("can show only listings that need my skills", () => {
+  it("can show only listings that need my skills", async () => {
     (useDiscover as jest.Mock).mockReturnValue(
       query(
         {
@@ -372,21 +374,21 @@ describe("Discover", () => {
         { hasNextPage: false, isFetchingNextPage: false, fetchNextPage: jest.fn() },
       ),
     );
-    render(<DiscoverScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Filters" }));
-    fireEvent.press(screen.getByRole("button", { name: "Needs my skills" }));
+    await render(<DiscoverScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Filters" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Needs my skills" }));
     expect(screen.queryByText("Design job")).toBeNull();
     expect(screen.getByText("RN job")).toBeTruthy();
   });
 
-  it("shows listing placeholders while the first page loads", () => {
+  it("shows listing placeholders while the first page loads", async () => {
     (useDiscover as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
-    render(<DiscoverScreen />);
+    await render(<DiscoverScreen />);
     expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
     expect(screen.queryByText("No live listings yet")).toBeNull();
   });
 
-  it("never shows a blocked owner's listing, even before the server has left it out", () => {
+  it("never shows a blocked owner's listing, even before the server has left it out", async () => {
     const theirs = makeListing({ id: "x", title: "From a blocked owner", owner_id: "blocked-1" });
     const fine = makeListing({ id: "y", title: "From someone else", owner_id: "other-1" });
     const page = query(
@@ -397,41 +399,41 @@ describe("Discover", () => {
 
     // Block list still loading: hold the list back.
     (useBlockedIds as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
-    const { rerender } = render(<DiscoverScreen />);
+    const { rerender } = await render(<DiscoverScreen />);
     expect(screen.queryByText("From a blocked owner")).toBeNull();
     expect(screen.getByRole("progressbar", { name: "Loading listings" })).toBeTruthy();
 
     // Block list back, but the page on screen was fetched without it.
     (useBlockedIds as jest.Mock).mockReturnValue({ data: ["blocked-1"], isPending: false });
-    rerender(<DiscoverScreen />);
+    await rerender(<DiscoverScreen />);
     expect(screen.queryByText("From a blocked owner")).toBeNull();
     expect(screen.getByText("From someone else")).toBeTruthy();
   });
 
-  it("offers retry on error", () => {
+  it("offers retry on error", async () => {
     const refetch = jest.fn();
     (useDiscover as jest.Mock).mockReturnValue({ isPending: false, isError: true, refetch });
-    render(<DiscoverScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Try again" }));
+    await render(<DiscoverScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalled();
   });
 });
 
 describe("Applications tab", () => {
-  it("nudges to Discover when empty", () => {
-    render(<ApplicationsScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Browse listings" }));
+  it("nudges to Discover when empty", async () => {
+    await render(<ApplicationsScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Browse listings" }));
     expect(mockPush).toHaveBeenCalledWith("/discover");
   });
 
-  it("shows row placeholders while loading", () => {
+  it("shows row placeholders while loading", async () => {
     (useMyApplications as jest.Mock).mockReturnValue({ data: undefined, isPending: true });
-    render(<ApplicationsScreen />);
+    await render(<ApplicationsScreen />);
     expect(screen.getByRole("progressbar", { name: "Loading your applications" })).toBeTruthy();
     expect(screen.queryByText("You haven't applied to anything yet")).toBeNull();
   });
 
-  it("splits in-progress from past and counts them in the header", () => {
+  it("splits in-progress from past and counts them in the header", async () => {
     (useMyApplications as jest.Mock).mockReturnValue(
       query([
         makeApplication({
@@ -445,65 +447,65 @@ describe("Applications tab", () => {
         }),
       ]),
     );
-    render(<ApplicationsScreen />);
+    await render(<ApplicationsScreen />);
     expect(screen.getByText("In progress")).toBeTruthy();
     expect(screen.getByText("Past")).toBeTruthy();
     expect(screen.getByText("waiting for reply")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Waiting one" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Waiting one" }));
     expect(mockPush).toHaveBeenCalledWith("/application/1");
   });
 });
 
 describe("Listings tab", () => {
-  it("invites you to post the first listing, with live talent and a sourced fact", () => {
-    render(<ListingsScreen />);
+  it("invites you to post the first listing, with live talent and a sourced fact", async () => {
+    await render(<ListingsScreen />);
     expect(screen.getByText("Right now on DirectWork")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Source: CB Insights/ })).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Create a listing" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Create a listing" }));
     expect(mockPush).toHaveBeenCalledWith("/listing/new");
   });
 
-  it("shows quota and offers more slots at the limit (web billing)", () => {
+  it("shows quota and offers more slots at the limit (web billing)", async () => {
     (useMyListings as jest.Mock).mockReturnValue(query([makeListing({ owner_id: "user-1" })]));
     (useListingQuota as jest.Mock).mockReturnValue(query({ live: 1, max_live: 1 }));
-    render(<ListingsScreen />);
+    await render(<ListingsScreen />);
     expect(screen.getByLabelText("1 of 1 live slots used")).toBeTruthy();
-    fireEvent.press(screen.getByText("Get more"));
+    await fireEvent.press(screen.getByText("Get more"));
     expect(mockPush).toHaveBeenCalledWith("/billing");
   });
 });
 
 describe("Profile tab", () => {
-  it("shows the reviewer entry only for admins", () => {
-    const { rerender } = render(<ProfileScreen />);
+  it("shows the reviewer entry only for admins", async () => {
+    const { rerender } = await render(<ProfileScreen />);
     expect(screen.queryByRole("button", { name: "Review queue" })).toBeNull();
     (useIsAdmin as jest.Mock).mockReturnValue(query(true));
-    rerender(<ProfileScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Review queue" }));
+    await rerender(<ProfileScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Review queue" }));
     expect(mockPush).toHaveBeenCalledWith("/review");
   });
 
-  it("sends account deletion to its own confirm screen", () => {
-    render(<ProfileScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Delete account" }));
+  it("sends account deletion to its own confirm screen", async () => {
+    await render(<ProfileScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Delete account" }));
     expect(mockPush).toHaveBeenCalledWith("/account/delete");
     expect(deleteAccount).not.toHaveBeenCalled();
   });
 
-  it("nudges toward a stronger profile and opens the editor", () => {
-    render(<ProfileScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Add a profile photo" }));
+  it("nudges toward a stronger profile and opens the editor", async () => {
+    await render(<ProfileScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Add a profile photo" }));
     expect(mockPush).toHaveBeenCalledWith("/account/edit");
   });
 
-  it("links to Help & legal", () => {
-    render(<ProfileScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Help & legal" }));
+  it("links to Help & legal", async () => {
+    await render(<ProfileScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Help & legal" }));
     expect(mockPush).toHaveBeenCalledWith("/help");
   });
 
-  it("puts your name and headline in the header", () => {
-    render(<ProfileScreen />);
+  it("puts your name and headline in the header", async () => {
+    await render(<ProfileScreen />);
     expect(screen.getByRole("header", { name: "Sam Saib" })).toBeTruthy();
     expect(screen.getByText("Signed in as sam@example.com")).toBeTruthy();
   });

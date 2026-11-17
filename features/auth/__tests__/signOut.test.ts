@@ -13,9 +13,9 @@ const authSignOut = supabase.auth.signOut as jest.Mock;
 const signedIn = { data: { session: { user: { id: "user-1" } } } };
 const signedOut = { data: { session: null } };
 
-beforeEach(() => {
+beforeEach(async () => {
   jest.clearAllMocks();
-  act(() => endSigningOut());
+  await act(() => endSigningOut());
 });
 
 describe("signOut", () => {
@@ -23,10 +23,10 @@ describe("signOut", () => {
     getSession.mockResolvedValue(signedIn);
     let finishServerCall: (value: { error: null }) => void = () => {};
     authSignOut.mockReturnValue(new Promise((resolve) => (finishServerCall = resolve)));
-    const cover = renderHook(() => useSigningOut());
+    const cover = await renderHook(() => useSigningOut());
 
     let done: Promise<void> = Promise.resolve();
-    act(() => {
+    await act(() => {
       done = signOut();
     });
     // Up straight away, before anything has come back.
@@ -49,7 +49,7 @@ describe("signOut", () => {
   it("lifts the cover and reports the failure when the person is still signed in", async () => {
     getSession.mockResolvedValue(signedIn);
     authSignOut.mockResolvedValue({ error: new Error("storage unavailable") });
-    const cover = renderHook(() => useSigningOut());
+    const cover = await renderHook(() => useSigningOut());
     await act(async () => {
       await expect(signOut()).rejects.toThrow("storage unavailable");
     });
@@ -58,7 +58,7 @@ describe("signOut", () => {
 
   it("doesn't leave the cover up when there was nobody to sign out", async () => {
     getSession.mockResolvedValue(signedOut);
-    const cover = renderHook(() => useSigningOut());
+    const cover = await renderHook(() => useSigningOut());
     await act(async () => {
       await signOut();
     });

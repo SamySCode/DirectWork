@@ -14,8 +14,8 @@ import { TextField } from "../TextField";
 import { tabThemes } from "../../lib/theme";
 
 describe("Skeleton", () => {
-  it("is one busy 'Loading' element to a screen reader, whatever boxes it holds", () => {
-    render(
+  it("is one busy 'Loading' element to a screen reader, whatever boxes it holds", async () => {
+    await render(
       <Skeleton>
         <SkeletonRows count={3} leading="icon" />
       </Skeleton>,
@@ -25,8 +25,8 @@ describe("Skeleton", () => {
     expect(screen.getAllByRole("progressbar")).toHaveLength(1);
   });
 
-  it("names what is loading when told", () => {
-    render(
+  it("names what is loading when told", async () => {
+    await render(
       <Skeleton label="Loading listings">
         <Bone />
       </Skeleton>,
@@ -36,42 +36,42 @@ describe("Skeleton", () => {
 });
 
 describe("Button", () => {
-  it("calls onPress", () => {
+  it("calls onPress", async () => {
     const onPress = jest.fn();
-    render(<Button label="Save" onPress={onPress} />);
-    fireEvent.press(screen.getByRole("button", { name: "Save" }));
+    await render(<Button label="Save" onPress={onPress} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Save" }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 
-  it("is disabled and busy while loading, and ignores presses", () => {
+  it("is disabled and busy while loading, and ignores presses", async () => {
     const onPress = jest.fn();
-    render(<Button label="Save" onPress={onPress} loading />);
+    await render(<Button label="Save" onPress={onPress} loading />);
     const button = screen.getByRole("button", { name: "Save" });
     expect(button).toBeDisabled();
     expect(button.props.accessibilityState).toMatchObject({ busy: true });
-    fireEvent.press(button);
+    await fireEvent.press(button);
     expect(onPress).not.toHaveBeenCalled();
   });
 
-  it("respects disabled", () => {
-    render(<Button label="Go" onPress={jest.fn()} disabled />);
+  it("respects disabled", async () => {
+    await render(<Button label="Go" onPress={jest.fn()} disabled />);
     expect(screen.getByRole("button", { name: "Go" })).toBeDisabled();
   });
 });
 
 describe("TextField", () => {
-  it("labels the input for screen readers and marks required fields", () => {
-    render(<TextField label="Title" required value="" onChangeText={jest.fn()} />);
+  it("labels the input for screen readers and marks required fields", async () => {
+    await render(<TextField label="Title" required value="" onChangeText={jest.fn()} />);
     expect(screen.getByLabelText("Title")).toBeTruthy();
     expect(screen.getByLabelText("required")).toBeTruthy();
   });
 
-  it("shows the error instead of the hint, and exposes it as the input's hint", () => {
-    const { rerender } = render(
+  it("shows the error instead of the hint, and exposes it as the input's hint", async () => {
+    const { rerender } = await render(
       <TextField label="Bio" hint="Keep it short" value="" onChangeText={jest.fn()} />,
     );
     expect(screen.getByText("Keep it short")).toBeTruthy();
-    rerender(
+    await rerender(
       <TextField
         label="Bio"
         hint="Keep it short"
@@ -85,36 +85,36 @@ describe("TextField", () => {
     expect(screen.getByLabelText("Bio").props.accessibilityHint).toBe("Too long");
   });
 
-  it("counts characters against maxLength", () => {
-    render(
+  it("counts characters against maxLength", async () => {
+    await render(
       <TextField label="Note" value="hello" maxLength={10} showCount onChangeText={jest.fn()} />,
     );
     expect(screen.getByText("5 / 10")).toBeTruthy();
   });
 
-  it("forwards typing and blur", () => {
+  it("forwards typing and blur", async () => {
     const onChangeText = jest.fn();
     const onBlur = jest.fn();
-    render(<TextField label="Name" value="" onChangeText={onChangeText} onBlur={onBlur} />);
-    fireEvent.changeText(screen.getByLabelText("Name"), "Sam");
-    fireEvent(screen.getByLabelText("Name"), "blur");
+    await render(<TextField label="Name" value="" onChangeText={onChangeText} onBlur={onBlur} />);
+    await fireEvent.changeText(screen.getByLabelText("Name"), "Sam");
+    await fireEvent(screen.getByLabelText("Name"), "blur");
     expect(onChangeText).toHaveBeenCalledWith("Sam");
     expect(onBlur).toHaveBeenCalled();
   });
 });
 
 describe("Chip", () => {
-  it("reports selected state and toggles", () => {
+  it("reports selected state and toggles", async () => {
     const onPress = jest.fn();
-    render(<Chip label="Remote" selected onPress={onPress} />);
+    await render(<Chip label="Remote" selected onPress={onPress} />);
     const chip = screen.getByRole("button", { name: "Remote" });
     expect(chip).toBeSelected();
-    fireEvent.press(chip);
+    await fireEvent.press(chip);
     expect(onPress).toHaveBeenCalled();
   });
 
-  it("uses the tab tint when selected", () => {
-    render(<Chip label="All" selected tint="#123456" onPress={jest.fn()} />);
+  it("uses the tab tint when selected", async () => {
+    await render(<Chip label="All" selected tint="#123456" onPress={jest.fn()} />);
     expect(screen.getByRole("button", { name: "All" })).toHaveStyle({ backgroundColor: "#123456" });
   });
 });
@@ -132,51 +132,51 @@ describe("Avatar", () => {
   // Decorative: hidden from screen readers (the name is always shown beside it).
   const hidden = { includeHiddenElements: true };
 
-  it("shows the photo's thumbnail over the initials when a uri is given", () => {
-    render(<Avatar name="Sam Saib" uri="https://img/x.jpg" />);
+  it("shows the photo's thumbnail over the initials when a uri is given", async () => {
+    await render(<Avatar name="Sam Saib" uri="https://img/x.jpg" />);
     expect(screen.getByText("SS", hidden)).toBeTruthy();
     expect(screen.getByTestId("expo-image", hidden).props.source).toEqual({
       uri: "https://img/x.thumb.jpg",
     });
   });
 
-  it("falls back to the full photo when there is no thumbnail", () => {
-    render(<Avatar name="Sam Saib" uri="https://img/old.jpg" />);
-    act(() => screen.getByTestId("expo-image", hidden).props.onError());
+  it("falls back to the full photo when there is no thumbnail", async () => {
+    await render(<Avatar name="Sam Saib" uri="https://img/old.jpg" />);
+    await act(() => screen.getByTestId("expo-image", hidden).props.onError());
     const image = screen.getByTestId("expo-image", hidden);
     expect(image.props.source).toEqual({ uri: "https://img/old.jpg" });
     expect(image.props.onError).toBeUndefined();
   });
 
-  it("has no image without a uri, and is hidden from screen readers", () => {
-    render(<Avatar name="Sam Saib" />);
+  it("has no image without a uri, and is hidden from screen readers", async () => {
+    await render(<Avatar name="Sam Saib" />);
     expect(screen.queryByTestId("expo-image", hidden)).toBeNull();
     expect(screen.queryByText("SS")).toBeNull();
   });
 });
 
 describe("Badge", () => {
-  it("renders its label", () => {
-    render(<Badge label="Live" tone="mint" />);
+  it("renders its label", async () => {
+    await render(<Badge label="Live" tone="mint" />);
     expect(screen.getByText("Live")).toBeTruthy();
   });
 });
 
 describe("EmptyState / ErrorState", () => {
-  it("renders an action only when both label and handler are given", () => {
+  it("renders an action only when both label and handler are given", async () => {
     const onAction = jest.fn();
-    const { rerender } = render(<EmptyState title="Nothing here" actionLabel="Add one" />);
+    const { rerender } = await render(<EmptyState title="Nothing here" actionLabel="Add one" />);
     expect(screen.queryByRole("button")).toBeNull();
-    rerender(<EmptyState title="Nothing here" actionLabel="Add one" onAction={onAction} />);
-    fireEvent.press(screen.getByRole("button", { name: "Add one" }));
+    await rerender(<EmptyState title="Nothing here" actionLabel="Add one" onAction={onAction} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Add one" }));
     expect(onAction).toHaveBeenCalled();
   });
 
-  it("offers retry", () => {
+  it("offers retry", async () => {
     const onRetry = jest.fn();
-    render(<ErrorState onRetry={onRetry} />);
+    await render(<ErrorState onRetry={onRetry} />);
     expect(screen.getByText("Something went wrong")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Try again" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Try again" }));
     expect(onRetry).toHaveBeenCalled();
   });
 });
@@ -187,21 +187,21 @@ describe("ImagePickerGrid", () => {
     { key: "b", uri: "file://b" },
   ];
 
-  it("shows the count, removes by key, and adds while under the max", () => {
+  it("shows the count, removes by key, and adds while under the max", async () => {
     const onAdd = jest.fn();
     const onRemove = jest.fn();
-    render(
+    await render(
       <ImagePickerGrid label="Images" images={images} max={4} onAdd={onAdd} onRemove={onRemove} />,
     );
     expect(screen.getByText("2 / 4")).toBeTruthy();
-    fireEvent.press(screen.getAllByRole("button", { name: "Remove image" })[1]!);
+    await fireEvent.press(screen.getAllByRole("button", { name: "Remove image" })[1]!);
     expect(onRemove).toHaveBeenCalledWith("b");
-    fireEvent.press(screen.getByRole("button", { name: "Add image to Images" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Add image to Images" }));
     expect(onAdd).toHaveBeenCalled();
   });
 
-  it("hides the add tile at the max", () => {
-    render(
+  it("hides the add tile at the max", async () => {
+    await render(
       <ImagePickerGrid
         label="Images"
         images={images}
@@ -213,8 +213,8 @@ describe("ImagePickerGrid", () => {
     expect(screen.queryByRole("button", { name: "Add image to Images" })).toBeNull();
   });
 
-  it("is read-only when disabled", () => {
-    render(
+  it("is read-only when disabled", async () => {
+    await render(
       <ImagePickerGrid
         label="Images"
         images={images}
@@ -227,8 +227,8 @@ describe("ImagePickerGrid", () => {
     expect(screen.queryAllByRole("button")).toHaveLength(0);
   });
 
-  it("shows an error in place of the hint", () => {
-    render(
+  it("shows an error in place of the hint", async () => {
+    await render(
       <ImagePickerGrid
         label="Images"
         images={[]}
@@ -245,23 +245,23 @@ describe("ImagePickerGrid", () => {
 });
 
 describe("Gallery", () => {
-  it("renders nothing for no images", () => {
-    const { toJSON } = render(<Gallery images={[]} />);
+  it("renders nothing for no images", async () => {
+    const { toJSON } = await render(<Gallery images={[]} />);
     expect(toJSON()).toBeNull();
   });
 
-  it("opens a full-screen viewer with the caption and closes it", () => {
-    render(<Gallery images={[{ key: "1", uri: "file://1", caption: "Booking flow" }]} />);
-    fireEvent.press(screen.getByRole("imagebutton", { name: "Booking flow" }));
+  it("opens a full-screen viewer with the caption and closes it", async () => {
+    await render(<Gallery images={[{ key: "1", uri: "file://1", caption: "Booking flow" }]} />);
+    await fireEvent.press(screen.getByRole("imagebutton", { name: "Booking flow" }));
     expect(screen.getAllByText("Booking flow")).toHaveLength(2);
-    fireEvent.press(screen.getByRole("button", { name: "Close image" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Close image" }));
     expect(screen.getAllByText("Booking flow")).toHaveLength(1);
   });
 });
 
 describe("PageHero", () => {
-  it("renders the title as a header, subtitle and children", () => {
-    render(
+  it("renders the title as a header, subtitle and children", async () => {
+    await render(
       <PageHero theme={tabThemes.discover} title="Discover" subtitle="Reviewed listings">
         <HeroStat value={3} label="live" />
       </PageHero>,
@@ -280,8 +280,8 @@ describe("tab themes", () => {
 });
 
 describe("Card", () => {
-  it("renders children in default and raised variants", () => {
-    render(
+  it("renders children in default and raised variants", async () => {
+    await render(
       <>
         <Card>
           <Badge label="resting" />
@@ -297,13 +297,13 @@ describe("Card", () => {
 });
 
 describe("Button states", () => {
-  it("survives press and focus cycles", () => {
-    render(<Button label="Save" onPress={jest.fn()} />);
+  it("survives press and focus cycles", async () => {
+    await render(<Button label="Save" onPress={jest.fn()} />);
     const button = screen.getByRole("button", { name: "Save" });
-    fireEvent(button, "pressIn");
-    fireEvent(button, "pressOut");
-    fireEvent(button, "focus");
-    fireEvent(button, "blur");
+    await fireEvent(button, "pressIn");
+    await fireEvent(button, "pressOut");
+    await fireEvent(button, "focus");
+    await fireEvent(button, "blur");
     expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });
 });

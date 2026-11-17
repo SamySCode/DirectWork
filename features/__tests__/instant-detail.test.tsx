@@ -45,7 +45,7 @@ describe("a listing opened from a list", () => {
     client.setQueryData(discoverKey, { pages: [[card]], pageParams: [0] });
     fetchListing.mockResolvedValue(full);
 
-    const { result } = renderHook(() => useListing("l-1", { instant: true }), { wrapper });
+    const { result } = await renderHook(() => useListing("l-1", { instant: true }), { wrapper });
     // No loading state: the screen can draw on the very first render.
     expect(result.current.isPending).toBe(false);
     expect(result.current.isPlaceholderData).toBe(true);
@@ -56,24 +56,24 @@ describe("a listing opened from a list", () => {
     expect(result.current.data?.admission).toEqual({ first_milestone: "Ship v1" });
   });
 
-  it("finds the row in My listings too", () => {
+  it("finds the row in My listings too", async () => {
     client.setQueryData(listingKeys.mine("user-1"), [card]);
     fetchListing.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => useListing("l-1", { instant: true }), { wrapper });
+    const { result } = await renderHook(() => useListing("l-1", { instant: true }), { wrapper });
     expect(result.current.data?.title).toBe("From the card");
   });
 
-  it("never hands partial data to a caller that didn't ask for it (edit form, Deal Sheet)", () => {
+  it("never hands partial data to a caller that didn't ask for it (edit form, Deal Sheet)", async () => {
     client.setQueryData(discoverKey, { pages: [[card]], pageParams: [0] });
     fetchListing.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => useListing("l-1"), { wrapper });
+    const { result } = await renderHook(() => useListing("l-1"), { wrapper });
     expect(result.current.isPending).toBe(true);
     expect(result.current.data).toBeUndefined();
   });
 
-  it("loads normally when no list has it (a link opened directly)", () => {
+  it("loads normally when no list has it (a link opened directly)", async () => {
     fetchListing.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => useListing("l-1", { instant: true }), { wrapper });
+    const { result } = await renderHook(() => useListing("l-1", { instant: true }), { wrapper });
     expect(result.current.isPending).toBe(true);
   });
 });
@@ -83,7 +83,7 @@ describe("an application opened from a list", () => {
 
   it("starts from the list's row and makes no request while that list is fresh", async () => {
     client.setQueryData(applicationKeys.mine("user-1"), [row]);
-    const { result } = renderHook(() => useApplication("a-1"), { wrapper });
+    const { result } = await renderHook(() => useApplication("a-1"), { wrapper });
     expect(result.current.isPending).toBe(false);
     expect(result.current.data?.id).toBe("a-1");
     await Promise.resolve();
@@ -95,27 +95,27 @@ describe("an application opened from a list", () => {
       updatedAt: Date.now() - 5 * 60_000,
     });
     fetchApplication.mockResolvedValue({ ...row, status: "accepted" });
-    const { result } = renderHook(() => useApplication("a-1"), { wrapper });
+    const { result } = await renderHook(() => useApplication("a-1"), { wrapper });
     // Shown straight away from the old row...
     expect(result.current.data?.status).toBe("submitted");
     // ...and corrected as soon as the fresh one is back.
     await waitFor(() => expect(result.current.data?.status).toBe("accepted"));
   });
 
-  it("uses the freshest list when two hold the row", () => {
+  it("uses the freshest list when two hold the row", async () => {
     client.setQueryData(applicationKeys.mine("user-1"), [{ ...row, status: "submitted" }], {
       updatedAt: Date.now() - 20_000,
     });
     client.setQueryData(applicationKeys.forListing("p-1"), [{ ...row, status: "accepted" }], {
       updatedAt: Date.now() - 1_000,
     });
-    const { result } = renderHook(() => useApplication("a-1"), { wrapper });
+    const { result } = await renderHook(() => useApplication("a-1"), { wrapper });
     expect(result.current.data?.status).toBe("accepted");
   });
 
-  it("loads normally when no list has it", () => {
+  it("loads normally when no list has it", async () => {
     fetchApplication.mockReturnValue(new Promise(() => {}));
-    const { result } = renderHook(() => useApplication("a-1"), { wrapper });
+    const { result } = await renderHook(() => useApplication("a-1"), { wrapper });
     expect(result.current.isPending).toBe(true);
   });
 });

@@ -27,7 +27,8 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      initialRouteName="home"
+      // Home opens first because it is the first screen declared below (the
+      // initialRouteName prop was removed in SDK 58).
       // Pressing the tab you are already on scrolls it back to the top. The
       // press fires before any switch, so isFocused() means "already here".
       screenListeners={({ navigation, route }) => ({

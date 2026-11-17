@@ -39,23 +39,23 @@ beforeEach(() => {
 });
 
 describe("Inbox", () => {
-  it("marks only the unread rows it is showing, after a fresh fetch", () => {
+  it("marks only the unread rows it is showing, after a fresh fetch", async () => {
     (useActivity as jest.Mock).mockReturnValue(query({}));
-    render(<InboxScreen />);
+    await render(<InboxScreen />);
     expect(markRead).toHaveBeenCalledWith(["n1"]);
   });
 
-  it("doesn't mark a cached list that is still being refreshed", () => {
+  it("doesn't mark a cached list that is still being refreshed", async () => {
     (useActivity as jest.Mock).mockReturnValue(
       query({ isFetchedAfterMount: false, isFetching: true }),
     );
-    render(<InboxScreen />);
+    await render(<InboxScreen />);
     expect(markRead).not.toHaveBeenCalled();
   });
 
-  it("keeps the list on screen when a refresh fails", () => {
+  it("keeps the list on screen when a refresh fails", async () => {
     (useActivity as jest.Mock).mockReturnValue(query({ isError: true }));
-    render(<InboxScreen />);
+    await render(<InboxScreen />);
     expect(screen.queryByText("Couldn't load activity")).toBeNull();
     expect(screen.getAllByText(/accepted/i).length).toBeGreaterThan(0);
   });

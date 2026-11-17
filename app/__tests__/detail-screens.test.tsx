@@ -35,7 +35,7 @@ jest.mock("../../features/deals/hooks", () => ({
   usePayRecord: jest.fn(() => ({ data: null })),
 }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn(), canGoBack: () => true }),
   useLocalSearchParams: jest.fn(),
   Stack: { Screen: () => null },
 }));
@@ -127,10 +127,10 @@ beforeEach(() => {
 });
 
 describe("Listing page", () => {
-  it("lets a visitor apply to a live listing", () => {
+  it("lets a visitor apply to a live listing", async () => {
     params({ id: "listing-1" });
     (useListing as jest.Mock).mockReturnValue(query(makeListing()));
-    render(<ListingScreen />);
+    await render(<ListingScreen />);
     expect(screen.getByRole("button", { name: "Apply" })).toBeTruthy();
     expect(screen.queryByText("How it looks to others")).toBeNull();
     expect(screen.getByText("How you fit")).toBeTruthy();
@@ -139,19 +139,19 @@ describe("Listing page", () => {
     expect(useListingApplications).toHaveBeenCalledWith(undefined);
   });
 
-  it("doesn't offer apply on a paused listing", () => {
+  it("doesn't offer apply on a paused listing", async () => {
     params({ id: "listing-1" });
     (useListing as jest.Mock).mockReturnValue(query(makeListing({ status: "paused" })));
-    render(<ListingScreen />);
+    await render(<ListingScreen />);
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     expect(screen.getByText("Not accepting applications")).toBeTruthy();
   });
 
-  it("gives the owner controls and applicants, not an apply button", () => {
+  it("gives the owner controls and applicants, not an apply button", async () => {
     params({ id: "listing-1" });
     (useListing as jest.Mock).mockReturnValue(query(makeListing({ owner_id: "user-1" })));
     (useListingApplications as jest.Mock).mockReturnValue(query([makeApplication()]));
-    render(<ListingScreen />);
+    await render(<ListingScreen />);
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     expect(screen.getByText("Waiting for you (1)")).toBeTruthy();
     expect(screen.getByText("Applicants so far")).toBeTruthy();
@@ -160,19 +160,19 @@ describe("Listing page", () => {
     expect(useListingApplications).toHaveBeenCalledWith("listing-1");
   });
 
-  it("explains a missing listing", () => {
+  it("explains a missing listing", async () => {
     params({ id: "gone" });
     (useListing as jest.Mock).mockReturnValue(query(null));
-    render(<ListingScreen />);
+    await render(<ListingScreen />);
     expect(screen.getByText("This listing isn't available")).toBeTruthy();
   });
 });
 
 describe("Edit listing", () => {
-  it("refuses to edit a live listing in place", () => {
+  it("refuses to edit a live listing in place", async () => {
     params({ id: "listing-1" });
     (useListing as jest.Mock).mockReturnValue(query(makeListing({ status: "published" })));
-    render(<EditListingScreen />);
+    await render(<EditListingScreen />);
     expect(screen.getByText("This listing can't be edited right now")).toBeTruthy();
   });
 });
@@ -184,49 +184,49 @@ describe("Application page", () => {
     (useApplication as jest.Mock).mockReturnValue(query(makeApplication()));
     (useWithdrawApplication as jest.Mock).mockReturnValue({ mutate, isPending: false });
     (confirm as jest.Mock).mockResolvedValue(true);
-    render(<ApplicationScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Withdraw application" }));
+    await render(<ApplicationScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Withdraw application" }));
     await waitFor(() => expect(mutate).toHaveBeenCalledWith("app-1", expect.any(Object)));
   });
 
-  it("shows the owner's decision note and no withdraw once decided", () => {
+  it("shows the owner's decision note and no withdraw once decided", async () => {
     params({ id: "app-1" });
     (useApplication as jest.Mock).mockReturnValue(
       query(makeApplication({ status: "rejected", decision_note: "Went with someone local" })),
     );
     (useWithdrawApplication as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
-    render(<ApplicationScreen />);
+    await render(<ApplicationScreen />);
     expect(screen.getByText("Went with someone local")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Withdraw application" })).toBeNull();
   });
 });
 
 describe("Public profile", () => {
-  it("handles deleted accounts", () => {
+  it("handles deleted accounts", async () => {
     params({ id: "ghost" });
     (useProfile as jest.Mock).mockReturnValue(query(null));
     (useProfileSkills as jest.Mock).mockReturnValue(query([]));
     (useTrackRecord as jest.Mock).mockReturnValue(query(undefined));
-    render(<PersonScreen />);
+    await render(<PersonScreen />);
     expect(screen.getByText("This profile doesn't exist")).toBeTruthy();
   });
 });
 
 describe("Edit profile", () => {
-  it("prefills, validates live, and saves then goes back", () => {
+  it("prefills, validates live, and saves then goes back", async () => {
     const mutate = jest.fn((_: unknown, opts: { onSuccess: () => void }) => opts.onSuccess());
     (useSaveProfile as jest.Mock).mockReturnValue({ mutate, isPending: false, isError: false });
-    render(<EditProfileScreen />);
+    await render(<EditProfileScreen />);
     const headline = screen.getByLabelText("Headline");
     expect(headline.props.value).toBe("React Native engineer");
-    fireEvent.changeText(headline, "");
-    fireEvent(headline, "blur");
+    await fireEvent.changeText(headline, "");
+    await fireEvent(headline, "blur");
     expect(screen.getByText("Enter a short professional headline")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Save profile" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Save profile" }));
     expect(mutate).not.toHaveBeenCalled();
 
-    fireEvent.changeText(headline, "Mobile lead");
-    fireEvent.press(screen.getByRole("button", { name: "Save profile" }));
+    await fireEvent.changeText(headline, "Mobile lead");
+    await fireEvent.press(screen.getByRole("button", { name: "Save profile" }));
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({ headline: "Mobile lead", skills: ["React Native"] }),
       expect.any(Object),
@@ -234,60 +234,60 @@ describe("Edit profile", () => {
     expect(mockBack).toHaveBeenCalled();
   });
 
-  it("keeps unsaved edits when the profile refetches (e.g. after a photo change)", () => {
+  it("keeps unsaved edits when the profile refetches (e.g. after a photo change)", async () => {
     (useSaveProfile as jest.Mock).mockReturnValue({ mutate: jest.fn(), isPending: false });
-    const { rerender } = render(<EditProfileScreen />);
-    fireEvent.changeText(screen.getByLabelText("Headline"), "Typed but not saved");
+    const { rerender } = await render(<EditProfileScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Headline"), "Typed but not saved");
     (useMyProfile as jest.Mock).mockReturnValue({
       userId: "user-1",
       profile: makeProfile({ avatar_url: "user-1/new.jpg" }),
       skills: ["React Native"],
       loading: false,
     });
-    rerender(<EditProfileScreen />);
+    await rerender(<EditProfileScreen />);
     expect(screen.getByLabelText("Headline").props.value).toBe("Typed but not saved");
   });
 });
 
 describe("Billing", () => {
-  it("offers upgrade on Free and portal on Pro", () => {
+  it("offers upgrade on Free and portal on Pro", async () => {
     params({});
     const mutate = jest.fn();
     (useBillingRedirect as jest.Mock).mockReturnValue({ mutate, isPending: false, isError: false });
     (useSubscription as jest.Mock).mockReturnValue(query(null));
-    const { rerender } = render(<BillingScreen />);
-    fireEvent.press(screen.getByRole("button", { name: /Upgrade to Pro/ }));
+    const { rerender } = await render(<BillingScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: /Upgrade to Pro/ }));
     expect(mutate).toHaveBeenCalledWith("checkout");
 
     (useSubscription as jest.Mock).mockReturnValue(
       query({ plan: "pro", status: "active", current_period_end: "2999-01-01T00:00:00Z" }),
     );
-    rerender(<BillingScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Manage subscription" }));
+    await rerender(<BillingScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Manage subscription" }));
     expect(mutate).toHaveBeenCalledWith("portal");
   });
 });
 
 describe("Review queue", () => {
-  it("is reviewers-only", () => {
+  it("is reviewers-only", async () => {
     (useIsAdmin as jest.Mock).mockReturnValue(query(false));
     (useReviewQueue as jest.Mock).mockReturnValue(query([]));
-    render(<ReviewScreen />);
+    await render(<ReviewScreen />);
     expect(screen.getByText("Reviewers only")).toBeTruthy();
     expect(useReviewQueue).toHaveBeenCalledWith(false);
   });
 
-  it("requires a note to request changes, and approves", () => {
+  it("requires a note to request changes, and approves", async () => {
     const mutate = jest.fn();
     (useIsAdmin as jest.Mock).mockReturnValue(query(true));
     (useReviewQueue as jest.Mock).mockReturnValue(query([makeListing({ status: "in_review" })]));
     (useReviewListing as jest.Mock).mockReturnValue({ mutate, isPending: false });
-    render(<ReviewScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Request changes" }));
+    await render(<ReviewScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Request changes" }));
     expect(screen.getByText("Tell the owner what to change.")).toBeTruthy();
     expect(mutate).not.toHaveBeenCalled();
 
-    fireEvent.press(screen.getByRole("button", { name: "Approve" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Approve" }));
     expect(mutate).toHaveBeenCalledWith(
       { projectId: "listing-1", approve: true, note: undefined },
       expect.any(Object),
@@ -296,19 +296,19 @@ describe("Review queue", () => {
 });
 
 describe("Delete account", () => {
-  it("lists what will be lost and requires the password", () => {
-    render(<DeleteAccountScreen />);
+  it("lists what will be lost and requires the password", async () => {
+    await render(<DeleteAccountScreen />);
     expect(screen.getByText(/Any Pro subscription/)).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Delete my account permanently" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Delete my account permanently" }));
     expect(screen.getByText("Enter your password to confirm.")).toBeTruthy();
     expect(deleteAccount).not.toHaveBeenCalled();
   });
 
   it("re-checks the password, then deletes", async () => {
     (deleteAccount as jest.Mock).mockResolvedValue(undefined);
-    render(<DeleteAccountScreen />);
-    fireEvent.changeText(screen.getByLabelText("Your password"), "secret-password");
-    fireEvent.press(screen.getByRole("button", { name: "Delete my account permanently" }));
+    await render(<DeleteAccountScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Your password"), "secret-password");
+    await fireEvent.press(screen.getByRole("button", { name: "Delete my account permanently" }));
     await waitFor(() =>
       expect(deleteAccount).toHaveBeenCalledWith("sam@example.com", "secret-password"),
     );
@@ -316,9 +316,9 @@ describe("Delete account", () => {
 
   it("shows a wrong password without deleting", async () => {
     (deleteAccount as jest.Mock).mockRejectedValue(new Error("That password isn't right."));
-    render(<DeleteAccountScreen />);
-    fireEvent.changeText(screen.getByLabelText("Your password"), "nope");
-    fireEvent.press(screen.getByRole("button", { name: "Delete my account permanently" }));
+    await render(<DeleteAccountScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Your password"), "nope");
+    await fireEvent.press(screen.getByRole("button", { name: "Delete my account permanently" }));
     expect(await screen.findByText("That password isn't right.")).toBeTruthy();
   });
 });

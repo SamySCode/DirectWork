@@ -48,19 +48,19 @@ describe("SkillsField", () => {
     return <SkillsField value={value} onChange={setValue} />;
   }
 
-  it("offers the typed text as a new skill and adds it", () => {
+  it("offers the typed text as a new skill and adds it", async () => {
     (searchSkills as jest.Mock).mockResolvedValue([]);
-    render(<Harness />);
-    fireEvent.changeText(screen.getByLabelText("Skills"), "Basket weaving");
-    fireEvent.press(screen.getByRole("button", { name: "Add “Basket weaving”" }));
+    await render(<Harness />);
+    await fireEvent.changeText(screen.getByLabelText("Skills"), "Basket weaving");
+    await fireEvent.press(screen.getByRole("button", { name: "Add “Basket weaving”" }));
     expect(screen.getByText("Basket weaving")).toBeTruthy();
     expect(screen.getByLabelText("Skills").props.value).toBe("");
   });
 
   it("suggests existing skills after a debounce and excludes ones already chosen", async () => {
     (searchSkills as jest.Mock).mockResolvedValue(["React", "React Native"]);
-    render(<Harness initial={["React"]} />);
-    fireEvent.changeText(screen.getByLabelText("Skills"), "rea");
+    await render(<Harness initial={["React"]} />);
+    await fireEvent.changeText(screen.getByLabelText("Skills"), "rea");
     expect(searchSkills).not.toHaveBeenCalled();
     await act(async () => {
       jest.advanceTimersByTime(300);
@@ -71,12 +71,12 @@ describe("SkillsField", () => {
     expect(screen.getAllByText("React")).toHaveLength(1);
   });
 
-  it("doesn't add duplicates case-insensitively", () => {
+  it("doesn't add duplicates case-insensitively", async () => {
     (searchSkills as jest.Mock).mockResolvedValue([]);
-    render(<Harness initial={["TypeScript"]} />);
-    fireEvent.changeText(screen.getByLabelText("Skills"), "typescript");
+    await render(<Harness initial={["TypeScript"]} />);
+    await fireEvent.changeText(screen.getByLabelText("Skills"), "typescript");
     expect(screen.queryByRole("button", { name: /Add “typescript”/ })).toBeNull();
-    fireEvent(screen.getByLabelText("Skills"), "submitEditing");
+    await fireEvent(screen.getByLabelText("Skills"), "submitEditing");
     expect(screen.getAllByText("TypeScript")).toHaveLength(1);
   });
 
@@ -86,12 +86,12 @@ describe("SkillsField", () => {
       .mockReset()
       .mockImplementationOnce(() => new Promise((resolve) => (resolveOld = resolve)))
       .mockResolvedValueOnce(["Kotlin Multiplatform"]);
-    render(<Harness />);
-    fireEvent.changeText(screen.getByLabelText("Skills"), "kot");
+    await render(<Harness />);
+    await fireEvent.changeText(screen.getByLabelText("Skills"), "kot");
     await act(async () => {
       jest.advanceTimersByTime(300);
     });
-    fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin m");
+    await fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin m");
     await act(async () => {
       jest.advanceTimersByTime(300);
     });
@@ -100,8 +100,8 @@ describe("SkillsField", () => {
     expect(screen.queryByText("Kotlin stale answer")).toBeNull();
 
     // Back to a query already answered: no new request.
-    fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin");
-    fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin m");
+    await fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin");
+    await fireEvent.changeText(screen.getByLabelText("Skills"), "kotlin m");
     await act(async () => {
       jest.advanceTimersByTime(300);
     });
@@ -109,17 +109,17 @@ describe("SkillsField", () => {
     expect(screen.getByText("Kotlin Multiplatform")).toBeTruthy();
   });
 
-  it("removes a skill when its chip is pressed", () => {
-    render(<Harness initial={["Go", "Postgres"]} />);
-    fireEvent.press(screen.getByText("Go"));
+  it("removes a skill when its chip is pressed", async () => {
+    await render(<Harness initial={["Go", "Postgres"]} />);
+    await fireEvent.press(screen.getByText("Go"));
     expect(screen.queryByText("Go")).toBeNull();
     expect(screen.getByText("Postgres")).toBeTruthy();
   });
 });
 
 describe("ProfileView", () => {
-  it("shows intents, details, skills, track record and portfolio", () => {
-    render(
+  it("shows intents, details, skills, track record and portfolio", async () => {
+    await render(
       <ProfileView
         profile={makeProfile({ seeking_partner: true, wants_to_hire: true })}
         skills={["React Native", "Supabase"]}
@@ -144,23 +144,23 @@ describe("ProfileView", () => {
     expect(screen.getByRole("imagebutton", { name: "Booking flow" })).toBeTruthy();
   });
 
-  it("explains the track record when there isn't one yet", () => {
-    render(
+  it("explains the track record when there isn't one yet", async () => {
+    await render(
       <ProfileView profile={makeProfile()} skills={[]} trackRecord={{ completed: 0, total: 0 }} />,
     );
     expect(screen.getByText("0 completed collaborations")).toBeTruthy();
     expect(screen.getByText(/Confirmed by both sides once a project wraps up/)).toBeTruthy();
   });
 
-  it("opens the portfolio link", () => {
-    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
-    render(<ProfileView profile={makeProfile()} skills={[]} />);
-    fireEvent.press(screen.getByRole("link"));
+  it("opens the portfolio link", async () => {
+    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+    await render(<ProfileView profile={makeProfile()} skills={[]} />);
+    await fireEvent.press(screen.getByRole("link"));
     expect(openURL).toHaveBeenCalledWith("https://sam.dev");
   });
 
-  it("can hide its header when the screen shows name and photo itself", () => {
-    render(<ProfileView profile={makeProfile()} skills={[]} showHeader={false} />);
+  it("can hide its header when the screen shows name and photo itself", async () => {
+    await render(<ProfileView profile={makeProfile()} skills={[]} showHeader={false} />);
     expect(screen.queryByText("Sam Saib")).toBeNull();
     expect(screen.getByText("I build mobile products end to end.")).toBeTruthy();
   });
@@ -184,8 +184,8 @@ describe("ProfileImagesEditor", () => {
   it("uploads a square-cropped avatar and replaces the previous one", async () => {
     const image = { uri: "file://me.jpg", width: 800, height: 800 };
     (pickImages as jest.Mock).mockResolvedValue([image]);
-    render(<ProfileImagesEditor profile={makeProfile({ avatar_url: "user-1/old.jpg" })} />);
-    fireEvent.press(screen.getByRole("button", { name: "Change" }));
+    await render(<ProfileImagesEditor profile={makeProfile({ avatar_url: "user-1/old.jpg" })} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Change" }));
     await waitFor(() =>
       expect(mutateAsync).toHaveBeenCalledWith({ image, previous: "user-1/old.jpg" }),
     );
@@ -194,8 +194,8 @@ describe("ProfileImagesEditor", () => {
 
   it("shows validation errors from the picker", async () => {
     (pickImages as jest.Mock).mockRejectedValue(new Error("GIFs and SVGs aren't supported."));
-    render(<ProfileImagesEditor profile={makeProfile()} />);
-    fireEvent.press(screen.getByRole("button", { name: "Add photo" }));
+    await render(<ProfileImagesEditor profile={makeProfile()} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Add photo" }));
     expect(await screen.findByText("GIFs and SVGs aren't supported.")).toBeTruthy();
   });
 
@@ -210,17 +210,17 @@ describe("ProfileImagesEditor", () => {
       })),
     });
     (pickImages as jest.Mock).mockResolvedValue([]);
-    render(<ProfileImagesEditor profile={makeProfile()} />);
-    fireEvent.press(screen.getByRole("button", { name: "Add image to Portfolio" }));
+    await render(<ProfileImagesEditor profile={makeProfile()} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Add image to Portfolio" }));
     await waitFor(() => expect(pickImages).toHaveBeenCalledWith({ limit: 2 }));
     expect(mutateAsync).not.toHaveBeenCalled();
   });
 
-  it("removes a portfolio image", () => {
+  it("removes a portfolio image", async () => {
     const item = { id: "p1", storage_path: "x", caption: null, position: 0, url: "u" };
     (usePortfolio as jest.Mock).mockReturnValue({ data: [item] });
-    render(<ProfileImagesEditor profile={makeProfile()} />);
-    fireEvent.press(screen.getByRole("button", { name: "Remove image" }));
+    await render(<ProfileImagesEditor profile={makeProfile()} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Remove image" }));
     expect(mutate).toHaveBeenCalledWith(item, expect.any(Object));
   });
 });

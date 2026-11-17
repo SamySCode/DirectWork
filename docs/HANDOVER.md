@@ -37,8 +37,20 @@ written anywhere else. For what to do next, read `docs/ROADMAP.md` and
   project does not exist yet.
 - No web deployment, no domain, no custom email, no store accounts.
   Billing is off. The app is free.
-- Tasks done: T01, T08, T13. Next: T02 and T03 (accessibility), T07
-  (founder metrics), then T04 (Expo SDK 58, before 31 January 2027).
+- Tasks done: T01, T04 (Expo SDK 58, 2026-11-17), T08, T13. Next: T02
+  and T03 (accessibility), T07 (founder metrics).
+- On Expo SDK 58 (React Native 0.88, React 19.3) since 2026-11-17, on
+  the branch `build/sdk-58`. This computer runs Node 26 LTS; CI pins
+  22.13 (`.nvmrc`), which SDK 58 also accepts. SDK 58 notes a future
+  session needs: web output is pinned to `"single"` and web async
+  routes are off in `app.json` (the browser-back gate in
+  `lib/historyGate.ts` must load before the router); tests use React
+  Native Testing Library 14, where `render`, `renderHook`, `fireEvent`
+  and `act` are awaited; the leave-guard uses SDK 58's `repeat()` and
+  `disablePrevention()` (`lib/unsavedChanges.tsx`); iOS keeps the opaque
+  header through `enableLegacyHeaderAppearance()`, which is deprecated
+  upstream. Always pass `--clear` to `expo export` or `expo start` when
+  `EXPO_PUBLIC_*` values change: Metro caches them.
 
 ## Why things are the way they are
 
@@ -153,8 +165,12 @@ In rough order. Details are in `docs/NEXT_STEPS.md`.
   the full image after one failed request. There are none in production.
 - Discover text search scans the table at a few thousand rows (6 to 9
   ms); the indexes exist for when it grows.
-- One advisory that can be triggered in the shipped app
-  (`decode-uri-component`) remains until the SDK 58 upgrade.
+- Only a real device build can confirm these SDK 58 points: haptics,
+  the iOS swipe-back and modal swipe-down being held by the leave-guard,
+  the iOS 26 header look, the remembered email in the keychain, photo
+  picking and upload, the Deal Sheet PDF and share sheet, the splash
+  screen, and Android release builds (R8 shrinking is now on by
+  default and may need keep rules).
 - The "what changed since you confirmed" view on a Deal Sheet only works
   on the device you confirmed on.
 - Late payment letters are for deals in pounds only. The Bank of England
@@ -190,3 +206,11 @@ placeholders stay on screen long enough to look at, and
 `PREVIEW_SKIP_TERMS=1` starts past the "Updated terms" screen, and
 `PREVIEW_SIGNED_IN=1` opens on Home as the sample user.
 `skeleton-shots.js` screenshots every screen mid-load in light and dark.
+
+Regression check after any upgrade (used for SDK 58 on 2026-11-17): build
+the old and new versions, then `node regress.js <dist> <ref> <out.json>`
+(every screen, every control pressed from a fresh start; `DIALOGS=accept`
+confirms every dialog so destructive actions fire) and `node flows.js`
+(19 typed form flows) on both, and `node regress-diff.js old.json new.json`.
+It compares on-screen text, navigation, dialogs, errors and every backend
+request. `node phone.js` serves the sample data to a phone over Wi-Fi.

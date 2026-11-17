@@ -5,6 +5,7 @@ import {
   Platform,
   RefreshControl,
   ScrollView,
+  type ScrollViewInstance,
   StyleProp,
   StyleSheet,
   View,
@@ -41,7 +42,7 @@ export function Screen({
   // The content dissolves in as the screen opens (often straight after a
   // loading placeholder); the header and footer are solid from the start.
   const opacity = useFadeIn(motion.base);
-  const scroll = useRef<ScrollView>(null);
+  const scroll = useRef<ScrollViewInstance>(null);
   const reduceMotion = useReducedMotion();
   useTabReselect(tab, () => scroll.current?.scrollTo({ y: 0, animated: !reduceMotion }));
   return (

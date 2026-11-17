@@ -20,7 +20,7 @@ instead of guessing.
 | T01 | Apply depth tokens to shared components      | Sonnet | -                   | done   |
 | T02 | Accessibility: shared components             | Sonnet | T01                 | to do  |
 | T03 | Accessibility: automated audit and statement | Sonnet | T02                 | to do  |
-| T04 | Expo SDK 58 and over-the-air updates         | Opus   | clean tree          | to do  |
+| T04 | Expo SDK 58 and over-the-air updates         | Opus   | clean tree          | done   |
 | T05 | Web deploy pipeline (Cloudflare)             | Sonnet | T04                 | to do  |
 | T06 | Staging rehearsal checklist                  | Haiku  | owner runs commands | to do  |
 | T07 | Founder metrics for the 90-day test          | Sonnet | -                   | to do  |

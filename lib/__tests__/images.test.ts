@@ -224,22 +224,22 @@ describe("thumbnails", () => {
     expect(remove).toHaveBeenLastCalledWith(["u/b.jpg"]);
   });
 
-  it("falls back to the full image once, and remembers it for the session", () => {
-    const first = renderHook(() => useThumbnailSource("https://img/legacy.jpg"));
+  it("falls back to the full image once, and remembers it for the session", async () => {
+    const first = await renderHook(() => useThumbnailSource("https://img/legacy.jpg"));
     expect(first.result.current.source).toEqual({ uri: "https://img/legacy.thumb.jpg" });
-    act(() => first.result.current.onError?.());
+    await act(() => first.result.current.onError?.());
     expect(first.result.current).toEqual({
       source: { uri: "https://img/legacy.jpg" },
       onError: undefined,
     });
     // Another card showing the same image doesn't ask for the thumbnail again.
-    const second = renderHook(() => useThumbnailSource("https://img/legacy.jpg"));
+    const second = await renderHook(() => useThumbnailSource("https://img/legacy.jpg"));
     expect(second.result.current.source).toEqual({ uri: "https://img/legacy.jpg" });
   });
 
-  it("leaves local files and signed URLs alone", () => {
+  it("leaves local files and signed URLs alone", async () => {
     for (const uri of ["file://picked.jpg", "https://x/sign/a.jpg?token=abc"]) {
-      const { result } = renderHook(() => useThumbnailSource(uri));
+      const { result } = await renderHook(() => useThumbnailSource(uri));
       expect(result.current).toEqual({ source: { uri }, onError: undefined });
     }
   });

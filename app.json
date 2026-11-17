@@ -32,10 +32,18 @@
       "shortName": "DirectWork",
       "description": "A curated place for professionals to take on paid projects or join early ventures as partners.",
       "themeColor": "#16133D",
-      "backgroundColor": "#F5F4FC"
+      "backgroundColor": "#F5F4FC",
+      "output": "single"
     },
     "plugins": [
-      "expo-router",
+      [
+        "expo-router",
+        {
+          "asyncRoutes": {
+            "web": false
+          }
+        }
+      ],
       "expo-status-bar",
       "expo-font",
       [
@@ -62,6 +70,9 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
     }
   }
 }

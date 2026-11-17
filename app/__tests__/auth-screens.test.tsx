@@ -48,44 +48,44 @@ beforeEach(() => {
 });
 
 describe("Welcome", () => {
-  it("routes to sign-up and sign-in", () => {
-    render(<WelcomeScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Create your profile" }));
+  it("routes to sign-up and sign-in", async () => {
+    await render(<WelcomeScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Create your profile" }));
     expect(mockPush).toHaveBeenCalledWith("/sign-up");
-    fireEvent.press(screen.getByRole("button", { name: "I already have an account" }));
+    await fireEvent.press(screen.getByRole("button", { name: "I already have an account" }));
     expect(mockPush).toHaveBeenCalledWith("/sign-in");
   });
 
-  it("links to the Terms, Privacy Notice and Help", () => {
-    render(<WelcomeScreen />);
-    fireEvent.press(screen.getByRole("link", { name: "Terms" }));
+  it("links to the Terms, Privacy Notice and Help", async () => {
+    await render(<WelcomeScreen />);
+    await fireEvent.press(screen.getByRole("link", { name: "Terms" }));
     expect(mockPush).toHaveBeenCalledWith("/legal/terms");
-    fireEvent.press(screen.getByRole("link", { name: "Privacy" }));
+    await fireEvent.press(screen.getByRole("link", { name: "Privacy" }));
     expect(mockPush).toHaveBeenCalledWith("/legal/privacy");
-    fireEvent.press(screen.getByRole("link", { name: "Help" }));
+    await fireEvent.press(screen.getByRole("link", { name: "Help" }));
     expect(mockPush).toHaveBeenCalledWith("/help");
   });
 
-  it("states the professional promise", () => {
-    render(<WelcomeScreen />);
+  it("states the professional promise", async () => {
+    await render(<WelcomeScreen />);
     expect(screen.getByText("Free for professionals, always.")).toBeTruthy();
   });
 
-  it("tells a visitor who followed a link that their listing is waiting", () => {
-    render(<WelcomeScreen />);
+  it("tells a visitor who followed a link that their listing is waiting", async () => {
+    await render(<WelcomeScreen />);
     expect(screen.queryByText(/you opened/)).toBeNull();
 
     rememberReturnTo("/listing/aaaaaaaa-0000-4000-8000-000000000001");
-    render(<WelcomeScreen />);
+    await render(<WelcomeScreen />);
     expect(screen.getByText(/Sign in to see the listing you opened/)).toBeTruthy();
     clearReturnTo();
   });
 });
 
 describe("Sign in", () => {
-  it("validates before calling the server", () => {
-    render(<SignInScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
+  it("validates before calling the server", async () => {
+    await render(<SignInScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
     expect(screen.getByText("Enter a valid email address")).toBeTruthy();
     expect(screen.getByText("Enter your password")).toBeTruthy();
     expect(signIn).not.toHaveBeenCalled();
@@ -93,10 +93,10 @@ describe("Sign in", () => {
 
   it("signs in with trimmed credentials", async () => {
     (signIn as jest.Mock).mockResolvedValue({});
-    render(<SignInScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "  sam@example.com ");
-    fireEvent.changeText(screen.getByLabelText("Password"), "secret-password");
-    fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
+    await render(<SignInScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "  sam@example.com ");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "secret-password");
+    await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() =>
       expect(signIn).toHaveBeenCalledWith({
         email: "sam@example.com",
@@ -108,22 +108,22 @@ describe("Sign in", () => {
 
   it("shows the server error", async () => {
     (signIn as jest.Mock).mockRejectedValue(new Error("Invalid login credentials"));
-    render(<SignInScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
-    fireEvent.changeText(screen.getByLabelText("Password"), "wrong");
-    fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
+    await render(<SignInScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "wrong");
+    await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByText("Invalid login credentials")).toBeTruthy();
     await waitFor(() => expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled());
   });
 });
 
 describe("Sign up", () => {
-  it("requires matching passwords of 10+ characters", () => {
-    render(<SignUpScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
-    fireEvent.changeText(screen.getByLabelText("Password"), "short");
-    fireEvent.changeText(screen.getByLabelText("Confirm password"), "different");
-    fireEvent.press(screen.getByRole("button", { name: "Create account" }));
+  it("requires matching passwords of 10+ characters", async () => {
+    await render(<SignUpScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "short");
+    await fireEvent.changeText(screen.getByLabelText("Confirm password"), "different");
+    await fireEvent.press(screen.getByRole("button", { name: "Create account" }));
     expect(screen.getByText("Password must be at least 10 characters")).toBeTruthy();
     expect(screen.getByText("Passwords don't match")).toBeTruthy();
     expect(signUp).not.toHaveBeenCalled();
@@ -131,29 +131,29 @@ describe("Sign up", () => {
 
   it("asks you to confirm by email after signing up", async () => {
     (signUp as jest.Mock).mockResolvedValue({});
-    render(<SignUpScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
-    fireEvent.changeText(screen.getByLabelText("Password"), "long-enough");
-    fireEvent.changeText(screen.getByLabelText("Confirm password"), "long-enough");
-    fireEvent.press(screen.getByRole("checkbox"));
-    fireEvent.press(screen.getByRole("button", { name: "Create account" }));
+    await render(<SignUpScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "long-enough");
+    await fireEvent.changeText(screen.getByLabelText("Confirm password"), "long-enough");
+    await fireEvent.press(screen.getByRole("checkbox"));
+    await fireEvent.press(screen.getByRole("button", { name: "Create account" }));
     expect(await screen.findByText("Check your email")).toBeTruthy();
     expect(screen.getByText(/sam@example.com/)).toBeTruthy();
   });
 });
 
 describe("Sign-up legal acceptance", () => {
-  const fill = () => {
-    render(<SignUpScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
-    fireEvent.changeText(screen.getByLabelText("Password"), "long-enough");
-    fireEvent.changeText(screen.getByLabelText("Confirm password"), "long-enough");
+  const fill = async () => {
+    await render(<SignUpScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "long-enough");
+    await fireEvent.changeText(screen.getByLabelText("Confirm password"), "long-enough");
   };
 
-  it("requires the 18+ and Terms checkbox", () => {
-    fill();
+  it("requires the 18+ and Terms checkbox", async () => {
+    await fill();
     expect(screen.getByRole("checkbox")).not.toBeChecked();
-    fireEvent.press(screen.getByRole("button", { name: "Create account" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Create account" }));
     expect(
       screen.getByText("Confirm you're 18 or over and accept the Terms to create an account"),
     ).toBeTruthy();
@@ -162,24 +162,24 @@ describe("Sign-up legal acceptance", () => {
 
   it("signs up once the box is ticked", async () => {
     (signUp as jest.Mock).mockResolvedValue({});
-    fill();
-    fireEvent.press(
+    await fill();
+    await fireEvent.press(
       screen.getByRole("checkbox", {
         name: "I'm 18 or over, I agree to the Terms of Service, and I've read the Privacy Notice",
       }),
     );
     expect(screen.getByRole("checkbox")).toBeChecked();
-    fireEvent.press(screen.getByRole("button", { name: "Create account" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Create account" }));
     await waitFor(() =>
       expect(signUp).toHaveBeenCalledWith(expect.objectContaining({ acceptedTerms: true })),
     );
   });
 
-  it("opens the Terms and Privacy Notice", () => {
-    render(<SignUpScreen />);
-    fireEvent.press(screen.getByRole("link", { name: "Terms of Service" }));
+  it("opens the Terms and Privacy Notice", async () => {
+    await render(<SignUpScreen />);
+    await fireEvent.press(screen.getByRole("link", { name: "Terms of Service" }));
     expect(mockPush).toHaveBeenCalledWith("/legal/terms");
-    fireEvent.press(screen.getByRole("link", { name: "Privacy Notice" }));
+    await fireEvent.press(screen.getByRole("link", { name: "Privacy Notice" }));
     expect(mockPush).toHaveBeenCalledWith("/legal/privacy");
   });
 });
@@ -187,19 +187,19 @@ describe("Sign-up legal acceptance", () => {
 describe("Forgot password", () => {
   it("doesn't reveal whether the account exists", async () => {
     (requestPasswordReset as jest.Mock).mockResolvedValue(undefined);
-    render(<ForgotPasswordScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "anyone@example.com");
-    fireEvent.press(screen.getByRole("button", { name: "Send reset link" }));
+    await render(<ForgotPasswordScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "anyone@example.com");
+    await fireEvent.press(screen.getByRole("button", { name: "Send reset link" }));
     expect(await screen.findByText(/If an account exists for anyone@example.com/)).toBeTruthy();
   });
 });
 
 describe("Update password", () => {
-  it("explains an expired link when there's no recovery session", () => {
+  it("explains an expired link when there's no recovery session", async () => {
     (useAuth as jest.Mock).mockReturnValue({ session: null });
-    render(<UpdatePasswordScreen />);
+    await render(<UpdatePasswordScreen />);
     expect(screen.getByText("This reset link didn't work")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Request a new link" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Request a new link" }));
     expect(mockReplace).toHaveBeenCalledWith("/forgot-password");
   });
 
@@ -210,7 +210,7 @@ describe("Update password", () => {
       new Promise((resolve) => (finish = resolve)),
     );
     mockLinkingUrl = "directwork://update-password?code=abc123";
-    render(<UpdatePasswordScreen />);
+    await render(<UpdatePasswordScreen />);
     expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledWith("abc123");
     expect(screen.queryByText("This reset link didn't work")).toBeNull();
     await act(async () => finish({ error: { message: "invalid" } }));
@@ -220,10 +220,10 @@ describe("Update password", () => {
   it("saves the new password and goes home", async () => {
     (useAuth as jest.Mock).mockReturnValue({ session: { user: { id: "u1" } } });
     (supabase.auth.updateUser as jest.Mock).mockResolvedValue({ error: null });
-    render(<UpdatePasswordScreen />);
-    fireEvent.changeText(screen.getByLabelText("New password"), "brand-new-pass");
-    fireEvent.changeText(screen.getByLabelText("Confirm new password"), "brand-new-pass");
-    fireEvent.press(screen.getByRole("button", { name: "Save new password" }));
+    await render(<UpdatePasswordScreen />);
+    await fireEvent.changeText(screen.getByLabelText("New password"), "brand-new-pass");
+    await fireEvent.changeText(screen.getByLabelText("Confirm new password"), "brand-new-pass");
+    await fireEvent.press(screen.getByRole("button", { name: "Save new password" }));
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/home"));
     expect(supabase.auth.updateUser).toHaveBeenCalledWith({ password: "brand-new-pass" });
   });
@@ -232,27 +232,27 @@ describe("Update password", () => {
 describe("Sign-up journey", () => {
   async function signUpAs(email: string) {
     (signUp as jest.Mock).mockResolvedValue({});
-    render(<SignUpScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), email);
-    fireEvent.changeText(screen.getByLabelText("Password"), "long-enough");
-    fireEvent.changeText(screen.getByLabelText("Confirm password"), "long-enough");
-    fireEvent.press(screen.getByRole("checkbox"));
-    fireEvent.press(screen.getByRole("button", { name: "Create account" }));
+    await render(<SignUpScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), email);
+    await fireEvent.changeText(screen.getByLabelText("Password"), "long-enough");
+    await fireEvent.changeText(screen.getByLabelText("Confirm password"), "long-enough");
+    await fireEvent.press(screen.getByRole("checkbox"));
+    await fireEvent.press(screen.getByRole("button", { name: "Create account" }));
     await screen.findByText("Check your email");
   }
 
   afterEach(() => jest.useRealTimers());
 
-  it("states the password rule up front", () => {
-    render(<SignUpScreen />);
+  it("states the password rule up front", async () => {
+    await render(<SignUpScreen />);
     expect(screen.getByText("At least 10 characters.")).toBeTruthy();
   });
 
-  it("lets you show the password you typed", () => {
-    render(<SignUpScreen />);
+  it("lets you show the password you typed", async () => {
+    await render(<SignUpScreen />);
     const field = screen.getByLabelText("Password");
     expect(field.props.secureTextEntry).toBe(true);
-    fireEvent.press(screen.getAllByRole("button", { name: "Show password" })[0]!);
+    await fireEvent.press(screen.getAllByRole("button", { name: "Show password" })[0]!);
     expect(screen.getByLabelText("Password").props.secureTextEntry).toBe(false);
   });
 
@@ -264,24 +264,24 @@ describe("Sign-up journey", () => {
     await act(async () => {
       jest.advanceTimersByTime(61_000);
     });
-    fireEvent.press(screen.getByRole("button", { name: "Resend email" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Resend email" }));
     expect(await screen.findByText(/Sent again/)).toBeTruthy();
     expect(resendConfirmation).toHaveBeenCalledWith("sam@example.com");
   });
 
   it("goes back to fix a mistyped address", async () => {
     await signUpAs("sam@exmaple.com");
-    fireEvent.press(screen.getByRole("button", { name: "Use a different email" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Use a different email" }));
     expect(screen.getByRole("button", { name: "Create account" })).toBeTruthy();
   });
 });
 
 describe("Sign-in recovery paths", () => {
   const attempt = async () => {
-    render(<SignInScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
-    fireEvent.changeText(screen.getByLabelText("Password"), "whatever");
-    fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
+    await render(<SignInScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "whatever");
+    await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
   };
 
   it("turns 'email not confirmed' into a resend, not an error", async () => {

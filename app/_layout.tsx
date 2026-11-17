@@ -1,12 +1,14 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { QueryClientProvider } from "@tanstack/react-query";
 import {
+  enableLegacyHeaderAppearance,
   ErrorBoundaryProps,
   Stack,
   useGlobalSearchParams,
   useRouter,
   useSegments,
 } from "expo-router";
+import { HeaderBackButton, type HeaderBackButtonProps } from "expo-router/react-navigation";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
@@ -16,6 +18,7 @@ import { AppLoadingScreen } from "../components/AppLoadingScreen";
 import { ErrorState } from "../components/ErrorState";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { Text } from "../components/Text";
+import { ConfirmHost } from "../components/ConfirmDialog";
 import { ToastHost } from "../components/Toast";
 import { SessionProvider, useAuth } from "../features/auth/SessionProvider";
 import { useProtectedRoute } from "../features/auth/hooks";
@@ -33,6 +36,10 @@ import { queryClient } from "../lib/query";
 import { colors, colorScheme, minTouchTarget, spacing, typography } from "../lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+// iOS 26+ makes stack headers see-through by default (SDK 58), with content
+// scrolling underneath. Our screens are laid out for an opaque header, so
+// keep it. Deprecated upstream: a later redesign should drop this.
+enableLegacyHeaderAppearance();
 // Before the router mounts, so it sees browser back/forward steps first
 // (forms with unsaved changes can then hold them: lib/historyGate.ts).
 installHistoryGate();
@@ -70,6 +77,17 @@ function HomeButton() {
       <Text style={styles.homeLabel}>Home</Text>
     </Pressable>
   );
+}
+
+/**
+ * The left of every stack header. With somewhere to go back to: the normal
+ * back button (phones draw their own native one when this returns nothing;
+ * the web header needs it drawn). With nowhere to go back to: Home.
+ */
+function HeaderLeft({ canGoBack, ...back }: HeaderBackButtonProps & { canGoBack?: boolean }) {
+  if (!canGoBack) return <HomeButton />;
+  if (Platform.OS !== "web") return null;
+  return <HeaderBackButton {...back} />;
 }
 
 function RootNavigator() {
@@ -120,16 +138,17 @@ function RootNavigator() {
   return (
     <View style={styles.root}>
       <Stack
-        screenOptions={({ navigation }) => ({
+        screenOptions={{
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.textPrimary,
           headerShadowVisible: false,
           headerTitleStyle: { fontFamily: typography.displayFontFamily },
           headerBackTitle: "Back",
           contentStyle: { backgroundColor: colors.background },
-          // Only when there's no back button to replace.
-          ...(navigation.canGoBack() ? {} : { headerLeft: () => <HomeButton /> }),
-        })}
+          // The header knows whether there's anything to go back to when it
+          // draws; screen options are worked out too early to ask (SDK 58).
+          headerLeft: HeaderLeft,
+        }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -162,6 +181,7 @@ function RootNavigator() {
       </Stack>
       <OfflineBanner />
       <ToastHost />
+      <ConfirmHost />
       {signingOut ? (
         <View style={StyleSheet.absoluteFill}>
           <AppLoadingScreen label="Signing out" />

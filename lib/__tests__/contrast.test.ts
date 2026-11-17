@@ -35,6 +35,8 @@ const TEXT_PAIRS = [
   ["mintInk", "surface"],
   ["danger", "surface"],
   ["danger", "dangerMuted"],
+  // The solid destructive button (confirmation dialogs).
+  ["onAccent", "danger"],
   ["warning", "warningMuted"],
   ["warning", "surface"],
   ["onInk", "ink"],

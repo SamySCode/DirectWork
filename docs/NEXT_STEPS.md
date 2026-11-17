@@ -117,6 +117,10 @@ A few words used below:
 
 ### 1.5 Upgrade to Expo SDK 58
 
+**Done 2026-11-17** (task T04). `expo-updates` is installed with
+`runtimeVersion` set; its update address is written by
+`npx eas-cli update:configure` once the Expo project exists (step 4.3).
+
 - **Who:** Code.
 - **Do:** the app is on SDK 57; SDK 58 is out, and Expo Go only runs the
   latest SDK.

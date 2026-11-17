@@ -29,9 +29,9 @@ jest.mock("expo-secure-store", () => {
 const box = () => screen.getByRole("checkbox", { name: "Remember my email on this device" });
 
 async function signInAs(email: string) {
-  fireEvent.changeText(screen.getByLabelText("Email"), email);
-  fireEvent.changeText(screen.getByLabelText("Password"), "secret-password");
-  fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
+  await fireEvent.changeText(screen.getByLabelText("Email"), email);
+  await fireEvent.changeText(screen.getByLabelText("Password"), "secret-password");
+  await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
   await waitFor(() => expect(signIn).toHaveBeenCalled());
   await waitFor(() => expect(screen.getByRole("button", { name: "Sign in" })).toBeEnabled());
 }
@@ -44,7 +44,7 @@ beforeEach(async () => {
 
 describe("remember my email (opt-in)", () => {
   it("is unticked by default and stores nothing unless ticked", async () => {
-    render(<SignInScreen />);
+    await render(<SignInScreen />);
     expect(box().props.accessibilityState).toMatchObject({ checked: false });
     await signInAs("sam@example.com");
     expect(await getRememberedEmail()).toBeNull();
@@ -52,28 +52,28 @@ describe("remember my email (opt-in)", () => {
   });
 
   it("keeps the email when ticked, and fills the form next time", async () => {
-    const first = render(<SignInScreen />);
-    fireEvent.press(box());
+    const first = await render(<SignInScreen />);
+    await fireEvent.press(box());
     await signInAs("  sam@example.com ");
     expect(await getRememberedEmail()).toBe("sam@example.com");
-    first.unmount();
+    await first.unmount();
 
-    render(<SignInScreen />);
+    await render(<SignInScreen />);
     await waitFor(() => expect(screen.getByLabelText("Email").props.value).toBe("sam@example.com"));
     expect(box().props.accessibilityState).toMatchObject({ checked: true });
   });
 
   it("forgets it the moment the box is unticked, before any sign-in", async () => {
     await rememberEmail("sam@example.com");
-    render(<SignInScreen />);
+    await render(<SignInScreen />);
     await waitFor(() => expect(box().props.accessibilityState).toMatchObject({ checked: true }));
-    fireEvent.press(box());
+    await fireEvent.press(box());
     await waitFor(async () => expect(await getRememberedEmail()).toBeNull());
     expect(signIn).not.toHaveBeenCalled();
   });
 
-  it("says where it's kept and how to undo it, next to the box", () => {
-    render(<SignInScreen />);
+  it("says where it's kept and how to undo it, next to the box", async () => {
+    await render(<SignInScreen />);
     expect(screen.getByText(/Kept only on this device and never sent to us/)).toBeTruthy();
     expect(screen.getByRole("link", { name: "About device storage" })).toBeTruthy();
   });

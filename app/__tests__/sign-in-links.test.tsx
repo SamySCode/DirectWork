@@ -53,8 +53,8 @@ describe("parseAuthLink", () => {
 });
 
 describe("Sign in from a confirmation link", () => {
-  it("shows a plain form without a link", () => {
-    render(<SignInScreen />);
+  it("shows a plain form without a link", async () => {
+    await render(<SignInScreen />);
     expect(screen.queryByText(/confirmed/i)).toBeNull();
     expect(exchange).not.toHaveBeenCalled();
   });
@@ -63,7 +63,7 @@ describe("Sign in from a confirmation link", () => {
     let finish: (value: unknown) => void = () => {};
     exchange.mockReturnValue(new Promise((resolve) => (finish = resolve)));
     mockLinkingUrl = "directwork://sign-in?code=abc123";
-    render(<SignInScreen />);
+    await render(<SignInScreen />);
     expect(exchange).toHaveBeenCalledWith("abc123");
     expect(screen.getByText("Confirming your email…")).toBeTruthy();
     await act(async () => finish({ data: { session: {} }, error: null }));
@@ -73,22 +73,22 @@ describe("Sign in from a confirmation link", () => {
   it("says the email is confirmed when this device can't finish the sign-in", async () => {
     exchange.mockResolvedValue({ data: null, error: { message: "code verifier missing" } });
     mockLinkingUrl = "directwork://sign-in?code=abc123";
-    render(<SignInScreen />);
+    await render(<SignInScreen />);
     expect(await screen.findByText("Your email is confirmed. Sign in to continue.")).toBeTruthy();
   });
 
-  it("explains an expired link", () => {
+  it("explains an expired link", async () => {
     mockLinkingUrl = "directwork://sign-in#error=access_denied&error_code=otp_expired";
-    render(<SignInScreen />);
+    await render(<SignInScreen />);
     expect(
       screen.getByText("That link has expired. Sign in and we'll send a new one."),
     ).toBeTruthy();
     expect(exchange).not.toHaveBeenCalled();
   });
 
-  it("explains other link errors", () => {
+  it("explains other link errors", async () => {
     mockLinkingUrl = "directwork://sign-in?error=access_denied&error_code=bad_code";
-    render(<SignInScreen />);
+    await render(<SignInScreen />);
     expect(screen.getByText(/That link didn't work/)).toBeTruthy();
   });
 
@@ -97,15 +97,15 @@ describe("Sign in from a confirmation link", () => {
       Object.assign(new Error("Email not confirmed"), { code: "email_not_confirmed" }),
     );
     (resendConfirmation as jest.Mock).mockResolvedValue(undefined);
-    render(<SignInScreen />);
-    fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
-    fireEvent.changeText(screen.getByLabelText("Password"), "whatever");
-    fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
+    await render(<SignInScreen />);
+    await fireEvent.changeText(screen.getByLabelText("Email"), "sam@example.com");
+    await fireEvent.changeText(screen.getByLabelText("Password"), "whatever");
+    await fireEvent.press(screen.getByRole("button", { name: "Sign in" }));
     expect(await screen.findByText("Confirm your email first")).toBeTruthy();
     // Nothing was sent just now, so there's no cooldown to wait out.
     const resend = screen.getByRole("button", { name: "Resend email" });
     expect(resend).toBeEnabled();
-    fireEvent.press(resend);
+    await fireEvent.press(resend);
     await waitFor(() => expect(resendConfirmation).toHaveBeenCalledWith("sam@example.com"));
     expect(await screen.findByText(/Sent again/)).toBeTruthy();
   });

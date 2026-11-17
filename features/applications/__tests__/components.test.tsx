@@ -54,44 +54,46 @@ beforeEach(() => {
 });
 
 describe("ApplyPanel", () => {
-  const open = () => {
-    render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
-    fireEvent.press(screen.getByRole("button", { name: "Apply" }));
+  const open = async () => {
+    await render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
+    await fireEvent.press(screen.getByRole("button", { name: "Apply" }));
   };
 
-  it("starts collapsed and opens a note addressed to the owner", () => {
-    open();
+  it("starts collapsed and opens a note addressed to the owner", async () => {
+    await open();
     expect(screen.getByText("Tell Tom why you're a fit")).toBeTruthy();
   });
 
-  it("validates the note when you leave it", () => {
-    open();
+  it("validates the note when you leave it", async () => {
+    await open();
     const note = screen.getByLabelText("Your note");
-    fireEvent.changeText(note, "Hire me");
-    fireEvent(note, "blur");
+    await fireEvent.changeText(note, "Hire me");
+    await fireEvent(note, "blur");
     expect(screen.getByText(/Write at least 20 characters/)).toBeTruthy();
   });
 
-  it("refuses contact details before acceptance", () => {
-    open();
-    fireEvent.changeText(
+  it("refuses contact details before acceptance", async () => {
+    await open();
+    await fireEvent.changeText(
       screen.getByLabelText("Your note"),
       "Very keen on this - call me on 07700 900123 to chat",
     );
-    fireEvent.press(screen.getByRole("button", { name: "Send application" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Send application" }));
     expect(mutate).not.toHaveBeenCalled();
     expect(screen.getByText(/Leave out emails, phone numbers and links/)).toBeTruthy();
   });
 
   it("sends the note with attached work samples", async () => {
-    open();
-    fireEvent.changeText(
+    await open();
+    await fireEvent.changeText(
       screen.getByLabelText("Your note"),
       "I shipped two offline-first React Native apps last year.",
     );
-    fireEvent.press(screen.getByRole("button", { name: "Add image to Work samples (optional)" }));
+    await fireEvent.press(
+      screen.getByRole("button", { name: "Add image to Work samples (optional)" }),
+    );
     await waitFor(() => expect(screen.getByText("1 / 3")).toBeTruthy());
-    fireEvent.press(screen.getByRole("button", { name: "Send application" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Send application" }));
     expect(mutate).toHaveBeenCalledWith(
       {
         projectId: "listing-1",
@@ -102,43 +104,70 @@ describe("ApplyPanel", () => {
     );
   });
 
-  it("shows the server's error, e.g. the daily limit", () => {
+  it("shows the server's error, e.g. the daily limit", async () => {
     (useApply as jest.Mock).mockReturnValue({
       isPending: false,
       mutate: (_: unknown, opts: { onError: (e: Error) => void }) =>
         opts.onError(new Error("Daily application limit reached - try again tomorrow")),
     });
-    open();
-    fireEvent.changeText(screen.getByLabelText("Your note"), "A genuinely relevant note here.");
-    fireEvent.press(screen.getByRole("button", { name: "Send application" }));
+    await open();
+    await fireEvent.changeText(
+      screen.getByLabelText("Your note"),
+      "A genuinely relevant note here.",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send application" }));
     expect(screen.getByText("Daily application limit reached - try again tomorrow")).toBeTruthy();
   });
 
-  it("replaces the form with status once you've applied", () => {
-    (useMyApplications as jest.Mock).mockReturnValue({ data: [makeApplication()] });
-    render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
+  it("closes the form the moment the server confirms, before the list refreshes", async () => {
+    // The refreshed list of applications hasn't arrived yet: still empty.
+    (useMyApplications as jest.Mock).mockReturnValue({ data: [] });
+    (useApply as jest.Mock).mockReturnValue({
+      isPending: false,
+      mutate: (
+        _: unknown,
+        opts: { onSuccess: (r: { id: string; attachmentError: null }) => void },
+      ) => opts.onSuccess({ id: "new-app", attachmentError: null }),
+    });
+    await open();
+    await fireEvent.changeText(
+      screen.getByLabelText("Your note"),
+      "I shipped two offline-first React Native apps last year.",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send application" }));
+    expect(screen.queryByLabelText("Your note")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Send application" })).toBeNull();
     expect(screen.getByText("You've applied")).toBeTruthy();
     expect(screen.getByText("Waiting for reply")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "View your application" }));
+    await fireEvent.press(screen.getByRole("button", { name: "View your application" }));
+    expect(mockPush).toHaveBeenCalledWith("/application/new-app");
+  });
+
+  it("replaces the form with status once you've applied", async () => {
+    (useMyApplications as jest.Mock).mockReturnValue({ data: [makeApplication()] });
+    await render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
+    expect(screen.getByText("You've applied")).toBeTruthy();
+    expect(screen.getByText("Waiting for reply")).toBeTruthy();
+    await fireEvent.press(screen.getByRole("button", { name: "View your application" }));
     expect(mockPush).toHaveBeenCalledWith("/application/app-1");
   });
 
-  it("lets you apply again after a withdrawal, but not after a rejection", () => {
+  it("lets you apply again after a withdrawal, but not after a rejection", async () => {
     (useMyApplications as jest.Mock).mockReturnValue({
       data: [makeApplication({ status: "withdrawn" })],
     });
-    const { unmount } = render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
+    const { unmount } = await render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
     expect(screen.getByRole("button", { name: "Apply" })).toBeTruthy();
-    unmount();
+    await unmount();
     (useMyApplications as jest.Mock).mockReturnValue({
       data: [makeApplication({ status: "rejected" })],
     });
-    render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
+    await render(<ApplyPanel projectId="listing-1" ownerFirstName="Tom" />);
     expect(screen.queryByRole("button", { name: "Apply" })).toBeNull();
     expect(screen.getByRole("button", { name: "View your application" })).toBeTruthy();
   });
 
-  it("says what happens next, and shows a partial attachment failure after applying", () => {
+  it("says what happens next, and shows a partial attachment failure after applying", async () => {
     let apps: unknown[] = [];
     (useMyApplications as jest.Mock).mockImplementation(() => ({ data: apps }));
     (useApply as jest.Mock).mockReturnValue({
@@ -151,10 +180,13 @@ describe("ApplyPanel", () => {
         });
       },
     });
-    open();
+    await open();
     expect(screen.getByText(/never asks you to pay to apply/)).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText("Your note"), "A genuinely relevant note here.");
-    fireEvent.press(screen.getByRole("button", { name: "Send application" }));
+    await fireEvent.changeText(
+      screen.getByLabelText("Your note"),
+      "A genuinely relevant note here.",
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "Send application" }));
     expect(screen.getByText("You've applied")).toBeTruthy();
     expect(screen.getByText(/1 of 2 images couldn't be attached/)).toBeTruthy();
     expect(screen.getByText(/We don't email you yet/)).toBeTruthy();
@@ -164,8 +196,8 @@ describe("ApplyPanel", () => {
 describe("ApplicantCard", () => {
   it("accepts only after confirmation", async () => {
     (confirm as jest.Mock).mockResolvedValue(true);
-    render(<ApplicantCard application={makeApplication()} />);
-    fireEvent.press(screen.getByRole("button", { name: "Accept" }));
+    await render(<ApplicantCard application={makeApplication()} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Accept" }));
     await waitFor(() =>
       expect(mutate).toHaveBeenCalledWith(
         { applicationId: "app-1", accept: true },
@@ -179,17 +211,17 @@ describe("ApplicantCard", () => {
 
   it("does nothing when the decline is cancelled", async () => {
     (confirm as jest.Mock).mockResolvedValue(false);
-    render(<ApplicantCard application={makeApplication()} />);
-    fireEvent.press(screen.getByRole("button", { name: "Decline" }));
+    await render(<ApplicantCard application={makeApplication()} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Decline" }));
     await waitFor(() => expect(confirm).toHaveBeenCalled());
     expect(mutate).not.toHaveBeenCalled();
   });
 
-  it("shows attachments through signed URLs", () => {
+  it("shows attachments through signed URLs", async () => {
     (useAttachmentUrls as jest.Mock).mockReturnValue({
       data: { "user-1/a.jpg": "https://signed/a" },
     });
-    render(
+    await render(
       <ApplicantCard
         application={makeApplication({
           attachments: [{ id: "att", storage_path: "user-1/a.jpg" }],
@@ -199,41 +231,41 @@ describe("ApplicantCard", () => {
     expect(screen.getByRole("imagebutton")).toBeTruthy();
   });
 
-  it("opens the applicant's profile", () => {
-    render(<ApplicantCard application={makeApplication()} />);
-    fireEvent.press(screen.getByRole("link"));
+  it("opens the applicant's profile", async () => {
+    await render(<ApplicantCard application={makeApplication()} />);
+    await fireEvent.press(screen.getByRole("link"));
     expect(mockPush).toHaveBeenCalledWith("/people/user-1");
   });
 
-  it("shows the status instead of buttons once decided", () => {
-    render(<ApplicantCard application={makeApplication({ status: "withdrawn" })} />);
+  it("shows the status instead of buttons once decided", async () => {
+    await render(<ApplicantCard application={makeApplication({ status: "withdrawn" })} />);
     expect(screen.getByText("Withdrawn")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Accept" })).toBeNull();
   });
 });
 
 describe("CollaborationPanel", () => {
-  it("renders nothing until accepted", () => {
-    const { toJSON } = render(
+  it("renders nothing until accepted", async () => {
+    const { toJSON } = await render(
       <CollaborationPanel application={makeApplication()} viewerIsOwner={false} />,
     );
     expect(toJSON()).toBeNull();
   });
 
-  it("reveals contact details and opens email", () => {
-    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
+  it("reveals contact details and opens email", async () => {
+    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
     (useContact as jest.Mock).mockReturnValue({
       data: { full_name: "Tom Ellery", email: "tom@fieldnote.io" },
       isPending: false,
     });
-    render(
+    await render(
       <CollaborationPanel
         application={makeApplication({ status: "accepted" })}
         viewerIsOwner={false}
       />,
     );
     expect(screen.getByText("Contact details unlocked")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Email Tom" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Email Tom" }));
     expect(openURL).toHaveBeenCalledWith(
       "mailto:tom@fieldnote.io?subject=DirectWork%3A%20React%20Native%20developer",
     );
@@ -245,7 +277,7 @@ describe("CollaborationPanel", () => {
     expect(screen.getByText(/We don't email them for you/)).toBeTruthy();
   });
 
-  it("offers a retry when contact details fail to load", () => {
+  it("offers a retry when contact details fail to load", async () => {
     const refetch = jest.fn();
     (useContact as jest.Mock).mockReturnValue({
       data: undefined,
@@ -254,7 +286,7 @@ describe("CollaborationPanel", () => {
       isRefetching: false,
       refetch,
     });
-    render(
+    await render(
       <CollaborationPanel
         application={makeApplication({ status: "accepted" })}
         viewerIsOwner={false}
@@ -262,16 +294,16 @@ describe("CollaborationPanel", () => {
     );
     expect(screen.getByText("Couldn't load contact details.")).toBeTruthy();
     expect(screen.queryByText("Before you start")).toBeNull();
-    fireEvent.press(screen.getByRole("button", { name: "Try again" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Try again" }));
     expect(refetch).toHaveBeenCalled();
   });
 
   it("records an outcome after confirmation", async () => {
     (confirm as jest.Mock).mockResolvedValue(true);
-    render(
+    await render(
       <CollaborationPanel application={makeApplication({ status: "accepted" })} viewerIsOwner />,
     );
-    fireEvent.press(screen.getByRole("button", { name: "Mark completed" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Mark completed" }));
     await waitFor(() =>
       expect(mutate).toHaveBeenCalledWith(
         { membershipId: "membership-1", outcome: "completed" },
@@ -280,14 +312,14 @@ describe("CollaborationPanel", () => {
     );
   });
 
-  it("asks the other side to confirm what was proposed", () => {
+  it("asks the other side to confirm what was proposed", async () => {
     const outcome = {
       outcome: "completed" as const,
       summary: null,
       confirmed_by_owner_at: T,
       confirmed_by_member_at: null,
     };
-    render(
+    await render(
       <CollaborationPanel
         application={makeApplication({ status: "accepted" }, outcome)}
         viewerIsOwner={false}
@@ -297,14 +329,14 @@ describe("CollaborationPanel", () => {
     expect(screen.getByRole("button", { name: "Confirm completed" })).toBeTruthy();
   });
 
-  it("shows no actions once both sides agree", () => {
+  it("shows no actions once both sides agree", async () => {
     const outcome = {
       outcome: "completed" as const,
       summary: null,
       confirmed_by_owner_at: T,
       confirmed_by_member_at: T,
     };
-    render(
+    await render(
       <CollaborationPanel
         application={makeApplication({ status: "accepted" }, outcome)}
         viewerIsOwner
@@ -332,8 +364,8 @@ describe("ProgressRail", () => {
       "Progress: Confirmed",
     ],
     [makeApplication({ status: "rejected" }), "Application closed"],
-  ])("describes the state for screen readers", (application, label) => {
-    render(<ProgressRail application={application} />);
+  ])("describes the state for screen readers", async (application, label) => {
+    await render(<ProgressRail application={application} />);
     expect(screen.getByLabelText(label)).toBeTruthy();
   });
 });

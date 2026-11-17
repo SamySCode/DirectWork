@@ -35,36 +35,37 @@ beforeEach(() => {
   (useSaveProfile as jest.Mock).mockReturnValue({ mutate, isPending: false, isError: false });
 });
 
-const pressContinue = () => fireEvent.press(screen.getByRole("button", { name: "Continue" }));
+const pressContinue = async () =>
+  await fireEvent.press(screen.getByRole("button", { name: "Continue" }));
 
 describe("Onboarding", () => {
-  it("won't continue until an intent is picked", () => {
-    render(<OnboardingScreen />);
-    pressContinue();
+  it("won't continue until an intent is picked", async () => {
+    await render(<OnboardingScreen />);
+    await pressContinue();
     expect(screen.getByText("Pick at least one reason you're here")).toBeTruthy();
     expect(screen.getByText("Step 1 of 3")).toBeTruthy();
   });
 
-  it("walks through all three steps and saves the profile", () => {
-    render(<OnboardingScreen />);
-    fireEvent.press(screen.getByRole("checkbox", { name: /Find paid projects/ }));
-    pressContinue();
+  it("walks through all three steps and saves the profile", async () => {
+    await render(<OnboardingScreen />);
+    await fireEvent.press(screen.getByRole("checkbox", { name: /Find paid projects/ }));
+    await pressContinue();
 
     expect(screen.getByText("Step 2 of 3")).toBeTruthy();
-    pressContinue();
+    await pressContinue();
     expect(screen.getByText("Enter your name")).toBeTruthy();
-    fireEvent.changeText(screen.getByLabelText("Full name"), "Sam Saib");
-    fireEvent.changeText(screen.getByLabelText("Headline"), "React Native engineer");
-    fireEvent.press(screen.getByRole("button", { name: "Remote" }));
-    pressContinue();
+    await fireEvent.changeText(screen.getByLabelText("Full name"), "Sam Saib");
+    await fireEvent.changeText(screen.getByLabelText("Headline"), "React Native engineer");
+    await fireEvent.press(screen.getByRole("button", { name: "Remote" }));
+    await pressContinue();
 
     expect(screen.getByText("Step 3 of 3")).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Finish setup" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Finish setup" }));
     expect(mutate).not.toHaveBeenCalled();
     expect(screen.getByText("Add at least one skill")).toBeTruthy();
 
-    fireEvent.press(screen.getByRole("button", { name: "add test skill" }));
-    fireEvent.press(screen.getByRole("button", { name: "Finish setup" }));
+    await fireEvent.press(screen.getByRole("button", { name: "add test skill" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Finish setup" }));
     expect(mutate).toHaveBeenCalledWith(
       expect.objectContaining({
         fullName: "Sam Saib",
@@ -78,31 +79,31 @@ describe("Onboarding", () => {
     );
   });
 
-  it("blocks contact details in the headline", () => {
-    render(<OnboardingScreen />);
-    fireEvent.press(screen.getByRole("checkbox", { name: /Post a project/ }));
-    pressContinue();
-    fireEvent.changeText(screen.getByLabelText("Full name"), "Sam Saib");
+  it("blocks contact details in the headline", async () => {
+    await render(<OnboardingScreen />);
+    await fireEvent.press(screen.getByRole("checkbox", { name: /Post a project/ }));
+    await pressContinue();
+    await fireEvent.changeText(screen.getByLabelText("Full name"), "Sam Saib");
     const headline = screen.getByLabelText("Headline");
-    fireEvent.changeText(headline, "Founder - sam@example.com");
-    fireEvent(headline, "blur");
+    await fireEvent.changeText(headline, "Founder - sam@example.com");
+    await fireEvent(headline, "blur");
     expect(screen.getByText(/Leave out emails, phone numbers and links/)).toBeTruthy();
-    pressContinue();
+    await pressContinue();
     expect(screen.getByText("Step 2 of 3")).toBeTruthy();
   });
 
-  it("tailors copy for people who are only hiring", () => {
-    render(<OnboardingScreen />);
-    fireEvent.press(screen.getByRole("checkbox", { name: /Post a project/ }));
-    pressContinue();
+  it("tailors copy for people who are only hiring", async () => {
+    await render(<OnboardingScreen />);
+    await fireEvent.press(screen.getByRole("checkbox", { name: /Post a project/ }));
+    await pressContinue();
     expect(screen.getByPlaceholderText("e.g. Founder, building a booking app")).toBeTruthy();
   });
 
-  it("can go back a step", () => {
-    render(<OnboardingScreen />);
-    fireEvent.press(screen.getByRole("checkbox", { name: /Find paid projects/ }));
-    pressContinue();
-    fireEvent.press(screen.getByRole("button", { name: "Back" }));
+  it("can go back a step", async () => {
+    await render(<OnboardingScreen />);
+    await fireEvent.press(screen.getByRole("checkbox", { name: /Find paid projects/ }));
+    await pressContinue();
+    await fireEvent.press(screen.getByRole("button", { name: "Back" }));
     expect(screen.getByText("Step 1 of 3")).toBeTruthy();
     expect(screen.getByRole("checkbox", { name: /Find paid projects/ })).toBeChecked();
   });

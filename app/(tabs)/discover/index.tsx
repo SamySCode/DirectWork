@@ -264,7 +264,7 @@ export default function DiscoverScreen() {
           <ActivityIndicator color={theme.tint} style={styles.footerSpinner} />
         ) : listings.length > 0 && !discover.hasNextPage ? (
           <Text style={styles.end}>That's everything for now.</Text>
-        ) : null
+        ) : undefined
       }
     />
   );

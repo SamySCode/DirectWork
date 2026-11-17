@@ -14,6 +14,7 @@ import { colors, spacing, typography } from "../../../lib/theme";
 import { showToast } from "../../../lib/toast";
 import { applicationSchema } from "../../listings/schemas";
 import { clearApplicationDraft, getApplicationDraft, setApplicationDraft } from "../drafts";
+import type { Application } from "../api";
 import { useApply, useMyApplications } from "../hooks";
 import { applicationStatusMeta } from "../labels";
 
@@ -41,15 +42,20 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
   const [images, setImages] = useState<(PreparedImage & { key: string })[]>([]);
   const [picking, setPicking] = useState(false);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  // Set the moment the server confirms the application. The form closes
+  // straight away instead of waiting for the refreshed list of applications
+  // to arrive, so it can't look unsent or be sent a second time.
+  const [sentId, setSentId] = useState<string | null>(null);
   const form = useFormValidation(applicationSchema, { coverNote });
 
   // One application per listing: a rejection is final (the database refuses a
   // second try); only a withdrawal lets you apply again.
-  const existing = mine.data?.find(
-    (app) =>
-      app.project_id === projectId &&
-      (app.status === "submitted" || app.status === "accepted" || app.status === "rejected"),
-  );
+  const existing: Pick<Application, "id" | "status"> | undefined =
+    mine.data?.find(
+      (app) =>
+        app.project_id === projectId &&
+        (app.status === "submitted" || app.status === "accepted" || app.status === "rejected"),
+    ) ?? (sentId ? { id: sentId, status: "submitted" } : undefined);
 
   if (existing) {
     const status = applicationStatusMeta[existing.status];
@@ -107,6 +113,7 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
       { projectId, coverNote: data.coverNote, images },
       {
         onSuccess: (result) => {
+          setSentId(result.id);
           setAttachmentError(result?.attachmentError ?? null);
           clearApplicationDraft(projectId);
           showToast("Application sent");

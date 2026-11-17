@@ -1,25 +1,3 @@
 {
-  "advisories": [
-    {
-      "id": "GHSA-qr28-fpjm-wq7f",
-      "package": "decode-uri-component",
-      "scope": "shipped (client only)",
-      "reason": "expo-router 57 -> query-string 7 -> decode-uri-component 0.2.2. Reached when the router parses a URL query string, so a crafted link can freeze the tab or app of the person who opens it. No server impact and no data exposure. The patched release (0.5.1) is ESM-only and cannot be forced under query-string 7; the fix is expo-router 58 (Expo SDK 58 upgrade, docs/NEXT_STEPS.md 1.5). The related moderate advisory GHSA-vcc3-ghjq-m6fr has the same path and fix.",
-      "expires": "2027-01-31"
-    },
-    {
-      "id": "GHSA-5p2g-fcmc-qvqq",
-      "package": "image-size",
-      "scope": "build tool",
-      "reason": "react-native -> @react-native/community-cli-plugin -> metro -> image-size 1.2.1. Metro reads the size of our own bundled images at build time; it never runs in the shipped app and never sees user uploads. Metro pins image-size ^1, and no patched 1.x exists.",
-      "expires": "2027-01-31"
-    },
-    {
-      "id": "GHSA-w3rx-r6r6-pgpr",
-      "package": "image-size",
-      "scope": "build tool",
-      "reason": "Same path as GHSA-5p2g-fcmc-qvqq.",
-      "expires": "2027-01-31"
-    }
-  ]
+  "advisories": []
 }

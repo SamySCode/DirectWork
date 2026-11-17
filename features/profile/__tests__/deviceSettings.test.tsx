@@ -13,16 +13,16 @@ describe("On this phone: vibration", () => {
     // iOS's switch: the test renderer's Android stand-in has no accessible
     // role. The setting itself is the same on both.
     jest.replaceProperty(Platform, "OS", "ios");
-    render(<DeviceSettings />);
+    await render(<DeviceSettings />);
     const toggle = screen.getByRole("switch", { name: "Vibration" });
     expect(toggle.props.value).toBe(true);
-    await act(async () => fireEvent(toggle, "valueChange", false));
+    await act(async () => await fireEvent(toggle, "valueChange", false));
     expect(screen.getByRole("switch", { name: "Vibration" }).props.value).toBe(false);
   });
 
-  it("isn't shown on the web, where there's nothing to turn off", () => {
+  it("isn't shown on the web, where there's nothing to turn off", async () => {
     jest.replaceProperty(Platform, "OS", "web");
-    render(<DeviceSettings />);
+    await render(<DeviceSettings />);
     expect(screen.queryByRole("switch", { name: "Vibration" })).toBeNull();
   });
 });

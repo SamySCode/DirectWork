@@ -19,14 +19,14 @@ const page = (n: number) =>
 
 let client: QueryClient;
 
-function setup() {
+async function setup() {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   const wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
   // Read what the Discover screen reads while rendering: the query only
   // re-renders for result fields that have been read (tracked props).
-  return renderHook(
+  return await renderHook(
     () => {
       const query = useDiscover({ query: "", remoteOnly: false });
       void [query.data, query.hasNextPage, query.hasPreviousPage, query.isFetchingNextPage];
@@ -95,7 +95,7 @@ beforeEach(() => {
 
 describe("useDiscover", () => {
   it("keeps paging past the cap, dropping the oldest page off the top", async () => {
-    const { result } = setup();
+    const { result } = await setup();
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.hasPreviousPage).toBe(false);
 
@@ -116,7 +116,7 @@ describe("useDiscover", () => {
   });
 
   it("refetches at most the capped number of pages", async () => {
-    const { result } = setup();
+    const { result } = await setup();
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     await scrollOn(result, DISCOVER_MAX_PAGES + 3);
     fetchPage.mockClear();
@@ -128,7 +128,7 @@ describe("useDiscover", () => {
 
   it("stops when a page comes back short", async () => {
     fetchPage.mockImplementation(async (_filters, n: number) => (n === 0 ? page(0) : [page(1)[0]]));
-    const { result } = setup();
+    const { result } = await setup();
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     await scrollOn(result, 1);
     await waitFor(() => expect(result.current.hasNextPage).toBe(false));

@@ -11,54 +11,54 @@ describe("tab reselect", () => {
     expect(tabNameOf("home")).toBe("home");
   });
 
-  it("calls only the listeners for the tab that was pressed, until they unmount", () => {
+  it("calls only the listeners for the tab that was pressed, until they unmount", async () => {
     const onHome = jest.fn();
     const onDiscover = jest.fn();
-    const home = renderHook(() => useTabReselect("home", onHome));
-    renderHook(() => useTabReselect("discover", onDiscover));
+    const home = await renderHook(() => useTabReselect("home", onHome));
+    await renderHook(() => useTabReselect("discover", onDiscover));
 
     emitTabReselect("home");
     expect(onHome).toHaveBeenCalledTimes(1);
     expect(onDiscover).not.toHaveBeenCalled();
 
-    home.unmount();
+    await home.unmount();
     emitTabReselect("home");
     expect(onHome).toHaveBeenCalledTimes(1);
   });
 
-  it("uses the latest handler without resubscribing", () => {
+  it("uses the latest handler without resubscribing", async () => {
     const first = jest.fn();
     const second = jest.fn();
-    const hook = renderHook(
+    const hook = await renderHook(
       ({ handler }: { handler: () => void }) => useTabReselect("profile", handler),
       {
         initialProps: { handler: first },
       },
     );
-    hook.rerender({ handler: second });
+    await hook.rerender({ handler: second });
     emitTabReselect("profile");
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalledTimes(1);
-    hook.unmount();
+    await hook.unmount();
   });
 
-  it("does nothing for a screen that isn't a tab", () => {
+  it("does nothing for a screen that isn't a tab", async () => {
     const handler = jest.fn();
-    renderHook(() => useTabReselect(undefined, handler));
+    await renderHook(() => useTabReselect(undefined, handler));
     emitTabReselect("home");
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("scrolls a tab's Screen back to the top", () => {
+  it("scrolls a tab's Screen back to the top", async () => {
     const scrollTo = jest.spyOn(ScrollView.prototype, "scrollTo").mockImplementation(() => {});
-    const view = render(
+    const view = await render(
       <Screen tab="applications">
         <Text>Content</Text>
       </Screen>,
     );
-    act(() => emitTabReselect("applications"));
+    await act(() => emitTabReselect("applications"));
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ y: 0 }));
-    view.unmount();
+    await view.unmount();
     scrollTo.mockRestore();
   });
 });

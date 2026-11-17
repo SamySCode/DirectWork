@@ -225,33 +225,36 @@ describe("dealEntryState", () => {
 });
 
 describe("DealSheetEntry", () => {
-  const entry = (sheet: DealSheet | null, side: "owner" | "member") => {
+  const entry = async (sheet: DealSheet | null, side: "owner" | "member") => {
     (useDealSheet as jest.Mock).mockReturnValue({ data: sheet, isPending: false });
-    render(<DealSheetEntry applicationId="app-1" membershipId="membership-1" side={side} />);
+    await render(<DealSheetEntry applicationId="app-1" membershipId="membership-1" side={side} />);
   };
 
-  it("proposes terms and opens the Deal Sheet", () => {
-    entry(null, "owner");
-    fireEvent.press(screen.getByRole("button", { name: "Propose terms" }));
+  it("proposes terms and opens the Deal Sheet", async () => {
+    await entry(null, "owner");
+    await fireEvent.press(screen.getByRole("button", { name: "Propose terms" }));
     expect(mockPush).toHaveBeenCalledWith("/deal/app-1");
   });
 
-  it("flags a changed version for review", () => {
-    entry(makeSheet(), "member");
+  it("flags a changed version for review", async () => {
+    await entry(makeSheet(), "member");
     expect(screen.getByRole("button", { name: "Review and confirm" })).toBeTruthy();
     expect(screen.getByText("Version 2 changed since you last confirmed.")).toBeTruthy();
   });
 
-  it("shows the agreed version and date", () => {
-    entry(makeSheet({ member_confirmed_version: 2, agreed_at: "2026-10-03T09:00:00Z" }), "owner");
+  it("shows the agreed version and date", async () => {
+    await entry(
+      makeSheet({ member_confirmed_version: 2, agreed_at: "2026-10-03T09:00:00Z" }),
+      "owner",
+    );
     expect(screen.getByText("Agreed")).toBeTruthy();
     expect(screen.getByText("Version 2 · agreed 3 Oct 2026")).toBeTruthy();
   });
 });
 
 describe("DealSheetView", () => {
-  const view = (sheet: DealSheet, seen: Parameters<typeof DealSheetView>[0]["seen"]) =>
-    render(
+  const view = async (sheet: DealSheet, seen: Parameters<typeof DealSheetView>[0]["seen"]) =>
+    await render(
       <DealSheetView
         sheet={sheet}
         side="member"
@@ -268,9 +271,9 @@ describe("DealSheetView", () => {
       />,
     );
 
-  it("shows what changed since your confirmation, and the consent before confirming", () => {
+  it("shows what changed since your confirmation, and the consent before confirming", async () => {
     const before = makeSheet({ version: 1, amount: 2500 });
-    view(makeSheet(), { version: 1, terms: snapshotTerms(before) });
+    await view(makeSheet(), { version: 1, terms: snapshotTerms(before) });
     expect(screen.getByText("Changed since you confirmed version 1")).toBeTruthy();
     expect(screen.getByText("Amount · changed")).toBeTruthy();
     expect(screen.getByText(DEAL_CONSENT)).toBeTruthy();
@@ -280,8 +283,8 @@ describe("DealSheetView", () => {
     expect(screen.getByRole("button", { name: "Confirm version 2" })).toBeTruthy();
   });
 
-  it("asks for a full re-read when this device has no copy", () => {
-    view(makeSheet(), null);
+  it("asks for a full re-read when this device has no copy", async () => {
+    await view(makeSheet(), null);
     expect(screen.getByText(/Read the whole sheet again/)).toBeTruthy();
   });
 
@@ -352,15 +355,15 @@ describe("pay record", () => {
     );
   });
 
-  it("renders nothing below the threshold (no row) and the count above it", () => {
+  it("renders nothing below the threshold (no row) and the count above it", async () => {
     (usePayRecord as jest.Mock).mockReturnValue({ data: null });
-    const { toJSON } = render(<PayRecordLine ownerId="owner-1" />);
+    const { toJSON } = await render(<PayRecordLine ownerId="owner-1" />);
     expect(toJSON()).toBeNull();
 
     (usePayRecord as jest.Mock).mockReturnValue({
       data: { counted: 3, on_time: 2, late: 0, unpaid: 1 },
     });
-    render(<PayRecordLine ownerId="owner-1" />);
+    await render(<PayRecordLine ownerId="owner-1" />);
     const line = screen.getByText(
       "Paid on time on 2 of 3 reported payments · reported by professionals",
     );

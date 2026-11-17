@@ -20,31 +20,31 @@ import { ProfileStrengthCard } from "../profile/components/ProfileStrengthCard";
 import { ReplyRecord, replyTime } from "../profile/components/ReplyRecord";
 
 describe("NodeMeter", () => {
-  it("exposes progress to screen readers", () => {
-    render(<NodeMeter total={4} lit={3} accessibilityLabel="3 of 4 skills match" />);
+  it("exposes progress to screen readers", async () => {
+    await render(<NodeMeter total={4} lit={3} accessibilityLabel="3 of 4 skills match" />);
     const meter = screen.getByRole("progressbar", { name: "3 of 4 skills match" });
     expect(meter.props.accessibilityValue).toEqual({ min: 0, max: 4, now: 3 });
   });
 
-  it("collapses long lists into +N", () => {
-    render(<NodeMeter total={15} lit={2} max={10} accessibilityLabel="x" />);
+  it("collapses long lists into +N", async () => {
+    await render(<NodeMeter total={15} lit={2} max={10} accessibilityLabel="x" />);
     expect(screen.getByText("+5", { includeHiddenElements: true })).toBeTruthy();
   });
 
-  it("renders nothing for an empty meter", () => {
-    const { toJSON } = render(<NodeMeter total={0} lit={0} accessibilityLabel="x" />);
+  it("renders nothing for an empty meter", async () => {
+    const { toJSON } = await render(<NodeMeter total={0} lit={0} accessibilityLabel="x" />);
     expect(toJSON()).toBeNull();
   });
 
-  it("never reports more lit than total", () => {
-    render(<NodeMeter total={2} lit={5} accessibilityLabel="m" />);
+  it("never reports more lit than total", async () => {
+    await render(<NodeMeter total={2} lit={5} accessibilityLabel="m" />);
     expect(screen.getByRole("progressbar").props.accessibilityValue.now).toBe(2);
   });
 });
 
 describe("FitPanel", () => {
-  it("shows matched skills, names the missing ones, and lists signals", () => {
-    render(
+  it("shows matched skills, names the missing ones, and lists signals", async () => {
+    await render(
       <FitPanel
         fit={{
           matchedSkills: ["React Native", "TypeScript"],
@@ -61,8 +61,8 @@ describe("FitPanel", () => {
     expect(screen.getByText("Different working setup to yours")).toBeTruthy();
   });
 
-  it("renders nothing when there is nothing to compare", () => {
-    const { toJSON } = render(
+  it("renders nothing when there is nothing to compare", async () => {
+    const { toJSON } = await render(
       <FitPanel fit={{ matchedSkills: [], missingSkills: [], signals: [] }} />,
     );
     expect(toJSON()).toBeNull();
@@ -101,19 +101,21 @@ describe("ApplicantFunnel", () => {
     expect(counts.completed).toBe(0);
   });
 
-  it("labels each bar for screen readers and hides when empty", () => {
-    const { rerender, toJSON } = render(
+  it("labels each bar for screen readers and hides when empty", async () => {
+    const { rerender, toJSON } = await render(
       <ApplicantFunnel counts={{ applied: 5, accepted: 2, working: 2, completed: 1 }} />,
     );
     expect(screen.getByLabelText("Accepted: 2")).toBeTruthy();
-    rerender(<ApplicantFunnel counts={{ applied: 0, accepted: 0, working: 0, completed: 0 }} />);
+    await rerender(
+      <ApplicantFunnel counts={{ applied: 0, accepted: 0, working: 0, completed: 0 }} />,
+    );
     expect(toJSON()).toBeNull();
   });
 });
 
 describe("OutcomeChain", () => {
-  it("describes completed and ended collaborations", () => {
-    render(<OutcomeChain record={{ completed: 3, total: 4 }} />);
+  it("describes completed and ended collaborations", async () => {
+    await render(<OutcomeChain record={{ completed: 3, total: 4 }} />);
     expect(screen.getByText("3 completed collaborations")).toBeTruthy();
     expect(screen.getByText(/1 more ended early/)).toBeTruthy();
     expect(
@@ -121,8 +123,8 @@ describe("OutcomeChain", () => {
     ).toBeTruthy();
   });
 
-  it("explains how a record is built when there isn't one", () => {
-    render(<OutcomeChain record={{ completed: 0, total: 0 }} />);
+  it("explains how a record is built when there isn't one", async () => {
+    await render(<OutcomeChain record={{ completed: 0, total: 0 }} />);
     expect(screen.getByText(/Confirmed by both sides once a project wraps up/)).toBeTruthy();
     expect(screen.queryByRole("progressbar")).toBeNull();
   });
@@ -135,17 +137,17 @@ describe("ProfileStrengthCard", () => {
     { key: "bio", label: "Write a short bio", done: false },
   ];
 
-  it("shows the next steps and opens the editor", () => {
+  it("shows the next steps and opens the editor", async () => {
     const onFix = jest.fn();
-    render(<ProfileStrengthCard items={items} tint="#0E7F92" onFix={onFix} />);
+    await render(<ProfileStrengthCard items={items} tint="#0E7F92" onFix={onFix} />);
     expect(screen.getByRole("progressbar", { name: "1 of 3 profile steps done" })).toBeTruthy();
-    fireEvent.press(screen.getByRole("button", { name: "Add a profile photo" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Add a profile photo" }));
     expect(onFix).toHaveBeenCalled();
     expect(screen.queryByText("List at least 3 skills")).toBeNull();
   });
 
-  it("disappears once everything is done", () => {
-    const { toJSON } = render(
+  it("disappears once everything is done", async () => {
+    const { toJSON } = await render(
       <ProfileStrengthCard
         items={items.map((item) => ({ ...item, done: true }))}
         tint="#0E7F92"
@@ -190,13 +192,13 @@ describe("ReplyRecord", () => {
     expect(replyTime(hours)).toBe(text);
   });
 
-  it("doesn't judge an owner on too few applications", () => {
-    render(<ReplyRecord record={{ received: 2, replied: 0, median_hours: null }} />);
+  it("doesn't judge an owner on too few applications", async () => {
+    await render(<ReplyRecord record={{ received: 2, replied: 0, median_hours: null }} />);
     expect(screen.getByText(/no reply record yet/)).toBeTruthy();
   });
 
-  it("states the record plainly, without a median when nobody got a reply", () => {
-    render(<ReplyRecord record={{ received: 5, replied: 0, median_hours: null }} />);
+  it("states the record plainly, without a median when nobody got a reply", async () => {
+    await render(<ReplyRecord record={{ received: 5, replied: 0, median_hours: null }} />);
     expect(screen.getByText("Replies to 0 of 5 applicants")).toBeTruthy();
   });
 });
@@ -211,17 +213,17 @@ describe("insights", () => {
     expect(describeCount(n)).toBe(text);
   });
 
-  it("FactCard shows a dot grid, the takeaway and a tappable source", () => {
-    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(true);
-    render(<FactCard fact={fearOfFailure} />);
+  it("FactCard shows a dot grid, the takeaway and a tappable source", async () => {
+    const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+    await render(<FactCard fact={fearOfFailure} />);
     expect(screen.getByRole("image", { name: "58 out of 100" })).toBeTruthy();
     expect(screen.getByText(/fear of failure would stop them/)).toBeTruthy();
-    fireEvent.press(screen.getByRole("link", { name: /Global Entrepreneurship Monitor/ }));
+    await fireEvent.press(screen.getByRole("link", { name: /Global Entrepreneurship Monitor/ }));
     expect(openURL).toHaveBeenCalledWith(fearOfFailure.source.url);
   });
 
-  it("FactCard shows a ranking without inventing percentages", () => {
-    render(<FactCard fact={wrongTeam} />);
+  it("FactCard shows a ranking without inventing percentages", async () => {
+    await render(<FactCard fact={wrongTeam} />);
     expect(screen.getByText("#3")).toBeTruthy();
     expect(screen.getByText("Not the right team")).toBeTruthy();
     expect(screen.queryByText(/%/)).toBeNull();
@@ -234,8 +236,8 @@ describe("insights", () => {
     }
   });
 
-  it("PulseCard stays hidden until the numbers mean something", () => {
-    const { toJSON } = render(
+  it("PulseCard stays hidden until the numbers mean something", async () => {
+    const { toJSON } = await render(
       <PulseCard
         pulse={{ open_to_paid: 3, open_to_partner: 2, live_listings: 1, completed: 0 }}
         audience="owner"
@@ -244,17 +246,17 @@ describe("insights", () => {
     expect(toJSON()).toBeNull();
   });
 
-  it("PulseCard shows talent to owners and work to professionals", () => {
+  it("PulseCard shows talent to owners and work to professionals", async () => {
     const pulse = { open_to_paid: 40, open_to_partner: 25, live_listings: 12, completed: 7 };
-    const { rerender } = render(<PulseCard pulse={pulse} audience="owner" />);
+    const { rerender } = await render(<PulseCard pulse={pulse} audience="owner" />);
     expect(screen.getByLabelText("40 open to paid work")).toBeTruthy();
-    rerender(<PulseCard pulse={pulse} audience="professional" />);
+    await rerender(<PulseCard pulse={pulse} audience="professional" />);
     expect(screen.getByLabelText("12 live listings")).toBeTruthy();
   });
 
-  it("FirstSteps highlights the next step and only links undone ones", () => {
+  it("FirstSteps highlights the next step and only links undone ones", async () => {
     const onPress = jest.fn();
-    render(
+    await render(
       <FirstSteps
         steps={[
           { key: "a", label: "Finish your profile", detail: "d", done: true, onPress },
@@ -265,7 +267,7 @@ describe("insights", () => {
     );
     expect(screen.getByRole("progressbar", { name: "1 of 3 first steps done" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /Finish your profile/ })).toBeNull();
-    fireEvent.press(screen.getByRole("button", { name: /Apply to a listing/ }));
+    await fireEvent.press(screen.getByRole("button", { name: /Apply to a listing/ }));
     expect(onPress).toHaveBeenCalledTimes(1);
   });
 });
@@ -282,12 +284,12 @@ describe("guide", () => {
     }
   });
 
-  it("TipsCard opens on demand and links to the full guide", () => {
-    render(<TipsCard section="listing" />);
+  it("TipsCard opens on demand and links to the full guide", async () => {
+    await render(<TipsCard section="listing" />);
     expect(screen.queryByText("State the pay or terms up front")).toBeNull();
-    fireEvent.press(screen.getByRole("button", { name: /Tips: A listing people apply to/ }));
+    await fireEvent.press(screen.getByRole("button", { name: /Tips: A listing people apply to/ }));
     expect(screen.getByText("State the pay or terms up front")).toBeTruthy();
-    fireEvent.press(screen.getByRole("link", { name: "Read the full guide" }));
+    await fireEvent.press(screen.getByRole("link", { name: "Read the full guide" }));
     expect(mockGuidePush).toHaveBeenCalledWith("/guide");
   });
 });

@@ -45,7 +45,7 @@ describe("going offline", () => {
 
   it("keeps cached data, pauses instead of erroring, and refetches when back", async () => {
     const load = jest.fn().mockResolvedValueOnce(["cached"]);
-    const { result } = renderHook(
+    const { result } = await renderHook(
       () => {
         const query = useQuery({ queryKey: ["things"], queryFn: load, staleTime: 0, retry: false });
         // Read what a screen reads, so the hook re-renders for it (tracked props).
@@ -64,7 +64,7 @@ describe("going offline", () => {
 
     // ...and later ones wait rather than fail or hit the network.
     load.mockResolvedValue(["fresh"]);
-    act(() => void result.current.refetch());
+    await act(() => void result.current.refetch());
     await waitFor(() => expect(result.current.fetchStatus).toBe("paused"));
     expect(load).toHaveBeenCalledTimes(2);
     expect(result.current.data).toEqual(["cached"]);
@@ -82,21 +82,21 @@ describe("going offline", () => {
   it("a mutation attempted offline fails straight away with its error", async () => {
     onlineManager.setOnline(false);
     const save = jest.fn().mockRejectedValue(offline);
-    const { result } = renderHook(() => useMutation({ mutationFn: save }), { wrapper });
-    act(() => result.current.mutate());
+    const { result } = await renderHook(() => useMutation({ mutationFn: save }), { wrapper });
+    await act(() => result.current.mutate());
     await waitFor(() => expect(result.current.isError).toBe(true));
     expect(result.current.isPaused).toBe(false);
     expect(save).toHaveBeenCalledTimes(1);
   });
 
   it("the banner appears while offline and can check again on demand", async () => {
-    render(<OfflineBanner />);
+    await render(<OfflineBanner />);
     expect(screen.queryByRole("alert")).toBeNull();
-    act(() => reportFailure(offline));
+    await act(() => reportFailure(offline));
     expect(screen.getByText(/Can't connect right now/)).toBeTruthy();
 
     fetchMock.mockResolvedValueOnce({ status: 200 });
-    fireEvent.press(screen.getByRole("button", { name: "Try connecting now" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Try connecting now" }));
     await waitFor(() => expect(screen.queryByText(/Can't connect right now/)).toBeNull());
     expect(fetchMock).toHaveBeenCalledWith(
       "https://test-project.supabase.co/auth/v1/health",
@@ -111,12 +111,14 @@ describe("going offline", () => {
 });
 
 describe("RouteErrorBoundary", () => {
-  it("replaces a crashed screen with a friendly message and a retry", () => {
+  it("replaces a crashed screen with a friendly message and a retry", async () => {
     const retry = jest.fn().mockResolvedValue(undefined);
-    render(<RouteErrorBoundary error={new TypeError("Network request failed")} retry={retry} />);
+    await render(
+      <RouteErrorBoundary error={new TypeError("Network request failed")} retry={retry} />,
+    );
     expect(screen.getByText("Something broke on this screen")).toBeTruthy();
     expect(screen.queryByText(/TypeError/)).toBeNull();
-    fireEvent.press(screen.getByRole("button", { name: "Try again" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Try again" }));
     expect(retry).toHaveBeenCalled();
   });
 });

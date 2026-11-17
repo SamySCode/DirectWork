@@ -21,8 +21,8 @@ describe("formSnapshot", () => {
 });
 
 describe("useUnsavedChanges", () => {
-  it("renders nothing outside a navigator, so forms work in component tests", () => {
-    const { result } = renderHook(() => useUnsavedChanges(true));
+  it("renders nothing outside a navigator, so forms work in component tests", async () => {
+    const { result } = await renderHook(() => useUnsavedChanges(true));
     expect(result.current.guard).toBeNull();
     expect(() => result.current.allowLeave()).not.toThrow();
   });

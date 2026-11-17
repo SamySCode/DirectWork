@@ -173,39 +173,39 @@ describe("sign-up metadata", () => {
 });
 
 describe("legal screens", () => {
-  it("lists every document and opens one", () => {
+  it("lists every document and opens one", async () => {
     (useAuth as jest.Mock).mockReturnValue({ session: null });
-    render(<LegalIndexScreen />);
-    fireEvent.press(screen.getByRole("link", { name: "Deleting your account" }));
+    await render(<LegalIndexScreen />);
+    await fireEvent.press(screen.getByRole("link", { name: "Deleting your account" }));
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/legal/[doc]",
       params: { doc: "account-deletion" },
     });
   });
 
-  it("renders a document signed out", () => {
+  it("renders a document signed out", async () => {
     (useAuth as jest.Mock).mockReturnValue({ session: null });
     (useLocalSearchParams as jest.Mock).mockReturnValue({ doc: "account-deletion" });
-    render(<LegalDocumentScreen />);
+    await render(<LegalDocumentScreen />);
     expect(screen.getByRole("header", { name: "Deleting your account" })).toBeTruthy();
     expect(screen.getByText(/Go to Profile, then Delete account/)).toBeTruthy();
   });
 
-  it("handles an unknown document", () => {
+  it("handles an unknown document", async () => {
     (useLocalSearchParams as jest.Mock).mockReturnValue({ doc: "nope" });
-    render(<LegalDocumentScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "See all documents" }));
+    await render(<LegalDocumentScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "See all documents" }));
     expect(mockReplace).toHaveBeenCalledWith("/legal");
   });
 
   it("re-acceptance needs the box, then records the current versions", async () => {
     rpc.mockResolvedValue({ data: null, error: null });
-    renderWithClient(<AcceptLegalScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Accept and continue" }));
+    await renderWithClient(<AcceptLegalScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Accept and continue" }));
     expect(screen.getByText("Tick the box to carry on.")).toBeTruthy();
     expect(rpc).not.toHaveBeenCalled();
-    fireEvent.press(screen.getByRole("checkbox"));
-    fireEvent.press(screen.getByRole("button", { name: "Accept and continue" }));
+    await fireEvent.press(screen.getByRole("checkbox"));
+    await fireEvent.press(screen.getByRole("button", { name: "Accept and continue" }));
     await waitFor(() =>
       expect(rpc).toHaveBeenCalledWith("record_legal_acceptance", {
         p_terms_version: TERMS_VERSION,
@@ -216,8 +216,8 @@ describe("legal screens", () => {
 });
 
 describe("Help & legal", () => {
-  it("shows the contact emails and every document", () => {
-    renderWithClient(<HelpScreen />);
+  it("shows the contact emails and every document", async () => {
+    await renderWithClient(<HelpScreen />);
     expect(screen.getByText("[SUPPORT EMAIL]")).toBeTruthy();
     expect(screen.getByText("[PRIVACY EMAIL]")).toBeTruthy();
     expect(screen.getByText("[COMPLAINTS EMAIL]")).toBeTruthy();
@@ -226,17 +226,19 @@ describe("Help & legal", () => {
     }
   });
 
-  it("hides Download my data when signed out", () => {
+  it("hides Download my data when signed out", async () => {
     (useAuth as jest.Mock).mockReturnValue({ session: null });
-    renderWithClient(<HelpScreen />);
+    await renderWithClient(<HelpScreen />);
     expect(screen.queryByRole("button", { name: "Download my data" })).toBeNull();
   });
 
   it("exports my data and shares it as JSON", async () => {
-    const share = jest.spyOn(Share, "share").mockResolvedValue({ action: "sharedAction" });
+    const share = jest
+      .spyOn(Share, "share")
+      .mockResolvedValue({ action: "sharedAction", activityType: undefined });
     rpc.mockResolvedValue({ data: { profile: { full_name: "Sam" } }, error: null });
-    renderWithClient(<HelpScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Download my data" }));
+    await renderWithClient(<HelpScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Download my data" }));
     await waitFor(() => expect(share).toHaveBeenCalled());
     expect(rpc).toHaveBeenCalledWith("export_my_data");
     const shared = share.mock.calls[0]![0] as { message: string; title: string };
@@ -248,8 +250,8 @@ describe("Help & legal", () => {
 
   it("shows an export failure", async () => {
     rpc.mockResolvedValue({ data: null, error: new Error("Can't export right now") });
-    renderWithClient(<HelpScreen />);
-    fireEvent.press(screen.getByRole("button", { name: "Download my data" }));
+    await renderWithClient(<HelpScreen />);
+    await fireEvent.press(screen.getByRole("button", { name: "Download my data" }));
     expect(await screen.findByText("Can't export right now")).toBeTruthy();
   });
 });

@@ -5,7 +5,7 @@ import {
   Platform,
   ScrollView,
   StyleSheet,
-  TextInput,
+  type TextInputInstance,
   View,
 } from "react-native";
 import { Button } from "../../components/Button";
@@ -54,7 +54,7 @@ function linkNotice(link: AuthLinkState): { text: string; ok: boolean } | null {
 
 export default function SignInScreen() {
   // Enter in the email field moves to the password, as a keyboard's Next key does.
-  const passwordInput = useRef<TextInput>(null);
+  const passwordInput = useRef<TextInputInstance>(null);
   const notice = linkNotice(useAuthLink());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

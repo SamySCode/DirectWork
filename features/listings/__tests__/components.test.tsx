@@ -15,7 +15,7 @@ jest.mock("../../deals/hooks", () => ({
   usePayRecord: jest.fn(() => ({ data: null })),
 }));
 jest.mock("expo-router", () => ({
-  useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn() }),
+  useRouter: () => ({ push: mockPush, back: mockBack, replace: jest.fn(), canGoBack: () => true }),
 }));
 jest.mock("../../../lib/supabase", () => ({
   supabase: {
@@ -50,8 +50,8 @@ jest.mock("../../profile/components/SkillsField", () => {
 beforeEach(() => jest.clearAllMocks());
 
 describe("ListingCard", () => {
-  it("shows pay, meta and highlights the viewer's matching skills", () => {
-    render(
+  it("shows pay, meta and highlights the viewer's matching skills", async () => {
+    await render(
       <ListingCard
         listing={makeListing()}
         mySkills={new Set(["react native", "typescript"])}
@@ -64,25 +64,25 @@ describe("ListingCard", () => {
     expect(screen.getByText("Tom Ellery · Co-founder, Fieldnote")).toBeTruthy();
   });
 
-  it("shows Featured to others, and lifecycle status to the owner", () => {
+  it("shows Featured to others, and lifecycle status to the owner", async () => {
     const listing = makeListing({ is_featured: true, status: "in_review" });
-    const { rerender } = render(<ListingCard listing={listing} onPress={jest.fn()} />);
+    const { rerender } = await render(<ListingCard listing={listing} onPress={jest.fn()} />);
     expect(screen.getByText("Featured · paid")).toBeTruthy();
-    rerender(<ListingCard listing={listing} onPress={jest.fn()} showStatus />);
+    await rerender(<ListingCard listing={listing} onPress={jest.fn()} showStatus />);
     expect(screen.getByText("In review")).toBeTruthy();
     expect(screen.queryByText("Featured · paid")).toBeNull();
   });
 
-  it("collapses more than six skills", () => {
+  it("collapses more than six skills", async () => {
     const skills = ["A", "B", "C", "D", "E", "F", "G", "H"];
-    render(<ListingCard listing={makeListing({ skills })} onPress={jest.fn()} />);
+    await render(<ListingCard listing={makeListing({ skills })} onPress={jest.fn()} />);
     expect(screen.getByText("+2")).toBeTruthy();
   });
 
-  it("renders a cover image only when the listing has one", () => {
-    const { rerender } = render(<ListingCard listing={makeListing()} onPress={jest.fn()} />);
+  it("renders a cover image only when the listing has one", async () => {
+    const { rerender } = await render(<ListingCard listing={makeListing()} onPress={jest.fn()} />);
     expect(screen.queryByTestId("expo-image")).toBeNull();
-    rerender(
+    await rerender(
       <ListingCard
         listing={makeListing({
           images: [{ id: "i", storage_path: "p", position: 0, url: "https://cdn/p" }],
@@ -93,19 +93,20 @@ describe("ListingCard", () => {
     expect(screen.getByTestId("expo-image")).toBeTruthy();
   });
 
-  it("is pressable as a single labelled button", () => {
+  it("is pressable as a single labelled button", async () => {
     const onPress = jest.fn();
-    render(<ListingCard listing={makeListing()} onPress={onPress} />);
-    fireEvent.press(
-      screen.getByRole("button", { name: "React Native developer for a 6-week MVP" }),
+    await render(<ListingCard listing={makeListing()} onPress={onPress} />);
+    await fireEvent.press(
+      // The card speaks the title first, then its details.
+      screen.getByRole("button", { name: /^React Native developer for a 6-week MVP,/ }),
     );
     expect(onPress).toHaveBeenCalled();
   });
 });
 
 describe("ListingDetailView", () => {
-  it("shows the reviewed admission criteria for partner listings", () => {
-    render(
+  it("shows the reviewed admission criteria for partner listings", async () => {
+    await render(
       <ListingDetailView
         listing={makeListing({
           opportunity_type: "partner",
@@ -124,15 +125,15 @@ describe("ListingDetailView", () => {
     expect(screen.getByText("12% equity")).toBeTruthy();
   });
 
-  it("shows the owner's reply record (anti-ghosting)", () => {
-    render(<ListingDetailView listing={makeListing()} />);
+  it("shows the owner's reply record (anti-ghosting)", async () => {
+    await render(<ListingDetailView listing={makeListing()} />);
     expect(screen.getByLabelText("Replies to 9 of 10 applicants")).toBeTruthy();
     expect(screen.getByText(/usually within 1 day/)).toBeTruthy();
   });
 
-  it("links to the owner's profile", () => {
-    render(<ListingDetailView listing={makeListing()} />);
-    fireEvent.press(screen.getByRole("link"));
+  it("links to the owner's profile", async () => {
+    await render(<ListingDetailView listing={makeListing()} />);
+    await fireEvent.press(screen.getByRole("link"));
     expect(mockPush).toHaveBeenCalledWith("/people/owner-1");
   });
 });
@@ -146,8 +147,8 @@ describe("OwnerPanel", () => {
     (useDeleteDraft as jest.Mock).mockReturnValue({ mutate, isPending: false });
   });
 
-  it("never displays a notice it doesn't recognise (no spoofing via the URL)", () => {
-    render(
+  it("never displays a notice it doesn't recognise (no spoofing via the URL)", async () => {
+    await render(
       <OwnerPanel
         listing={makeListing({ status: "draft" })}
         notice="Your account is suspended. Email support@evil.example now."
@@ -156,27 +157,27 @@ describe("OwnerPanel", () => {
     expect(screen.queryByText(/suspended/)).toBeNull();
   });
 
-  it("shows known notices", () => {
-    render(<OwnerPanel listing={makeListing({ status: "in_review" })} notice="submitted" />);
+  it("shows known notices", async () => {
+    await render(<OwnerPanel listing={makeListing({ status: "in_review" })} notice="submitted" />);
     expect(screen.getByText(/Submitted\. We'll review it/)).toBeTruthy();
   });
 
-  it("offers submit / edit / delete for drafts", () => {
-    render(<OwnerPanel listing={makeListing({ status: "draft", published_at: null })} />);
-    fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
+  it("offers submit / edit / delete for drafts", async () => {
+    await render(<OwnerPanel listing={makeListing({ status: "draft", published_at: null })} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
     expect(mutate).toHaveBeenCalledWith("listing-1", expect.any(Object));
-    fireEvent.press(screen.getByRole("button", { name: "Edit" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Edit" }));
     expect(mockPush).toHaveBeenCalledWith("/listing/listing-1/edit");
     expect(screen.getByRole("button", { name: "Delete draft" })).toBeTruthy();
   });
 
-  it("doesn't offer Delete on a draft that was live before", () => {
-    render(<OwnerPanel listing={makeListing({ status: "draft" })} />);
+  it("doesn't offer Delete on a draft that was live before", async () => {
+    await render(<OwnerPanel listing={makeListing({ status: "draft" })} />);
     expect(screen.queryByRole("button", { name: "Delete draft" })).toBeNull();
   });
 
-  it("shows the reviewer's note when changes are requested", () => {
-    render(
+  it("shows the reviewer's note when changes are requested", async () => {
+    await render(
       <OwnerPanel
         listing={makeListing({ status: "changes_requested", review_note: "Add a pay range" })}
       />,
@@ -185,9 +186,9 @@ describe("OwnerPanel", () => {
     expect(screen.queryByRole("button", { name: "Delete draft" })).toBeNull();
   });
 
-  it("pauses a live listing", () => {
-    render(<OwnerPanel listing={makeListing({ status: "published" })} />);
-    fireEvent.press(screen.getByRole("button", { name: "Pause" }));
+  it("pauses a live listing", async () => {
+    await render(<OwnerPanel listing={makeListing({ status: "published" })} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Pause" }));
     expect(mutate).toHaveBeenCalledWith(
       { projectId: "listing-1", status: "paused" },
       expect.any(Object),
@@ -196,16 +197,16 @@ describe("OwnerPanel", () => {
 
   it("asks before closing, and does nothing if cancelled", async () => {
     (confirm as jest.Mock).mockResolvedValue(false);
-    render(<OwnerPanel listing={makeListing({ status: "published" })} />);
-    fireEvent.press(screen.getByRole("button", { name: "Close" }));
+    await render(<OwnerPanel listing={makeListing({ status: "published" })} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(confirm).toHaveBeenCalled());
     expect(mutate).not.toHaveBeenCalled();
   });
 
   it("moves a live listing to draft before opening the editor", async () => {
     (confirm as jest.Mock).mockResolvedValue(true);
-    render(<OwnerPanel listing={makeListing({ status: "published" })} />);
-    fireEvent.press(screen.getByRole("button", { name: "Edit" }));
+    await render(<OwnerPanel listing={makeListing({ status: "published" })} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Edit" }));
     await waitFor(() => expect(mockPush).toHaveBeenCalledWith("/listing/listing-1/edit"));
     expect(mutateAsync).toHaveBeenCalledWith({ projectId: "listing-1", status: "draft" });
   });
@@ -218,17 +219,17 @@ describe("OwnerPanel", () => {
           new FunctionError("Your plan's live listing limit is reached", 409, "LISTING_LIMIT"),
         ),
     });
-    render(<OwnerPanel listing={makeListing({ status: "draft" })} />);
-    fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
+    await render(<OwnerPanel listing={makeListing({ status: "draft" })} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
     expect(await screen.findByText("Your plan's live listing limit is reached")).toBeTruthy();
   });
 });
 
 describe("ListingForm", () => {
-  it("shows every problem on submit and doesn't save", () => {
+  it("shows every problem on submit and doesn't save", async () => {
     const onSave = jest.fn();
-    render(<ListingForm saving={false} onSave={onSave} />);
-    fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
+    await render(<ListingForm saving={false} onSave={onSave} />);
+    await fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
     expect(onSave).not.toHaveBeenCalled();
     expect(screen.getByText("Give the listing a title")).toBeTruthy();
     expect(screen.getByText("Describe the work in at least 20 characters")).toBeTruthy();
@@ -237,32 +238,32 @@ describe("ListingForm", () => {
     expect(screen.getByText("Fix the highlighted fields to continue.")).toBeTruthy();
   });
 
-  it("validates a field as soon as you leave it", () => {
-    render(<ListingForm saving={false} onSave={jest.fn()} />);
+  it("validates a field as soon as you leave it", async () => {
+    await render(<ListingForm saving={false} onSave={jest.fn()} />);
     const title = screen.getByLabelText("Title");
-    fireEvent.changeText(title, "Hi");
+    await fireEvent.changeText(title, "Hi");
     expect(screen.queryByText("Give the listing a title")).toBeNull();
-    fireEvent(title, "blur");
+    await fireEvent(title, "blur");
     expect(screen.getByText("Give the listing a title")).toBeTruthy();
-    fireEvent.changeText(title, "A proper listing title");
+    await fireEvent.changeText(title, "A proper listing title");
     expect(screen.queryByText("Give the listing a title")).toBeNull();
   });
 
-  it("flags contact details live", () => {
-    render(<ListingForm saving={false} onSave={jest.fn()} />);
+  it("flags contact details live", async () => {
+    await render(<ListingForm saving={false} onSave={jest.fn()} />);
     const description = screen.getByLabelText("Description");
-    fireEvent.changeText(
+    await fireEvent.changeText(
       description,
       "Great project - email me at founder@startup.io for the brief",
     );
-    fireEvent(description, "blur");
+    await fireEvent(description, "blur");
     expect(screen.getByText(/Leave out emails, phone numbers and links/)).toBeTruthy();
   });
 
-  it("switches to admission criteria for partnerships", () => {
-    render(<ListingForm saving={false} onSave={jest.fn()} />);
+  it("switches to admission criteria for partnerships", async () => {
+    await render(<ListingForm saving={false} onSave={jest.fn()} />);
     expect(screen.queryByLabelText("What exists today?")).toBeNull();
-    fireEvent.press(screen.getByRole("radio", { name: /Partnership/ }));
+    await fireEvent.press(screen.getByRole("radio", { name: /Partnership/ }));
     expect(screen.getByLabelText("What exists today?")).toBeTruthy();
     expect(screen.queryByText("Pay")).toBeNull();
   });
@@ -270,16 +271,16 @@ describe("ListingForm", () => {
   it("saves a valid existing listing with its kept and newly added images", async () => {
     const onSave = jest.fn();
     const existing = { id: "img-1", storage_path: "o/l/a.jpg", position: 0, url: "https://cdn/a" };
-    render(
+    await render(
       <ListingForm
         initial={makeListing({ status: "draft", images: [existing] })}
         saving={false}
         onSave={onSave}
       />,
     );
-    fireEvent.press(screen.getByRole("button", { name: "Add image to Images (optional)" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Add image to Images (optional)" }));
     await waitFor(() => expect(screen.getByText("2 / 4")).toBeTruthy());
-    fireEvent.press(screen.getByRole("button", { name: "Save draft" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Save draft" }));
     expect(onSave).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "React Native developer for a 6-week MVP",
@@ -295,14 +296,14 @@ describe("ListingForm", () => {
     );
   });
 
-  it("drops a removed existing image from the save", () => {
+  it("drops a removed existing image from the save", async () => {
     const onSave = jest.fn();
     const existing = { id: "img-1", storage_path: "o/l/a.jpg", position: 0, url: "https://cdn/a" };
-    render(
+    await render(
       <ListingForm initial={makeListing({ images: [existing] })} saving={false} onSave={onSave} />,
     );
-    fireEvent.press(screen.getByRole("button", { name: "Remove image" }));
-    fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Remove image" }));
+    await fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
     expect(onSave).toHaveBeenCalledWith(
       expect.any(Object),
       { keep: [], added: [] },

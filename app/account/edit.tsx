@@ -16,6 +16,7 @@ import { useMyProfile, useSaveProfile } from "../../features/profile/hooks";
 import { profileSchema, remotePrefOptions } from "../../features/profile/schemas";
 import { errorMessage } from "../../lib/functions";
 import { colors, spacing, typography } from "../../lib/theme";
+import { goBackOr } from "../../lib/navigation";
 import { showToast } from "../../lib/toast";
 import { formSnapshot, useUnsavedChanges } from "../../lib/unsavedChanges";
 import { useFormValidation } from "../../lib/validation";
@@ -95,7 +96,7 @@ export default function EditProfileScreen() {
       onSuccess: () => {
         allowLeave();
         showToast("Profile saved");
-        router.back();
+        goBackOr(router, "/profile");
       },
     });
   };
