@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Href, useRouter } from "expo-router";
-import { ComponentProps } from "react";
+import { ComponentProps, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Avatar } from "../../../components/Avatar";
@@ -44,6 +44,7 @@ export default function ProfileScreen() {
   const portfolio = usePortfolio(userId);
   const references = useReferences(userId);
   const isAdmin = useIsAdmin();
+  const [signOutFailed, setSignOutFailed] = useState(false);
   // Pull-to-refresh reloads every profile section and keeps the spinner up
   // until they're done, like the other tabs.
   const refresh = useRefreshProfile(userId);
@@ -67,6 +68,16 @@ export default function ProfileScreen() {
   }
 
   const go = (href: Href) => () => router.push(href);
+  // The root layout covers the app with "Signing out" while this runs; all
+  // that is left to handle here is the rare case where it didn't work.
+  const onSignOut = async () => {
+    setSignOutFailed(false);
+    try {
+      await signOut();
+    } catch {
+      setSignOutFailed(true);
+    }
+  };
 
   const rows: Row[] = [
     { icon: "create-outline", label: "Edit profile", onPress: go("/account/edit") },
@@ -92,7 +103,7 @@ export default function ProfileScreen() {
         ]
       : []),
     { icon: "eye-off-outline", label: "Blocked people", onPress: go("/account/blocked") },
-    { icon: "log-out-outline", label: "Sign out", onPress: () => signOut() },
+    { icon: "log-out-outline", label: "Sign out", onPress: onSignOut },
     {
       icon: "trash-outline",
       label: "Delete account",
@@ -155,6 +166,11 @@ export default function ProfileScreen() {
           </Pressable>
         ))}
       </Card>
+      {signOutFailed ? (
+        <Text style={styles.error} accessibilityLiveRegion="polite">
+          Couldn't sign you out. Try again.
+        </Text>
+      ) : null}
       {session?.user.email ? (
         <Text style={styles.email}>Signed in as {session.user.email}</Text>
       ) : null}
@@ -193,6 +209,11 @@ const styles = StyleSheet.create({
   },
   danger: {
     color: colors.danger,
+  },
+  error: {
+    color: colors.danger,
+    fontSize: typography.size.sm,
+    textAlign: "center",
   },
   email: {
     fontSize: typography.size.sm,

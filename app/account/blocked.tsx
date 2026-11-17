@@ -49,6 +49,8 @@ export default function BlockedPeopleScreen() {
             variant="secondary"
             size="sm"
             onPress={() => unblock.mutate(person.id)}
+            // The spinner goes on the row that was pressed; the rest wait.
+            loading={unblock.isPending && unblock.variables === person.id}
             disabled={unblock.isPending}
           />
         </Card>

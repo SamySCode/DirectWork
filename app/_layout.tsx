@@ -10,6 +10,7 @@ import { ErrorState } from "../components/ErrorState";
 import { OfflineBanner } from "../components/OfflineBanner";
 import { SessionProvider, useAuth } from "../features/auth/SessionProvider";
 import { useProtectedRoute } from "../features/auth/hooks";
+import { useSigningOut } from "../features/auth/signingOut";
 import { useLegalStatus } from "../features/legal/hooks";
 import { useProfile } from "../features/profile/hooks";
 import { installWebFocusStyles } from "../lib/accessibility";
@@ -34,6 +35,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
 function RootNavigator() {
   const { session, loading: sessionLoading } = useAuth();
   const { loaded: fontsLoaded } = useAppFonts();
+  const signingOut = useSigningOut();
   const profile = useProfile(session?.user.id);
   // Based on data, not status: a failed background refresh keeps the cached
   // profile, so it mustn't bounce anyone back to onboarding or a spinner (F9).
@@ -111,6 +113,11 @@ function RootNavigator() {
         />
       </Stack>
       <OfflineBanner />
+      {signingOut ? (
+        <View style={StyleSheet.absoluteFill}>
+          <AppLoadingScreen label="Signing out" />
+        </View>
+      ) : null}
       {session && (hasProfile === undefined || !legalSettled) ? (
         <View style={StyleSheet.absoluteFill}>
           {profile.isError ? (

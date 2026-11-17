@@ -129,7 +129,11 @@ export default function OnboardingScreen() {
             />
           ))}
         </View>
-        <Pressable onPress={() => signOut()} accessibilityRole="button" hitSlop={12}>
+        <Pressable
+          onPress={() => signOut().catch(() => {})}
+          accessibilityRole="button"
+          hitSlop={12}
+        >
           <Text style={styles.signOut}>Sign out</Text>
         </Pressable>
       </View>

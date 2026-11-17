@@ -3,6 +3,7 @@ import { invokeFunction } from "../../lib/functions";
 import { supabase } from "../../lib/supabase";
 import { PRIVACY_VERSION, TERMS_VERSION } from "../legal/versions";
 import type { ForgotPasswordInput, SignInInput, SignUpInput } from "./schemas";
+import { beginSigningOut, endSigningOut } from "./signingOut";
 
 export async function signUp({ email, password }: SignUpInput) {
   const { data, error } = await supabase.auth.signUp({
@@ -37,9 +38,36 @@ export async function signIn({ email, password }: SignInInput) {
   return data;
 }
 
+/**
+ * Signs out, with the "Signing out" cover up from the first moment (see
+ * signingOut.ts). On success the cover is taken down by the route guard once
+ * it has moved to the welcome screen, not here, so the signed-in screen
+ * never shows through in between.
+ *
+ * If the server can't be reached the session on this device is still
+ * cleared (supabase-js does that), which is what the person asked for, so
+ * that counts as signed out. It only throws when they are still signed in.
+ */
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
+  // Cover first: even reading the stored session can wait on the network
+  // (an expired token is refreshed), and the press must show at once.
+  beginSigningOut();
+  try {
+    const current = await supabase.auth.getSession();
+    if (!current.data.session) {
+      // Nothing to sign out of, so no redirect is coming to lift the cover.
+      endSigningOut();
+      return;
+    }
+    const { error } = await supabase.auth.signOut();
+    if (!error) return;
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) return;
+    throw error;
+  } catch (error) {
+    endSigningOut();
+    throw error;
+  }
 }
 
 export async function requestPasswordReset({ email }: ForgotPasswordInput) {

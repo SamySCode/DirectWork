@@ -6,6 +6,7 @@ import { Button } from "../../../components/Button";
 import { PressableCard } from "../../../components/Card";
 import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
+import { FadeIn } from "../../../components/FadeIn";
 import { HeroStat, HeroStats, PageHero } from "../../../components/PageHero";
 import { Screen } from "../../../components/Screen";
 import { SectionHeader } from "../../../components/SectionHeader";
@@ -109,7 +110,7 @@ export default function ApplicationsScreen() {
           onAction={() => router.push("/discover")}
         />
       ) : (
-        <>
+        <FadeIn style={styles.loaded}>
           {active.length > 0 ? (
             <View style={styles.section}>
               <SectionHeader title="In progress" />
@@ -131,13 +132,17 @@ export default function ApplicationsScreen() {
               {past.map(renderCard)}
             </View>
           ) : null}
-        </>
+        </FadeIn>
       )}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  // Same spacing the sections had as direct children of the screen.
+  loaded: {
+    gap: spacing.lg,
+  },
   section: {
     gap: spacing.md,
   },

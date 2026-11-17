@@ -29,7 +29,7 @@ written anywhere else. For what to do next, read `docs/ROADMAP.md` and
   still holds the older version until a pull request from
   `build/launch-hardening` into `main` is opened and merged at
   <https://github.com/SamySCode/DirectWork/compare/main...build/launch-hardening>.
-- Checks: 639 app tests, 127 database tests, 75 server-function tests,
+- Checks: 643 app tests, 127 database tests, 75 server-function tests,
   dependency and secret scans, all passing.
 - Nothing newer than migration `20261105100000` is applied to any
   Supabase project. The one hosted project (`zgoqieldstaisvudndda`,

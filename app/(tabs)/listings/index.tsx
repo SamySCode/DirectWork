@@ -3,6 +3,7 @@ import { StyleSheet, View } from "react-native";
 import { Button } from "../../../components/Button";
 import { EmptyState } from "../../../components/EmptyState";
 import { ErrorState } from "../../../components/ErrorState";
+import { FadeIn } from "../../../components/FadeIn";
 import { HeroStat, HeroStats, PageHero } from "../../../components/PageHero";
 import { Screen } from "../../../components/Screen";
 import { Text } from "../../../components/Text";
@@ -109,11 +110,11 @@ export default function ListingsScreen() {
           <FactCard fact={wrongTeam} color={theme.tint} />
         </View>
       ) : (
-        <View style={styles.list}>
+        <FadeIn style={styles.list}>
           {mine.map((listing) => (
             <ListingCard key={listing.id} listing={listing} showStatus onPress={openListing} />
           ))}
-        </View>
+        </FadeIn>
       )}
     </Screen>
   );

@@ -57,7 +57,15 @@ Three states, picked by what is known about what's coming:
 - `LoadingState` (a bare spinner) only where the shape is not known yet:
   checking a reset link, checking whether someone is a reviewer.
 - `AppLoadingScreen` is the branded full-screen state the root layout
-  shows during the initial session check.
+  shows during the initial session check. With a `label` it also covers
+  the app during an action that ends somewhere else entirely
+  ("Signing out", see `features/auth/signingOut.ts`).
+
+Every press that waits on the network must show it is working from the
+first moment: `loading` on the `Button` that was pressed, or the cover
+above when the whole app is about to change. Content that replaces a
+placeholder dissolves in (`Screen` does this for its content; use
+`FadeIn` for a swap inside a screen).
 
 Never show an empty state ("You're all caught up", "No matches") while a
 query is still pending. It is a false statement for half a second. Check

@@ -3,6 +3,7 @@ import { useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
 import { queryClient } from "../../lib/query";
 import { supabase } from "../../lib/supabase";
+import { endSigningOut } from "./signingOut";
 
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
@@ -61,6 +62,10 @@ export function useProtectedRoute(
 
   useEffect(() => {
     if (loading) return;
+    // Signed out: lift the "Signing out" cover in the same pass as the
+    // redirect below, so it comes down onto the welcome screen and never
+    // onto the screen being left.
+    if (!session) endSigningOut();
     const first = segments[0] ?? "";
     const onAcceptScreen = first === "legal" && segments[1] === "accept";
 

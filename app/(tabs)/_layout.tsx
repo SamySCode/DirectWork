@@ -4,6 +4,7 @@ import { ComponentProps } from "react";
 import { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIncomingPending } from "../../features/applications/hooks";
+import { useReducedMotion } from "../../lib/accessibility";
 import { colors, elevation, surfaces, tabThemes, typography } from "../../lib/theme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -21,11 +22,15 @@ export default function TabsLayout() {
   const { data: pending } = useIncomingPending();
   const insets = useSafeAreaInsets();
   const pendingCount = pending?.length ?? 0;
+  const reduceMotion = useReducedMotion();
 
   return (
     <Tabs
       initialRouteName="home"
       screenOptions={{
+        // A quick cross-fade between tabs, so a switch reads as a move, not
+        // a cut. Off when the device asks for reduced motion.
+        animation: reduceMotion ? "none" : "fade",
         tabBarActiveTintColor: colors.accent,
         tabBarInactiveTintColor: colors.textMuted,
         // Sized from its parts, not React Navigation's 49pt default (which
