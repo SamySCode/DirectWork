@@ -22,7 +22,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.directwork.app"
+      "package": "com.directwork.app",
+      "blockedPermissions": ["android.permission.VIBRATE"]
     },
     "web": {
       "favicon": "./assets/favicon.png",

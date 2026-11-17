@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { errorMessage, runAction } from "../../lib/functions";
 import type { PreparedImage } from "../../lib/images";
 import { useAuth } from "../auth/SessionProvider";
@@ -12,6 +12,7 @@ import {
   getListingApplications,
   getMyApplications,
   hasWrittenReference,
+  type Application,
 } from "./api";
 
 export const applicationKeys = {
@@ -54,11 +55,42 @@ export function useListingApplications(projectId: string | undefined) {
   });
 }
 
+const LIST_KEYS = new Set(["mine", "incoming", "listing"]);
+
+/** This application from the freshest list that has it, with when that list was fetched. */
+function findApplicationInLists(client: QueryClient, id: string) {
+  let best: { application: Application; updatedAt: number } | undefined;
+  const lists = client.getQueryCache().findAll({
+    queryKey: applicationKeys.all,
+    predicate: (query) => LIST_KEYS.has(String(query.queryKey[1])),
+  });
+  for (const query of lists) {
+    const rows = query.state.data;
+    if (!Array.isArray(rows)) continue;
+    const application = (rows as Application[]).find((row) => row?.id === id);
+    if (application && (!best || query.state.dataUpdatedAt > best.updatedAt)) {
+      best = { application, updatedAt: query.state.dataUpdatedAt };
+    }
+  }
+  return best;
+}
+
+/**
+ * One application. The lists (your applications, a listing's applicants)
+ * fetch the very same columns, so when one of them already holds this row
+ * the screen starts from it: no placeholder, and no request at all if the
+ * list is fresh. It carries the list's fetch time, so it goes stale and
+ * refreshes on the usual schedule.
+ */
 export function useApplication(id: string | undefined) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: applicationKeys.detail(id ?? ""),
     queryFn: () => getApplication(id!),
     enabled: !!id,
+    initialData: () => (id ? findApplicationInLists(queryClient, id)?.application : undefined),
+    initialDataUpdatedAt: () =>
+      id ? findApplicationInLists(queryClient, id)?.updatedAt : undefined,
   });
 }
 

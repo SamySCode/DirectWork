@@ -13,6 +13,7 @@ import { useAuthLink } from "../features/auth/useAuthLink";
 import { errorMessage } from "../lib/functions";
 import { supabase } from "../lib/supabase";
 import { colors, spacing, typography } from "../lib/theme";
+import { showToast } from "../lib/toast";
 import { fieldErrors } from "../lib/validation";
 
 // The reset email links here with a one-time PKCE `?code=` (lib/supabase.ts),
@@ -40,6 +41,7 @@ export default function UpdatePasswordScreen() {
     try {
       const { error } = await supabase.auth.updateUser({ password: result.data.password });
       if (error) throw error;
+      showToast("Password updated");
       router.replace("/home");
     } catch (error) {
       setFormError(errorMessage(error));

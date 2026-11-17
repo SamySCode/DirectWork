@@ -2,6 +2,7 @@ import { Pressable, PressableProps, StyleSheet } from "react-native";
 import { colors, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
 import { a11yState } from "../lib/accessibility";
+import { haptics } from "../lib/haptics";
 
 type ChipProps = Omit<PressableProps, "children" | "style"> & {
   label: string;
@@ -10,7 +11,13 @@ type ChipProps = Omit<PressableProps, "children" | "style"> & {
   tint?: string;
 };
 
-export function Chip({ label, selected, tint = colors.accent, ...pressableProps }: ChipProps) {
+export function Chip({
+  label,
+  selected,
+  tint = colors.accent,
+  onPress,
+  ...pressableProps
+}: ChipProps) {
   return (
     <Pressable
       accessibilityRole="button"
@@ -19,6 +26,10 @@ export function Chip({ label, selected, tint = colors.accent, ...pressableProps 
       hitSlop={{ top: 4, bottom: 4 }}
       style={[styles.chip, selected ? { borderColor: tint, backgroundColor: tint } : null]}
       {...pressableProps}
+      onPress={(event) => {
+        haptics.selection();
+        onPress?.(event);
+      }}
     >
       <Text style={[styles.label, selected ? styles.labelSelected : null]}>{label}</Text>
     </Pressable>

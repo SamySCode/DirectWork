@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import { ReactNode, useRef } from "react";
 import {
   Animated,
   KeyboardAvoidingView,
@@ -10,6 +10,8 @@ import {
   View,
   ViewStyle,
 } from "react-native";
+import { useReducedMotion } from "../lib/accessibility";
+import { TabName, useTabReselect } from "../lib/tabReselect";
 import { colors, layout, motion, spacing } from "../lib/theme";
 import { useFadeIn } from "./FadeIn";
 
@@ -23,6 +25,8 @@ type ScreenProps = {
   /** Pinned below the scroll area - for a primary action that must stay reachable. */
   footer?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /** On a tab's own screen: pressing that tab again scrolls back to the top. */
+  tab?: TabName;
 };
 
 export function Screen({
@@ -32,16 +36,21 @@ export function Screen({
   header,
   footer,
   contentStyle,
+  tab,
 }: ScreenProps) {
   // The content dissolves in as the screen opens (often straight after a
   // loading placeholder); the header and footer are solid from the start.
   const opacity = useFadeIn(motion.base);
+  const scroll = useRef<ScrollView>(null);
+  const reduceMotion = useReducedMotion();
+  useTabReselect(tab, () => scroll.current?.scrollTo({ y: 0, animated: !reduceMotion }));
   return (
     <KeyboardAvoidingView
       style={styles.page}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
       <ScrollView
+        ref={scroll}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         refreshControl={

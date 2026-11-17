@@ -9,6 +9,7 @@ import { confirm } from "../../../lib/confirm";
 import { billingAvailable } from "../../billing/availability";
 import { errorMessage, FunctionError } from "../../../lib/functions";
 import { colors, radius, spacing, typography } from "../../../lib/theme";
+import { showToast } from "../../../lib/toast";
 import type { ListingDetail } from "../api";
 import { useDeleteDraft, useSetListingStatus, useSubmitListing } from "../hooks";
 import { listingStatusMeta } from "../labels";
@@ -140,7 +141,13 @@ export function OwnerPanel({ listing, notice }: OwnerPanelProps) {
                     destructive: true,
                   });
                   if (ok)
-                    remove.mutate(listing.id, { onSuccess: () => router.back(), onError: fail });
+                    remove.mutate(listing.id, {
+                      onSuccess: () => {
+                        showToast("Draft deleted");
+                        router.back();
+                      },
+                      onError: fail,
+                    });
                 }}
               />
             ) : null}

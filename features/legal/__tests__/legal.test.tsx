@@ -79,7 +79,7 @@ describe("legal documents", () => {
 
   it("covers Deal Sheets and payment records", () => {
     expect(TERMS_VERSION).toBe("2026-11-07");
-    expect(PRIVACY_VERSION).toBe("2026-11-07");
+    expect(PRIVACY_VERSION).toBe("2026-11-17");
     const headings = (slug: string) => getLegalDocument(slug)!.sections.map((s) => s.heading);
 
     expect(headings("terms")).toContain("12. Deal Sheets and payment records");

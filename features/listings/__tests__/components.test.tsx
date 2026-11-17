@@ -290,6 +290,8 @@ describe("ListingForm", () => {
         added: [expect.objectContaining({ uri: "file://picked.jpg" })],
       },
       false,
+      // Lifts the "discard changes?" guard, called only once the save worked.
+      expect.any(Function),
     );
   });
 
@@ -301,6 +303,11 @@ describe("ListingForm", () => {
     );
     fireEvent.press(screen.getByRole("button", { name: "Remove image" }));
     fireEvent.press(screen.getByRole("button", { name: "Submit for review" }));
-    expect(onSave).toHaveBeenCalledWith(expect.any(Object), { keep: [], added: [] }, true);
+    expect(onSave).toHaveBeenCalledWith(
+      expect.any(Object),
+      { keep: [], added: [] },
+      true,
+      expect.any(Function),
+    );
   });
 });

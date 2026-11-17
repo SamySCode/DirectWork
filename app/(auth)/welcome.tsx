@@ -7,6 +7,7 @@ import { ConnectMark } from "../../components/ConnectMark";
 import { FadeIn } from "../../components/FadeIn";
 import { Text } from "../../components/Text";
 import { Wordmark } from "../../components/Wordmark";
+import { peekReturnTo, returnToKind } from "../../features/auth/returnTo";
 import { FactCard } from "../../features/insights/components/FactCard";
 import { fearOfFailure, ghosting } from "../../features/insights/facts";
 import { colors, gradients, radius, spacing, typography } from "../../lib/theme";
@@ -31,6 +32,10 @@ const promises = [
 export default function WelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // Set when the visitor followed a link to a listing or profile and was
+  // stopped here: say so, or the page they wanted just seems to be gone.
+  const waiting = peekReturnTo();
+  const waitingFor = waiting ? returnToKind(waiting) : null;
 
   return (
     <LinearGradient
@@ -59,6 +64,31 @@ export default function WelcomeScreen() {
             </View>
           </FadeIn>
 
+          {/* Straight under the headline, so nobody has to scroll past the
+              rest of the page to find the way in. */}
+          <View style={styles.actions}>
+            {waitingFor ? (
+              <View style={styles.waiting} accessibilityRole="alert">
+                <Text style={styles.waitingText}>
+                  {waitingFor === "page"
+                    ? "Sign in to carry on to the page you opened."
+                    : `Sign in to see the ${waitingFor} you opened. We'll take you straight to it.`}
+                </Text>
+              </View>
+            ) : null}
+            <Button
+              label="Create your profile"
+              variant="light"
+              onPress={() => router.push("/sign-up")}
+            />
+            <Button
+              label="I already have an account"
+              variant="onDark"
+              onPress={() => router.push("/sign-in")}
+            />
+            <Text style={styles.free}>Free for professionals, always.</Text>
+          </View>
+
           <View style={styles.promises}>
             {promises.map((promise, index) => (
               <View key={promise.title} style={styles.promise}>
@@ -78,17 +108,6 @@ export default function WelcomeScreen() {
           </View>
 
           <View style={styles.actions}>
-            <Button
-              label="Create your profile"
-              variant="light"
-              onPress={() => router.push("/sign-up")}
-            />
-            <Button
-              label="I already have an account"
-              variant="onDark"
-              onPress={() => router.push("/sign-in")}
-            />
-            <Text style={styles.free}>Free for professionals, always.</Text>
             <View style={styles.footer}>
               {(
                 [
@@ -185,6 +204,18 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: spacing.sm,
+  },
+  waiting: {
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  waitingText: {
+    fontSize: typography.size.sm,
+    lineHeight: 20,
+    color: colors.onInk,
   },
   free: {
     textAlign: "center",

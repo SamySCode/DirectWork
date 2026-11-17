@@ -93,7 +93,7 @@ export default function ApplicationsScreen() {
   };
 
   return (
-    <Screen onRefresh={() => refetch()} refreshing={isRefetching} header={hero}>
+    <Screen tab="applications" onRefresh={() => refetch()} refreshing={isRefetching} header={hero}>
       {isPending ? (
         <Skeleton label="Loading your applications">
           <SkeletonRows />

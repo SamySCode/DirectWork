@@ -19,6 +19,7 @@ import { opportunityLabels, timeAgo } from "../../features/listings/labels";
 import { confirm } from "../../lib/confirm";
 import { errorMessage } from "../../lib/functions";
 import { colors, spacing, typography } from "../../lib/theme";
+import { showToast } from "../../lib/toast";
 
 export default function ApplicationScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -48,7 +49,10 @@ export default function ApplicationScreen() {
     });
     if (!ok) return;
     setError(null);
-    withdraw.mutate(app.id, { onError: (err) => setError(errorMessage(err)) });
+    withdraw.mutate(app.id, {
+      onSuccess: () => showToast("Application withdrawn"),
+      onError: (err) => setError(errorMessage(err)),
+    });
   };
 
   return (

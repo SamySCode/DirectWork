@@ -16,6 +16,17 @@ jest.mock("expo-image", () => {
   };
 });
 
+// Haptics are a native nicety; tests only need the calls to resolve.
+jest.mock("expo-haptics", () => ({
+  notificationAsync: jest.fn(() => Promise.resolve()),
+  selectionAsync: jest.fn(() => Promise.resolve()),
+  impactAsync: jest.fn(() => Promise.resolve()),
+  performAndroidHapticsAsync: jest.fn(() => Promise.resolve()),
+  NotificationFeedbackType: { Success: "success", Warning: "warning", Error: "error" },
+  ImpactFeedbackStyle: { Light: "light", Medium: "medium", Heavy: "heavy" },
+  AndroidHaptics: { Confirm: "confirm", Segment_Tick: "segment-tick" },
+}));
+
 jest.mock("expo-linear-gradient", () => {
   const { View } = require("react-native");
   return { LinearGradient: (props) => require("react").createElement(View, props) };

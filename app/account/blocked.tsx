@@ -8,6 +8,7 @@ import { Screen } from "../../components/Screen";
 import { Text } from "../../components/Text";
 import { useBlockedPeople, useUnblock } from "../../features/safety/hooks";
 import { colors, spacing, typography } from "../../lib/theme";
+import { showToast } from "../../lib/toast";
 
 export default function BlockedPeopleScreen() {
   const blocked = useBlockedPeople();
@@ -48,7 +49,11 @@ export default function BlockedPeopleScreen() {
             label="Unblock"
             variant="secondary"
             size="sm"
-            onPress={() => unblock.mutate(person.id)}
+            onPress={() =>
+              unblock.mutate(person.id, {
+                onSuccess: () => showToast(`${person.full_name.split(" ")[0]} is unblocked`),
+              })
+            }
             // The spinner goes on the row that was pressed; the rest wait.
             loading={unblock.isPending && unblock.variables === person.id}
             disabled={unblock.isPending}

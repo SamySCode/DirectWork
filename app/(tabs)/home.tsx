@@ -27,6 +27,7 @@ import { availabilityFreshness } from "../../features/profile/freshness";
 import { useConfirmAvailability, useMyProfile, usePortfolio } from "../../features/profile/hooks";
 import { profileStrength } from "../../features/profile/strength";
 import { colors, radius, spacing, tabThemes, typography } from "../../lib/theme";
+import { showToast } from "../../lib/toast";
 
 type ActionItem = {
   key: string;
@@ -223,6 +224,7 @@ export default function HomeScreen() {
 
   return (
     <Screen
+      tab="home"
       onRefresh={refresh}
       refreshing={refreshing}
       header={
@@ -289,7 +291,11 @@ export default function HomeScreen() {
         <AvailabilityCheck
           freshness={freshness}
           confirming={confirmAvailability.isPending}
-          onConfirm={() => confirmAvailability.mutate()}
+          onConfirm={() =>
+            confirmAvailability.mutate(undefined, {
+              onSuccess: () => showToast("Thanks, you're showing as available"),
+            })
+          }
           onUpdate={() => router.push("/account/edit")}
         />
       ) : null}

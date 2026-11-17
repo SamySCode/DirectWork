@@ -16,6 +16,7 @@ import {
   type DealSheetForm as FormValues,
 } from "../schemas";
 import { a11yState } from "../../../lib/accessibility";
+import { formSnapshot, useUnsavedChanges } from "../../../lib/unsavedChanges";
 
 type Prefill = {
   scope: string;
@@ -97,6 +98,10 @@ export function DealSheetForm({
 }: DealSheetFormProps) {
   const [values, setValues] = useState<FormValues>(initial);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  // Leaving with a half-written Deal Sheet asks first. Once it's proposed,
+  // the form closes and takes the guard with it.
+  const [openedAs] = useState(() => formSnapshot(initial));
+  const { guard } = useUnsavedChanges(formSnapshot(values) !== openedAs);
   const set = <K extends keyof FormValues>(key: K, value: FormValues[K]) =>
     setValues((current) => ({ ...current, [key]: value }));
   const milestones = values.milestones;
@@ -121,6 +126,7 @@ export function DealSheetForm({
 
   return (
     <View style={styles.form}>
+      {guard}
       <TextField
         label="Scope"
         required

@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { colors, radius, spacing, typography } from "../lib/theme";
 import { Text } from "./Text";
 import { a11yState } from "../lib/accessibility";
+import { haptics } from "../lib/haptics";
 
 type Option<T extends string> = { value: T; label: string };
 
@@ -28,7 +29,11 @@ export function SegmentedTabs<T extends string>({
         return (
           <Pressable
             key={option.value}
-            onPress={() => onChange(option.value)}
+            onPress={() => {
+              // A tick only when the choice actually changes.
+              if (!selected) haptics.selection();
+              onChange(option.value);
+            }}
             accessibilityRole="tab"
             {...a11yState({ selected })}
             accessibilityLabel={option.label}

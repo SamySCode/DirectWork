@@ -2,7 +2,7 @@
 
 Shared, feature-agnostic UI primitives, styled from `lib/theme.ts`:
 `Button`, `Card`/`PressableCard`, `Chip`, `Badge`, `Avatar`,
-`EmptyState`, `LoadingState`, `Skeleton`, `ErrorState`, `TextField`, `FadeIn`,
+`EmptyState`, `LoadingState`, `Skeleton`, `ErrorState`, `Checkbox`, `Toast`, `TextField`, `FadeIn`,
 `Screen`, `SectionHeader`, `Wordmark`, `ConnectMark`, `PageHero`/`HeroStats`,
 `ImagePickerGrid` (presentation only; picking and uploading live in
 `lib/images.ts`), and `Gallery` (horizontal strip with a full-screen viewer).
@@ -70,6 +70,45 @@ placeholder dissolves in (`Screen` does this for its content; use
 Never show an empty state ("You're all caught up", "No matches") while a
 query is still pending. It is a false statement for half a second. Check
 `isPending` first and show a `Skeleton`.
+
+## Confirming an action
+
+After something worked and the screen moves on (saved, sent, deleted),
+call `showToast("Profile saved")` from `lib/toast.ts`; `ToastHost` in the
+root layout shows it for a couple of seconds. Success only: an error
+stays next to the thing that failed, where it can be read and acted on.
+Keep it to two or three words in the past tense.
+
+Each toast also gives a soft success tap on phones (`lib/haptics.ts`).
+The only other haptic is a light tick when a `Chip` or `SegmentedTabs`
+choice changes. Keep it that sparse, so it still means something.
+
+## Forms: unsaved changes
+
+A form someone could spend minutes on uses `useUnsavedChanges(dirty)`
+from `lib/unsavedChanges.tsx`: render its `guard`, compare
+`formSnapshot(values)` with the snapshot from when the form opened, and
+call `allowLeave()` straight before navigating away after a successful
+save. It asks "Discard your changes?" for the header back button, the
+Android back button, the iOS swipe and modal swipe-down, and on the web
+the browser's back and forward buttons (`lib/historyGate.ts`) and
+closing or reloading the tab. Used by Edit profile, the listing editor
+and the Deal Sheet form.
+
+## Tabs
+
+A tab's screen passes `tab="home"` (etc.) to `Screen`; pressing that tab
+again scrolls back to the top. A `FlatList` tab calls
+`useTabReselect` itself (see Discover).
+
+## Opening a detail screen from a list
+
+If a list already holds the row, the detail screen should start from it,
+not from a placeholder. `useApplication` does this by itself (the lists
+fetch the same columns). `useListing(id, { instant: true })` does it for
+showing a listing; never pass `instant` to a screen that edits or copies
+from the listing, because the list row has no admission criteria and
+only the cover image.
 
 ## State for screen readers
 

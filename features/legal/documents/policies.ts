@@ -1,6 +1,6 @@
 import { env } from "../../../lib/env";
 import { operator } from "../operator";
-import { LEGAL_UPDATED } from "../versions";
+import { LEGAL_UPDATED, PRIVACY_UPDATED } from "../versions";
 import { list, p, rows, section, type LegalDocument } from "./types";
 
 // These documents aren't accepted at sign-up, so they version by date only.
@@ -138,11 +138,12 @@ const billing = env.EXPO_PUBLIC_BILLING_ENABLED;
 export const cookies: LegalDocument = {
   slug: "cookies",
   title: "Cookies & Storage",
-  summary: "What DirectWork stores on your device and why. Strictly necessary only.",
-  version: VERSION,
-  updated: LEGAL_UPDATED,
+  summary:
+    "What DirectWork stores on your device and why: what's strictly necessary, plus your email only if you ask us to remember it.",
+  version: "2026-11-17",
+  updated: PRIVACY_UPDATED,
   intro: [
-    "DirectWork sets no cookies of its own and uses no analytics, advertising or tracking technology. We store only what's strictly necessary to provide the service you asked for, so we don't ask for consent.",
+    'DirectWork sets no cookies of its own and uses no analytics, advertising or tracking technology. Almost everything we store is strictly necessary to provide the service you asked for, so it doesn\'t need your consent. The one exception is optional: your email address, which we keep on your device only if you tick "Remember my email on this device" when you sign in.',
   ],
   sections: [
     section(
@@ -150,11 +151,11 @@ export const cookies: LegalDocument = {
       rows(
         [
           "Website",
-          "Your sign-in session, in your browser's local storage, so you stay signed in. It's removed when you sign out. A copy of Deal Sheet terms you proposed or confirmed, so we can show you what changed in a later version.",
+          "Your sign-in session, in your browser's local storage, so you stay signed in. It's removed when you sign out. A copy of Deal Sheet terms you proposed or confirmed, so we can show you what changed in a later version. Only if you tick \"Remember my email on this device\": your email address, so the sign-in form is filled in next time. It stays after you sign out, and it never leaves your device.",
         ],
         [
           "Apps",
-          "Your sign-in session, encrypted, with the key kept in your device's secure keychain or keystore. Images you view are cached on your device to make the app faster. A copy of Deal Sheet terms you proposed or confirmed, so we can show you what changed in a later version.",
+          "Your sign-in session, encrypted, with the key kept in your device's secure keychain or keystore. Images you view are cached on your device to make the app faster. A copy of Deal Sheet terms you proposed or confirmed, so we can show you what changed in a later version. Only if you tick \"Remember my email on this device\": your email address, in your device's secure keychain or keystore, so the sign-in form is filled in next time. It stays after you sign out, and it never leaves your device. If you turn vibration off (Profile, On this phone): that choice, so it stays off.",
         ],
       ),
     ),
@@ -168,7 +169,7 @@ export const cookies: LegalDocument = {
     section(
       "Clearing it",
       p(
-        "Signing out removes your session. You can also clear this website's data in your browser settings, or uninstall the app.",
+        "Signing out removes your session. To forget a remembered email, untick \"Remember my email on this device\" on the sign-in screen: it's deleted straight away. Deleting your account also deletes it from the device you delete it on. You can also clear this website's data in your browser settings, or uninstall the app.",
       ),
     ),
   ],

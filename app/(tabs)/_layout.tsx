@@ -5,6 +5,7 @@ import { ColorValue } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useIncomingPending } from "../../features/applications/hooks";
 import { useReducedMotion } from "../../lib/accessibility";
+import { emitTabReselect, tabNameOf } from "../../lib/tabReselect";
 import { colors, elevation, surfaces, tabThemes, typography } from "../../lib/theme";
 
 type IconName = ComponentProps<typeof Ionicons>["name"];
@@ -27,6 +28,13 @@ export default function TabsLayout() {
   return (
     <Tabs
       initialRouteName="home"
+      // Pressing the tab you are already on scrolls it back to the top. The
+      // press fires before any switch, so isFocused() means "already here".
+      screenListeners={({ navigation, route }) => ({
+        tabPress: () => {
+          if (navigation.isFocused()) emitTabReselect(tabNameOf(route.name));
+        },
+      })}
       screenOptions={{
         // A quick cross-fade between tabs, so a switch reads as a move, not
         // a cut. Off when the device asks for reduced motion.

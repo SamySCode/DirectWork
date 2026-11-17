@@ -11,6 +11,7 @@ import { colors, radius, spacing, typography } from "../../../lib/theme";
 import { ImagePickerGrid } from "../../../components/ImagePickerGrid";
 import { errorMessage } from "../../../lib/functions";
 import { pickImages, PreparedImage } from "../../../lib/images";
+import { formSnapshot, useUnsavedChanges } from "../../../lib/unsavedChanges";
 import { useFormValidation } from "../../../lib/validation";
 import { TipsCard } from "../../guide/components/TipsCard";
 import { TalentPool } from "../../insights/components/TalentPool";
@@ -32,7 +33,12 @@ type ListingFormProps = {
   saving: boolean;
   error?: string | null;
   /** submit = save and send to review in one go. */
-  onSave: (input: ListingInput, images: ImageDraft, submit: boolean) => void;
+  onSave: (
+    input: ListingInput,
+    images: ImageDraft,
+    submit: boolean,
+    beforeLeave?: () => void,
+  ) => void;
 };
 
 const MAX_IMAGES = 4;
@@ -67,7 +73,7 @@ export function ListingForm({ initial, saving, error, onSave }: ListingFormProps
 
   const partner = opportunityType === "partner";
 
-  const form = useFormValidation(listingSchema, {
+  const values = {
     title,
     publicSummary,
     opportunityType,
@@ -89,8 +95,17 @@ export function ListingForm({ initial, saving, error, onSave }: ListingFormProps
           ownerContribution,
         }
       : undefined,
-  });
+  };
+  const form = useFormValidation(listingSchema, values);
   const { errors, hasErrors } = form;
+  // Unsaved changes: anything different from how the form opened, photos included.
+  const snapshot = formSnapshot({
+    values,
+    kept: keptImages.map((image) => image.id),
+    added: addedImages.map((image) => image.key),
+  });
+  const [openedAs] = useState(snapshot);
+  const { guard, allowLeave } = useUnsavedChanges(snapshot !== openedAs);
   const blur = (field: string) => () => form.touch(field);
 
   const imageCount = keptImages.length + addedImages.length;
@@ -112,317 +127,320 @@ export function ListingForm({ initial, saving, error, onSave }: ListingFormProps
 
   const handle = (submit: boolean) => {
     const data = form.submit();
-    if (data) onSave(data, { keep: keptImages, added: addedImages }, submit);
+    if (data) onSave(data, { keep: keptImages, added: addedImages }, submit, allowLeave);
   };
 
   return (
-    <Screen
-      footer={
-        <View style={styles.footer}>
-          {hasErrors ? (
-            <Text style={styles.formError} accessibilityLiveRegion="polite">
-              Fix the highlighted fields to continue.
-            </Text>
-          ) : null}
-          {error ? (
-            <Text style={styles.formError} accessibilityLiveRegion="polite">
-              {error}
-            </Text>
-          ) : null}
-          <View style={styles.footerButtons}>
-            <Button
-              label="Save draft"
-              variant="secondary"
-              onPress={() => handle(false)}
-              disabled={saving}
-              style={styles.footerButton}
-            />
-            <Button
-              label="Submit for review"
-              onPress={() => handle(true)}
-              loading={saving}
-              style={styles.footerButton}
-            />
+    <>
+      {guard}
+      <Screen
+        footer={
+          <View style={styles.footer}>
+            {hasErrors ? (
+              <Text style={styles.formError} accessibilityLiveRegion="polite">
+                Fix the highlighted fields to continue.
+              </Text>
+            ) : null}
+            {error ? (
+              <Text style={styles.formError} accessibilityLiveRegion="polite">
+                {error}
+              </Text>
+            ) : null}
+            <View style={styles.footerButtons}>
+              <Button
+                label="Save draft"
+                variant="secondary"
+                onPress={() => handle(false)}
+                disabled={saving}
+                style={styles.footerButton}
+              />
+              <Button
+                label="Submit for review"
+                onPress={() => handle(true)}
+                loading={saving}
+                style={styles.footerButton}
+              />
+            </View>
+          </View>
+        }
+      >
+        <TipsCard section="listing" />
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What are you offering?</Text>
+          <View style={styles.typeRow}>
+            {(
+              [
+                {
+                  key: "paid",
+                  title: "Paid work",
+                  body: "You pay for the work",
+                  icon: "cash-outline",
+                },
+                {
+                  key: "partner",
+                  title: "Partnership",
+                  body: "Equity or a share, not a fee",
+                  icon: "git-merge-outline",
+                },
+              ] as const
+            ).map((option) => {
+              const selected = opportunityType === option.key;
+              return (
+                <Pressable
+                  key={option.key}
+                  onPress={() => setOpportunityType(option.key)}
+                  accessibilityRole="radio"
+                  {...a11yState({ checked: selected })}
+                  style={[styles.typeCard, selected ? styles.typeCardSelected : null]}
+                >
+                  <Ionicons
+                    name={option.icon}
+                    size={22}
+                    color={selected ? colors.accent : colors.textSecondary}
+                  />
+                  <Text style={styles.typeTitle}>{option.title}</Text>
+                  <Text style={styles.typeBody}>{option.body}</Text>
+                </Pressable>
+              );
+            })}
           </View>
         </View>
-      }
-    >
-      <TipsCard section="listing" />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>What are you offering?</Text>
-        <View style={styles.typeRow}>
-          {(
-            [
-              {
-                key: "paid",
-                title: "Paid work",
-                body: "You pay for the work",
-                icon: "cash-outline",
-              },
-              {
-                key: "partner",
-                title: "Partnership",
-                body: "Equity or a share, not a fee",
-                icon: "git-merge-outline",
-              },
-            ] as const
-          ).map((option) => {
-            const selected = opportunityType === option.key;
-            return (
-              <Pressable
-                key={option.key}
-                onPress={() => setOpportunityType(option.key)}
-                accessibilityRole="radio"
-                {...a11yState({ checked: selected })}
-                style={[styles.typeCard, selected ? styles.typeCardSelected : null]}
-              >
-                <Ionicons
-                  name={option.icon}
-                  size={22}
-                  color={selected ? colors.accent : colors.textSecondary}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>The work</Text>
+          <TextField
+            label="Title"
+            required
+            maxLength={120}
+            value={title}
+            onChangeText={setTitle}
+            autoCapitalize="sentences"
+            placeholder={
+              partner
+                ? "e.g. Technical co-founder for a clinic booking app"
+                : "e.g. React Native developer for a 6-week MVP"
+            }
+            onBlur={blur("title")}
+            error={errors.title}
+          />
+          <TextField
+            label="Description"
+            required
+            maxLength={2000}
+            showCount
+            value={publicSummary}
+            onChangeText={setPublicSummary}
+            autoCapitalize="sentences"
+            multiline
+            numberOfLines={6}
+            placeholder="What needs doing, what done looks like, and who you are."
+            onBlur={blur("publicSummary")}
+            error={errors.publicSummary}
+          />
+          <SkillsField
+            label="Skills you need"
+            value={skills}
+            onChange={(next) => {
+              setSkills(next);
+              form.touch("skills");
+            }}
+            error={errors.skills}
+          />
+          <TalentPool skills={skills} type={opportunityType} />
+          <ImagePickerGrid
+            label="Images (optional)"
+            images={[
+              ...keptImages.map((image) => ({ key: image.id, uri: image.url })),
+              ...addedImages.map((image) => ({ key: image.key, uri: image.uri })),
+            ]}
+            max={MAX_IMAGES}
+            onAdd={addImages}
+            onRemove={(key) => {
+              setKeptImages((prev) => prev.filter((image) => image.id !== key));
+              setAddedImages((prev) => prev.filter((image) => image.key !== key));
+            }}
+            busy={picking}
+            error={imageError}
+            hint="Mockups, screenshots or product photos. The first one is the cover in Discover."
+          />
+        </View>
+
+        {partner ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admission criteria</Text>
+            <Card style={styles.explainer}>
+              <Ionicons name="shield-checkmark-outline" size={20} color={colors.accent} />
+              <Text style={styles.explainerText}>
+                Strong professionals get pitched vague ideas every week. These answers show yours is
+                real, and our reviewers check them before the listing goes live.
+              </Text>
+            </Card>
+            <Card style={styles.explainer}>
+              <Ionicons name="scale-outline" size={20} color={colors.accent} />
+              <Text style={styles.explainerText}>
+                A partnership means sharing ownership, risk and decisions. If you'd set their hours,
+                direct the work or need it delivered for you, it's a job: list it as paid work, at
+                least the National Minimum Wage. Equity-only jobs aren't allowed.
+              </Text>
+            </Card>
+            <TextField
+              label="What exists today?"
+              required
+              maxLength={1000}
+              showCount
+              value={whatExistsAlready}
+              onChangeText={setWhatExistsAlready}
+              autoCapitalize="sentences"
+              multiline
+              numberOfLines={3}
+              placeholder="Prototype, research, customers, revenue, a waitlist..."
+              onBlur={blur("whatExistsAlready")}
+              error={errors.whatExistsAlready}
+            />
+            <TextField
+              label="Hours per week you need from them"
+              required
+              maxLength={2}
+              value={weeklyHours}
+              onChangeText={setWeeklyHours}
+              keyboardType="number-pad"
+              placeholder="e.g. 10"
+              onBlur={blur("weeklyCommitmentHours")}
+              error={errors.weeklyCommitmentHours}
+            />
+            <TextField
+              label="First milestone"
+              required
+              maxLength={500}
+              showCount
+              value={firstMilestone}
+              onChangeText={setFirstMilestone}
+              autoCapitalize="sentences"
+              placeholder="e.g. Paid pilot with 3 clinics by March"
+              onBlur={blur("firstMilestone")}
+              error={errors.firstMilestone}
+            />
+            <TextField
+              label="Proposed terms"
+              required
+              maxLength={500}
+              showCount
+              value={proposedTerms}
+              onChangeText={setProposedTerms}
+              autoCapitalize="sentences"
+              placeholder="e.g. 10% equity, 4-year vest, 1-year cliff"
+              onBlur={blur("proposedTerms")}
+              error={errors.proposedTerms}
+            />
+            <TextField
+              label="What you're putting in"
+              required
+              maxLength={500}
+              showCount
+              value={ownerContribution}
+              onChangeText={setOwnerContribution}
+              autoCapitalize="sentences"
+              multiline
+              numberOfLines={3}
+              placeholder="Your time, funding, domain expertise, customer access..."
+              onBlur={blur("ownerContribution")}
+              error={errors.ownerContribution}
+            />
+          </View>
+        ) : (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Pay</Text>
+            <View style={styles.chipRow}>
+              {compensationTypes.map((option) => (
+                <Chip
+                  key={option}
+                  label={compensationLabels[option]}
+                  selected={compensationType === option}
+                  onPress={() => setCompensationType(option)}
                 />
-                <Text style={styles.typeTitle}>{option.title}</Text>
-                <Text style={styles.typeBody}>{option.body}</Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
+              ))}
+            </View>
+            {errors.compensationType ? (
+              <Text style={styles.error}>{errors.compensationType}</Text>
+            ) : null}
+            <View style={styles.amountRow}>
+              <View style={styles.amount}>
+                <TextField
+                  label="From (optional)"
+                  value={compensationMin}
+                  onChangeText={setCompensationMin}
+                  keyboardType="number-pad"
+                  onBlur={blur("compensationMin")}
+                  error={errors.compensationMin}
+                />
+              </View>
+              <View style={styles.amount}>
+                <TextField
+                  label="Up to (optional)"
+                  value={compensationMax}
+                  onChangeText={setCompensationMax}
+                  keyboardType="number-pad"
+                  onBlur={blur("compensationMax")}
+                  error={errors.compensationMax}
+                />
+              </View>
+            </View>
+            <View style={styles.chipRow}>
+              {currencies.map((option) => (
+                <Chip
+                  key={option}
+                  label={option}
+                  selected={currency === option}
+                  onPress={() => setCurrency(option)}
+                />
+              ))}
+            </View>
+          </View>
+        )}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>The work</Text>
-        <TextField
-          label="Title"
-          required
-          maxLength={120}
-          value={title}
-          onChangeText={setTitle}
-          autoCapitalize="sentences"
-          placeholder={
-            partner
-              ? "e.g. Technical co-founder for a clinic booking app"
-              : "e.g. React Native developer for a 6-week MVP"
-          }
-          onBlur={blur("title")}
-          error={errors.title}
-        />
-        <TextField
-          label="Description"
-          required
-          maxLength={2000}
-          showCount
-          value={publicSummary}
-          onChangeText={setPublicSummary}
-          autoCapitalize="sentences"
-          multiline
-          numberOfLines={6}
-          placeholder="What needs doing, what done looks like, and who you are."
-          onBlur={blur("publicSummary")}
-          error={errors.publicSummary}
-        />
-        <SkillsField
-          label="Skills you need"
-          value={skills}
-          onChange={(next) => {
-            setSkills(next);
-            form.touch("skills");
-          }}
-          error={errors.skills}
-        />
-        <TalentPool skills={skills} type={opportunityType} />
-        <ImagePickerGrid
-          label="Images (optional)"
-          images={[
-            ...keptImages.map((image) => ({ key: image.id, uri: image.url })),
-            ...addedImages.map((image) => ({ key: image.key, uri: image.uri })),
-          ]}
-          max={MAX_IMAGES}
-          onAdd={addImages}
-          onRemove={(key) => {
-            setKeptImages((prev) => prev.filter((image) => image.id !== key));
-            setAddedImages((prev) => prev.filter((image) => image.key !== key));
-          }}
-          busy={picking}
-          error={imageError}
-          hint="Mockups, screenshots or product photos. The first one is the cover in Discover."
-        />
-      </View>
-
-      {partner ? (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Admission criteria</Text>
-          <Card style={styles.explainer}>
-            <Ionicons name="shield-checkmark-outline" size={20} color={colors.accent} />
-            <Text style={styles.explainerText}>
-              Strong professionals get pitched vague ideas every week. These answers show yours is
-              real, and our reviewers check them before the listing goes live.
-            </Text>
-          </Card>
-          <Card style={styles.explainer}>
-            <Ionicons name="scale-outline" size={20} color={colors.accent} />
-            <Text style={styles.explainerText}>
-              A partnership means sharing ownership, risk and decisions. If you'd set their hours,
-              direct the work or need it delivered for you, it's a job: list it as paid work, at
-              least the National Minimum Wage. Equity-only jobs aren't allowed.
-            </Text>
-          </Card>
-          <TextField
-            label="What exists today?"
-            required
-            maxLength={1000}
-            showCount
-            value={whatExistsAlready}
-            onChangeText={setWhatExistsAlready}
-            autoCapitalize="sentences"
-            multiline
-            numberOfLines={3}
-            placeholder="Prototype, research, customers, revenue, a waitlist..."
-            onBlur={blur("whatExistsAlready")}
-            error={errors.whatExistsAlready}
-          />
-          <TextField
-            label="Hours per week you need from them"
-            required
-            maxLength={2}
-            value={weeklyHours}
-            onChangeText={setWeeklyHours}
-            keyboardType="number-pad"
-            placeholder="e.g. 10"
-            onBlur={blur("weeklyCommitmentHours")}
-            error={errors.weeklyCommitmentHours}
-          />
-          <TextField
-            label="First milestone"
-            required
-            maxLength={500}
-            showCount
-            value={firstMilestone}
-            onChangeText={setFirstMilestone}
-            autoCapitalize="sentences"
-            placeholder="e.g. Paid pilot with 3 clinics by March"
-            onBlur={blur("firstMilestone")}
-            error={errors.firstMilestone}
-          />
-          <TextField
-            label="Proposed terms"
-            required
-            maxLength={500}
-            showCount
-            value={proposedTerms}
-            onChangeText={setProposedTerms}
-            autoCapitalize="sentences"
-            placeholder="e.g. 10% equity, 4-year vest, 1-year cliff"
-            onBlur={blur("proposedTerms")}
-            error={errors.proposedTerms}
-          />
-          <TextField
-            label="What you're putting in"
-            required
-            maxLength={500}
-            showCount
-            value={ownerContribution}
-            onChangeText={setOwnerContribution}
-            autoCapitalize="sentences"
-            multiline
-            numberOfLines={3}
-            placeholder="Your time, funding, domain expertise, customer access..."
-            onBlur={blur("ownerContribution")}
-            error={errors.ownerContribution}
-          />
-        </View>
-      ) : (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pay</Text>
+          <Text style={styles.sectionTitle}>Where and when</Text>
           <View style={styles.chipRow}>
-            {compensationTypes.map((option) => (
+            {remotePrefOptions.map((option) => (
               <Chip
                 key={option}
-                label={compensationLabels[option]}
-                selected={compensationType === option}
-                onPress={() => setCompensationType(option)}
+                label={remotePrefLabels[option]}
+                selected={remotePref === option}
+                onPress={() => setRemotePref(remotePref === option ? undefined : option)}
               />
             ))}
           </View>
-          {errors.compensationType ? (
-            <Text style={styles.error}>{errors.compensationType}</Text>
-          ) : null}
-          <View style={styles.amountRow}>
-            <View style={styles.amount}>
-              <TextField
-                label="From (optional)"
-                value={compensationMin}
-                onChangeText={setCompensationMin}
-                keyboardType="number-pad"
-                onBlur={blur("compensationMin")}
-                error={errors.compensationMin}
-              />
-            </View>
-            <View style={styles.amount}>
-              <TextField
-                label="Up to (optional)"
-                value={compensationMax}
-                onChangeText={setCompensationMax}
-                keyboardType="number-pad"
-                onBlur={blur("compensationMax")}
-                error={errors.compensationMax}
-              />
-            </View>
-          </View>
+          <TextField
+            label="Location (optional)"
+            value={location}
+            onChangeText={setLocation}
+            autoCapitalize="words"
+            placeholder="e.g. London, or UK only"
+            onBlur={blur("location")}
+            error={errors.location}
+          />
           <View style={styles.chipRow}>
-            {currencies.map((option) => (
+            {commitmentOptions.map((option) => (
               <Chip
                 key={option}
-                label={option}
-                selected={currency === option}
-                onPress={() => setCurrency(option)}
+                label={commitmentLabels[option]}
+                selected={commitment === option}
+                onPress={() => setCommitment(commitment === option ? undefined : option)}
               />
             ))}
           </View>
+          <TextField
+            label="Duration (optional)"
+            value={duration}
+            onChangeText={setDuration}
+            placeholder="e.g. 6 weeks, or ongoing"
+            onBlur={blur("duration")}
+            error={errors.duration}
+          />
         </View>
-      )}
-
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Where and when</Text>
-        <View style={styles.chipRow}>
-          {remotePrefOptions.map((option) => (
-            <Chip
-              key={option}
-              label={remotePrefLabels[option]}
-              selected={remotePref === option}
-              onPress={() => setRemotePref(remotePref === option ? undefined : option)}
-            />
-          ))}
-        </View>
-        <TextField
-          label="Location (optional)"
-          value={location}
-          onChangeText={setLocation}
-          autoCapitalize="words"
-          placeholder="e.g. London, or UK only"
-          onBlur={blur("location")}
-          error={errors.location}
-        />
-        <View style={styles.chipRow}>
-          {commitmentOptions.map((option) => (
-            <Chip
-              key={option}
-              label={commitmentLabels[option]}
-              selected={commitment === option}
-              onPress={() => setCommitment(commitment === option ? undefined : option)}
-            />
-          ))}
-        </View>
-        <TextField
-          label="Duration (optional)"
-          value={duration}
-          onChangeText={setDuration}
-          placeholder="e.g. 6 weeks, or ongoing"
-          onBlur={blur("duration")}
-          error={errors.duration}
-        />
-      </View>
-    </Screen>
+      </Screen>
+    </>
   );
 }
 

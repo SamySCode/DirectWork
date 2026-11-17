@@ -26,7 +26,8 @@ import { SafetyActions } from "../../../features/safety/components/SafetyActions
 export default function ListingScreen() {
   const { id, notice } = useLocalSearchParams<{ id: string; notice?: string }>();
   const { session } = useAuth();
-  const listing = useListing(id);
+  // Opens at once from the card that was tapped; the rest loads behind it.
+  const listing = useListing(id, { instant: true });
   const isOwner = !!listing.data && listing.data.owner_id === session?.user.id;
   const applications = useListingApplications(isOwner ? id : undefined);
   const { skills, profile } = useMyProfile();

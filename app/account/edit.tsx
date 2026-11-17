@@ -16,6 +16,8 @@ import { useMyProfile, useSaveProfile } from "../../features/profile/hooks";
 import { profileSchema, remotePrefOptions } from "../../features/profile/schemas";
 import { errorMessage } from "../../lib/functions";
 import { colors, spacing, typography } from "../../lib/theme";
+import { showToast } from "../../lib/toast";
+import { formSnapshot, useUnsavedChanges } from "../../lib/unsavedChanges";
 import { useFormValidation } from "../../lib/validation";
 
 export default function EditProfileScreen() {
@@ -40,6 +42,7 @@ export default function EditProfileScreen() {
   // Fill the form once per profile. Later refetches (e.g. after changing the
   // photo below) must not overwrite what someone has typed but not saved.
   const hydratedFor = useRef<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   useEffect(() => {
     if (loading || !profile || hydratedFor.current === profile.id) return;
     hydratedFor.current = profile.id;
@@ -56,9 +59,10 @@ export default function EditProfileScreen() {
     setWantsToHire(profile.wants_to_hire);
     setPortfolioUrl(profile.portfolio_url ?? "");
     setSelectedSkills(skills);
+    setHydrated(true);
   }, [loading, profile, skills]);
 
-  const form = useFormValidation(profileSchema, {
+  const values = {
     fullName,
     headline,
     bio: bio || undefined,
@@ -72,13 +76,28 @@ export default function EditProfileScreen() {
     wantsToHire,
     portfolioUrl,
     skills: selectedSkills,
-  });
+  };
+  const form = useFormValidation(profileSchema, values);
   const { errors } = form;
+
+  // Unsaved changes: anything different from the profile as it was filled
+  // in. The photo and work samples save as you change them, so they don't count.
+  const snapshot = formSnapshot(values);
+  const [openedAs, setOpenedAs] = useState<string | null>(null);
+  if (hydrated && openedAs === null) setOpenedAs(snapshot);
+  const { guard, allowLeave } = useUnsavedChanges(openedAs !== null && snapshot !== openedAs);
   const blur = (field: string) => () => form.touch(field);
 
   const handleSave = () => {
     const data = form.submit();
-    if (data) save.mutate(data, { onSuccess: () => router.back() });
+    if (!data) return;
+    save.mutate(data, {
+      onSuccess: () => {
+        allowLeave();
+        showToast("Profile saved");
+        router.back();
+      },
+    });
   };
 
   if (loading) {
@@ -86,169 +105,172 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <Screen
-      footer={
-        <View style={styles.footer}>
-          {form.hasErrors ? (
-            <Text style={styles.formError} accessibilityLiveRegion="polite">
-              Fix the highlighted fields to save.
-            </Text>
-          ) : null}
-          {save.isError ? (
-            <Text style={styles.formError} accessibilityLiveRegion="polite">
-              {errorMessage(save.error)}
-            </Text>
-          ) : null}
-          <Button label="Save profile" onPress={handleSave} loading={save.isPending} />
-        </View>
-      }
-    >
-      <TipsCard section="profile" />
-      {profile ? (
-        <Card style={styles.card}>
-          <ProfileImagesEditor profile={profile} />
-        </Card>
-      ) : null}
+    <>
+      {guard}
+      <Screen
+        footer={
+          <View style={styles.footer}>
+            {form.hasErrors ? (
+              <Text style={styles.formError} accessibilityLiveRegion="polite">
+                Fix the highlighted fields to save.
+              </Text>
+            ) : null}
+            {save.isError ? (
+              <Text style={styles.formError} accessibilityLiveRegion="polite">
+                {errorMessage(save.error)}
+              </Text>
+            ) : null}
+            <Button label="Save profile" onPress={handleSave} loading={save.isPending} />
+          </View>
+        }
+      >
+        <TipsCard section="profile" />
+        {profile ? (
+          <Card style={styles.card}>
+            <ProfileImagesEditor profile={profile} />
+          </Card>
+        ) : null}
 
-      <View style={styles.fields}>
-        <TextField
-          label="Full name"
-          required
-          value={fullName}
-          onChangeText={setFullName}
-          onBlur={blur("fullName")}
-          autoCapitalize="words"
-          autoComplete="name"
-          maxLength={200}
-          error={errors.fullName}
-        />
-        <TextField
-          label="Headline"
-          required
-          value={headline}
-          onChangeText={setHeadline}
-          onBlur={blur("headline")}
-          autoCapitalize="sentences"
-          placeholder="e.g. Senior React Native Engineer"
-          maxLength={200}
-          showCount
-          error={errors.headline}
-        />
-        <TextField
-          label="Bio (optional)"
-          value={bio}
-          onChangeText={setBio}
-          onBlur={blur("bio")}
-          autoCapitalize="sentences"
-          multiline
-          numberOfLines={4}
-          maxLength={1000}
-          showCount
-          hint="What you've done and what you're looking for. No contact details - they're shared on acceptance."
-          error={errors.bio}
-        />
-        <TextField
-          label="Location (optional)"
-          value={location}
-          onChangeText={setLocation}
-          onBlur={blur("location")}
-          autoCapitalize="words"
-          maxLength={200}
-          error={errors.location}
-        />
-        <TextField
-          label="Current or preferred role (optional)"
-          value={currentRole}
-          onChangeText={setCurrentRole}
-          onBlur={blur("currentRole")}
-          autoCapitalize="sentences"
-          maxLength={200}
-          error={errors.currentRole}
-        />
-        <TextField
-          label="Experience level (optional)"
-          value={experienceLevel}
-          onChangeText={setExperienceLevel}
-          onBlur={blur("experienceLevel")}
-          placeholder="e.g. 5+ years"
-          maxLength={200}
-          error={errors.experienceLevel}
-        />
-        <TextField
-          label="Availability (optional)"
-          value={availability}
-          onChangeText={setAvailability}
-          onBlur={blur("availability")}
-          placeholder="e.g. 20 hrs/week"
-          maxLength={200}
-          error={errors.availability}
-        />
-        <TextField
-          label="Portfolio link (optional)"
-          value={portfolioUrl}
-          onChangeText={setPortfolioUrl}
-          onBlur={blur("portfolioUrl")}
-          keyboardType="url"
-          placeholder="https://"
-          maxLength={500}
-          error={errors.portfolioUrl}
-        />
+        <View style={styles.fields}>
+          <TextField
+            label="Full name"
+            required
+            value={fullName}
+            onChangeText={setFullName}
+            onBlur={blur("fullName")}
+            autoCapitalize="words"
+            autoComplete="name"
+            maxLength={200}
+            error={errors.fullName}
+          />
+          <TextField
+            label="Headline"
+            required
+            value={headline}
+            onChangeText={setHeadline}
+            onBlur={blur("headline")}
+            autoCapitalize="sentences"
+            placeholder="e.g. Senior React Native Engineer"
+            maxLength={200}
+            showCount
+            error={errors.headline}
+          />
+          <TextField
+            label="Bio (optional)"
+            value={bio}
+            onChangeText={setBio}
+            onBlur={blur("bio")}
+            autoCapitalize="sentences"
+            multiline
+            numberOfLines={4}
+            maxLength={1000}
+            showCount
+            hint="What you've done and what you're looking for. No contact details - they're shared on acceptance."
+            error={errors.bio}
+          />
+          <TextField
+            label="Location (optional)"
+            value={location}
+            onChangeText={setLocation}
+            onBlur={blur("location")}
+            autoCapitalize="words"
+            maxLength={200}
+            error={errors.location}
+          />
+          <TextField
+            label="Current or preferred role (optional)"
+            value={currentRole}
+            onChangeText={setCurrentRole}
+            onBlur={blur("currentRole")}
+            autoCapitalize="sentences"
+            maxLength={200}
+            error={errors.currentRole}
+          />
+          <TextField
+            label="Experience level (optional)"
+            value={experienceLevel}
+            onChangeText={setExperienceLevel}
+            onBlur={blur("experienceLevel")}
+            placeholder="e.g. 5+ years"
+            maxLength={200}
+            error={errors.experienceLevel}
+          />
+          <TextField
+            label="Availability (optional)"
+            value={availability}
+            onChangeText={setAvailability}
+            onBlur={blur("availability")}
+            placeholder="e.g. 20 hrs/week"
+            maxLength={200}
+            error={errors.availability}
+          />
+          <TextField
+            label="Portfolio link (optional)"
+            value={portfolioUrl}
+            onChangeText={setPortfolioUrl}
+            onBlur={blur("portfolioUrl")}
+            keyboardType="url"
+            placeholder="https://"
+            maxLength={500}
+            error={errors.portfolioUrl}
+          />
 
-        <View style={styles.group}>
-          <Text style={styles.groupLabel}>Remote preference</Text>
-          <View style={styles.chipRow}>
-            {remotePrefOptions.map((option) => (
+          <View style={styles.group}>
+            <Text style={styles.groupLabel}>Remote preference</Text>
+            <View style={styles.chipRow}>
+              {remotePrefOptions.map((option) => (
+                <Chip
+                  key={option}
+                  label={remotePrefLabels[option]}
+                  selected={remotePref === option}
+                  onPress={() => setRemotePref(remotePref === option ? undefined : option)}
+                />
+              ))}
+            </View>
+          </View>
+
+          <SkillsField
+            value={selectedSkills}
+            onChange={(next) => {
+              setSelectedSkills(next);
+              form.touch("skills");
+            }}
+            error={errors.skills}
+          />
+
+          <View style={styles.group}>
+            <Text style={styles.groupLabel}>Here to</Text>
+            <View style={styles.chipRow}>
               <Chip
-                key={option}
-                label={remotePrefLabels[option]}
-                selected={remotePref === option}
-                onPress={() => setRemotePref(remotePref === option ? undefined : option)}
+                label="Find paid work"
+                selected={seekingPaid}
+                onPress={() => {
+                  setSeekingPaid((value) => !value);
+                  form.touch("seekingPaid");
+                }}
               />
-            ))}
+              <Chip
+                label="Join as a partner"
+                selected={seekingPartner}
+                onPress={() => {
+                  setSeekingPartner((value) => !value);
+                  form.touch("seekingPaid");
+                }}
+              />
+              <Chip
+                label="Post projects"
+                selected={wantsToHire}
+                onPress={() => {
+                  setWantsToHire((value) => !value);
+                  form.touch("seekingPaid");
+                }}
+              />
+            </View>
+            {errors.seekingPaid ? <Text style={styles.error}>{errors.seekingPaid}</Text> : null}
           </View>
         </View>
-
-        <SkillsField
-          value={selectedSkills}
-          onChange={(next) => {
-            setSelectedSkills(next);
-            form.touch("skills");
-          }}
-          error={errors.skills}
-        />
-
-        <View style={styles.group}>
-          <Text style={styles.groupLabel}>Here to</Text>
-          <View style={styles.chipRow}>
-            <Chip
-              label="Find paid work"
-              selected={seekingPaid}
-              onPress={() => {
-                setSeekingPaid((value) => !value);
-                form.touch("seekingPaid");
-              }}
-            />
-            <Chip
-              label="Join as a partner"
-              selected={seekingPartner}
-              onPress={() => {
-                setSeekingPartner((value) => !value);
-                form.touch("seekingPaid");
-              }}
-            />
-            <Chip
-              label="Post projects"
-              selected={wantsToHire}
-              onPress={() => {
-                setWantsToHire((value) => !value);
-                form.touch("seekingPaid");
-              }}
-            />
-          </View>
-          {errors.seekingPaid ? <Text style={styles.error}>{errors.seekingPaid}</Text> : null}
-        </View>
-      </View>
-    </Screen>
+      </Screen>
+    </>
   );
 }
 

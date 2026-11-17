@@ -1,8 +1,10 @@
 import type { Session } from "@supabase/supabase-js";
-import { useRouter, useSegments } from "expo-router";
+import { Href, usePathname, useRouter, useSegments } from "expo-router";
 import { useEffect, useState } from "react";
+import { accountChanged } from "../../lib/accountScope";
 import { queryClient } from "../../lib/query";
 import { supabase } from "../../lib/supabase";
+import { clearReturnTo, peekReturnTo, rememberReturnTo } from "./returnTo";
 import { endSigningOut } from "./signingOut";
 
 export function useSession() {
@@ -26,7 +28,11 @@ export function useSession() {
       const nextId = newSession?.user.id;
       // Another account (or nobody) on this device: drop everything cached
       // for the previous one - several query keys aren't user-scoped.
-      if (nextId !== userId) queryClient.clear();
+      if (nextId !== userId) {
+        queryClient.clear();
+        // And anything else held in memory for them (unsent drafts).
+        accountChanged();
+      }
       userId = nextId;
       setSession(newSession);
     });
@@ -58,6 +64,7 @@ export function useProtectedRoute(
   needsAcceptance?: boolean,
 ) {
   const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
@@ -65,14 +72,17 @@ export function useProtectedRoute(
     // Signed out: lift the "Signing out" cover in the same pass as the
     // redirect below, so it comes down onto the welcome screen and never
     // onto the screen being left.
-    if (!session) endSigningOut();
+    const signedOutJustNow = !session && endSigningOut();
+    // Once fully set up, go to the page a shared link was pointing at, if
+    // there was one, and to Home otherwise.
+    const landing = () => (peekReturnTo() ?? "/home") as Href;
     const first = segments[0] ?? "";
     const onAcceptScreen = first === "legal" && segments[1] === "accept";
 
     if (onAcceptScreen) {
       if (!session) router.replace("/welcome");
       else if (needsAcceptance === false || needsAcceptance === undefined) {
-        if (hasProfile !== undefined) router.replace(hasProfile ? "/home" : "/onboarding");
+        if (hasProfile !== undefined) router.replace(hasProfile ? landing() : "/onboarding");
       }
       return;
     }
@@ -83,7 +93,12 @@ export function useProtectedRoute(
     const inOnboarding = first === "onboarding";
 
     if (!session) {
-      if (!inAuthGroup) router.replace("/welcome");
+      if (!inAuthGroup) {
+        // A visitor following a link to a listing or profile: keep it for
+        // after they sign in. Not when they have just signed out of it.
+        if (!signedOutJustNow) rememberReturnTo(pathname);
+        router.replace("/welcome");
+      }
       return;
     }
     if (needsAcceptance) {
@@ -94,7 +109,10 @@ export function useProtectedRoute(
     if (!hasProfile) {
       if (!inOnboarding) router.replace("/onboarding");
     } else if (inAuthGroup || inOnboarding) {
-      router.replace("/home");
+      router.replace(landing());
+    } else {
+      // Arrived inside the app: a remembered link has done its job.
+      clearReturnTo();
     }
-  }, [session, loading, hasProfile, needsAcceptance, segments, router]);
+  }, [session, loading, hasProfile, needsAcceptance, segments, pathname, router]);
 }

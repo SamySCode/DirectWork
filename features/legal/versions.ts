@@ -17,12 +17,15 @@ import { env } from "../../lib/env";
  * publish Pro subscription terms (see docs/LAUNCH.md).
  */
 export const TERMS_VERSION = "2026-11-07";
+// 2026-11-17: the optional "Remember my email on this device" (consent).
 export const PRIVACY_VERSION = env.EXPO_PUBLIC_BILLING_ENABLED
-  ? "2026-11-07+billing"
-  : "2026-11-07";
+  ? "2026-11-17+billing"
+  : "2026-11-17";
 
 /** Shown as "Last updated" on the documents. */
 export const LEGAL_UPDATED = "7 November 2026";
+/** The Privacy Notice and the Cookies & Storage notice changed later than the rest. */
+export const PRIVACY_UPDATED = "17 November 2026";
 
 export type LegalStatus = { terms_version: string | null; privacy_version: string | null };
 

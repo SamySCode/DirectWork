@@ -3,6 +3,7 @@ import { invokeFunction } from "../../lib/functions";
 import { supabase } from "../../lib/supabase";
 import { PRIVACY_VERSION, TERMS_VERSION } from "../legal/versions";
 import type { ForgotPasswordInput, SignInInput, SignUpInput } from "./schemas";
+import { forgetEmail } from "./rememberedEmail";
 import { beginSigningOut, endSigningOut } from "./signingOut";
 
 export async function signUp({ email, password }: SignUpInput) {
@@ -94,6 +95,8 @@ export async function deleteAccount(email: string, password: string) {
     );
   }
   await invokeFunction("delete-account", {});
+  // A remembered sign-in email for an account that no longer exists has no purpose.
+  await forgetEmail();
   // The user no longer exists server-side; clear the local session too.
   await supabase.auth.signOut({ scope: "local" });
 }

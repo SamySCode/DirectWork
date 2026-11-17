@@ -16,7 +16,13 @@ export function useListingEditor(existingId?: string) {
   const submit = useSubmitListing();
   const [error, setError] = useState<string | null>(null);
 
-  const onSave = async (input: ListingInput, images: ImageDraft, andSubmit: boolean) => {
+  /** `beforeLeave` runs just before moving to the listing page, once the save has worked. */
+  const onSave = async (
+    input: ListingInput,
+    images: ImageDraft,
+    andSubmit: boolean,
+    beforeLeave?: () => void,
+  ) => {
     setError(null);
     let id: string;
     try {
@@ -39,6 +45,7 @@ export function useListingEditor(existingId?: string) {
     } else {
       notice = "saved";
     }
+    beforeLeave?.();
     router.replace({ pathname: "/listing/[id]", params: { id, notice } });
   };
 

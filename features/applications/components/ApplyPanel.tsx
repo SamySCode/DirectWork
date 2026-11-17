@@ -11,7 +11,9 @@ import { errorMessage } from "../../../lib/functions";
 import { pickImages, PreparedImage } from "../../../lib/images";
 import { useFormValidation } from "../../../lib/validation";
 import { colors, spacing, typography } from "../../../lib/theme";
+import { showToast } from "../../../lib/toast";
 import { applicationSchema } from "../../listings/schemas";
+import { clearApplicationDraft, getApplicationDraft, setApplicationDraft } from "../drafts";
 import { useApply, useMyApplications } from "../hooks";
 import { applicationStatusMeta } from "../labels";
 
@@ -28,7 +30,13 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
   const mine = useMyApplications();
   const apply = useApply();
   const [open, setOpen] = useState(false);
-  const [coverNote, setCoverNote] = useState("");
+  // Starts from whatever was typed here earlier in this visit, and keeps
+  // it as they type, so leaving to check the owner's profile loses nothing.
+  const [coverNote, setCoverNoteState] = useState(() => getApplicationDraft(projectId));
+  const setCoverNote = (note: string) => {
+    setCoverNoteState(note);
+    setApplicationDraft(projectId, note);
+  };
   const [error, setError] = useState<string | null>(null);
   const [images, setImages] = useState<(PreparedImage & { key: string })[]>([]);
   const [picking, setPicking] = useState(false);
@@ -98,7 +106,11 @@ export function ApplyPanel({ projectId, ownerFirstName }: ApplyPanelProps) {
     apply.mutate(
       { projectId, coverNote: data.coverNote, images },
       {
-        onSuccess: (result) => setAttachmentError(result?.attachmentError ?? null),
+        onSuccess: (result) => {
+          setAttachmentError(result?.attachmentError ?? null);
+          clearApplicationDraft(projectId);
+          showToast("Application sent");
+        },
         onError: (err) => setError(errorMessage(err)),
       },
     );

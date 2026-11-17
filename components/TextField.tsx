@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useState } from "react";
+import { Ref, useState } from "react";
 import { Pressable, StyleSheet, TextInput, TextInputProps, View } from "react-native";
 import { colors, radius, spacing, surfaces, typography } from "../lib/theme";
 import { Text } from "./Text";
@@ -15,6 +15,8 @@ type TextFieldProps = TextInputProps & {
   showCount?: boolean;
   /** Password field with a show/hide button. Implies secureTextEntry. */
   secureToggle?: boolean;
+  /** The input itself, e.g. to move focus here when the field before is submitted. */
+  ref?: Ref<TextInput>;
 };
 
 export function TextField({
@@ -24,6 +26,7 @@ export function TextField({
   hint,
   showCount = false,
   secureToggle = false,
+  ref,
   style,
   onFocus,
   onBlur,
@@ -57,6 +60,7 @@ export function TextField({
             secureToggle ? styles.inputWithToggle : null,
             style,
           ]}
+          ref={ref}
           placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           onFocus={(event) => {

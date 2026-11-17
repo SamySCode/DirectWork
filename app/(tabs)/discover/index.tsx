@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { useRouter } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -25,6 +25,8 @@ import { useDiscover } from "../../../features/listings/hooks";
 import { useMyProfile } from "../../../features/profile/hooks";
 import { colors, layout, radius, spacing, tabThemes, typography } from "../../../lib/theme";
 import { useDebounced } from "../../../lib/useDebounced";
+import { useReducedMotion } from "../../../lib/accessibility";
+import { useTabReselect } from "../../../lib/tabReselect";
 import { useBlockedIds } from "../../../features/safety/hooks";
 
 const theme = tabThemes.discover;
@@ -37,6 +39,11 @@ function Separator() {
 
 export default function DiscoverScreen() {
   const router = useRouter();
+  const list = useRef<FlatList<ListingDetail>>(null);
+  const reduceMotion = useReducedMotion();
+  useTabReselect("discover", () =>
+    list.current?.scrollToOffset({ offset: 0, animated: !reduceMotion }),
+  );
   const { skills, profile } = useMyProfile();
   const mySkills = useMemo(() => new Set(skills.map((s) => s.toLowerCase())), [skills]);
 
@@ -187,6 +194,7 @@ export default function DiscoverScreen() {
   // in it) never remounts mid-typing; loading and errors show in its body.
   return (
     <FlatList
+      ref={list}
       style={styles.page}
       contentContainerStyle={styles.list}
       data={listings}

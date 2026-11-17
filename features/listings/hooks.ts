@@ -1,5 +1,7 @@
 import {
+  type InfiniteData,
   keepPreviousData,
+  type QueryClient,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -19,6 +21,7 @@ import {
   getMyListings,
   getReviewQueue,
   ImageDraft,
+  type ListingDetail,
   syncListingImages,
   updateListing,
 } from "./api";
@@ -74,12 +77,54 @@ export function useDiscover(filters: DiscoverFilters) {
   });
 }
 
-export function useListing(id: string | undefined) {
+const LIST_KEYS = new Set(["discover", "mine", "review-queue"]);
+
+/** The row for this listing from any list already in the cache (Discover, My listings). */
+function findListingInLists(client: QueryClient, id: string): ListingDetail | undefined {
+  const lists = client.getQueriesData<InfiniteData<ListingDetail[]> | ListingDetail[]>({
+    queryKey: listingKeys.all,
+    predicate: (query) => LIST_KEYS.has(String(query.queryKey[1])),
+  });
+  for (const [, data] of lists) {
+    const rows = Array.isArray(data) ? data : (data?.pages.flat() ?? []);
+    const hit = rows.find((row) => row?.id === id);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/**
+ * One listing. With `instant`, the screen opens at once using the row a
+ * list already holds (the card that was just tapped), while the full
+ * listing loads behind it: `isPlaceholderData` is true until it arrives.
+ *
+ * That row is only part of a listing: no admission criteria and only the
+ * cover image. So `instant` is for showing a listing, never for anything
+ * that edits it or copies from it (the edit form, the Deal Sheet prefill),
+ * which would save the gaps back as if they were real.
+ */
+export function useListing(id: string | undefined, { instant = false } = {}) {
+  const queryClient = useQueryClient();
   return useQuery({
     queryKey: listingKeys.detail(id ?? ""),
     queryFn: () => getListing(id!),
     enabled: !!id,
+    placeholderData: instant && id ? () => findListingInLists(queryClient, id) : undefined,
   });
+}
+
+/**
+ * A listing's title if it is already in the cache, kept up to date as it
+ * loads. Never fetches: the listing screen owns the request, this only
+ * listens (it names the browser tab).
+ */
+export function useListingTitle(id: string | undefined): string | undefined {
+  const { data } = useQuery({
+    queryKey: listingKeys.detail(id ?? ""),
+    queryFn: () => getListing(id!),
+    enabled: false,
+  });
+  return id ? (data?.title ?? undefined) : undefined;
 }
 
 export function useMyListings() {

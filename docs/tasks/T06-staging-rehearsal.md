@@ -28,6 +28,29 @@ before production exists.
    new user; `select * from cron.job` shows the retention and
    payment-due jobs; the authenticated role's statement timeout is 3s.
 
+## Check first: the server key (added 2026-11-17)
+
+The five Edge Functions create their privileged database client from
+`SUPABASE_SERVICE_ROLE_KEY` (`supabase/functions/_shared/http.ts`,
+`serviceClient`). Supabase is retiring that key by the end of 2026 and
+reports say newly created projects no longer get one. The London
+production project is new, so the functions may fail there with no key.
+
+Before deploying to production:
+
+1. On the project, check Edge Functions > Secrets for which of
+   `SUPABASE_SERVICE_ROLE_KEY` and `SUPABASE_SECRET_KEYS` exist.
+2. Change `serviceClient` to prefer the new key and fall back to the old:
+   parse `SUPABASE_SECRET_KEYS` (a JSON object) and use its `default`
+   entry; otherwise use `SUPABASE_SERVICE_ROLE_KEY`. Add a test for both.
+3. Run `npm run test:functions`, then the full journey on staging.
+
+This is a security change: review it on the strongest model before it is
+deployed anywhere. It was not made on 2026-11-17 because the function
+tests could not be run in that session. `docs/NEXT_STEPS.md` step 4.4
+lists this for "before the first store build"; it is needed earlier,
+before the first production deploy.
+
 ## Done when
 
 Every step is ticked, or the failing step is written up with the exact

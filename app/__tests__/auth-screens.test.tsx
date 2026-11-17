@@ -3,6 +3,7 @@ import ForgotPasswordScreen from "../(auth)/forgot-password";
 import SignInScreen from "../(auth)/sign-in";
 import SignUpScreen from "../(auth)/sign-up";
 import WelcomeScreen from "../(auth)/welcome";
+import { clearReturnTo, rememberReturnTo } from "../../features/auth/returnTo";
 import UpdatePasswordScreen from "../update-password";
 import { act } from "@testing-library/react-native";
 import { requestPasswordReset, resendConfirmation, signIn, signUp } from "../../features/auth/api";
@@ -68,6 +69,16 @@ describe("Welcome", () => {
   it("states the professional promise", () => {
     render(<WelcomeScreen />);
     expect(screen.getByText("Free for professionals, always.")).toBeTruthy();
+  });
+
+  it("tells a visitor who followed a link that their listing is waiting", () => {
+    render(<WelcomeScreen />);
+    expect(screen.queryByText(/you opened/)).toBeNull();
+
+    rememberReturnTo("/listing/aaaaaaaa-0000-4000-8000-000000000001");
+    render(<WelcomeScreen />);
+    expect(screen.getByText(/Sign in to see the listing you opened/)).toBeTruthy();
+    clearReturnTo();
   });
 });
 

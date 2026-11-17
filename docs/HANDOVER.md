@@ -29,7 +29,7 @@ written anywhere else. For what to do next, read `docs/ROADMAP.md` and
   still holds the older version until a pull request from
   `build/launch-hardening` into `main` is opened and merged at
   <https://github.com/SamySCode/DirectWork/compare/main...build/launch-hardening>.
-- Checks: 643 app tests, 127 database tests, 75 server-function tests,
+- Checks: 703 app tests, 127 database tests, 75 server-function tests,
   dependency and secret scans, all passing.
 - Nothing newer than migration `20261105100000` is applied to any
   Supabase project. The one hosted project (`zgoqieldstaisvudndda`,
@@ -79,6 +79,11 @@ Short reasons for choices a future session might otherwise undo.
   reset. Guard tests fail if email, text or push sending is added. The
   competitor review says retention may need opt-in email digests; that
   is a decision for after day 90.
+- **Remembered sign-in email is opt-in** (added 2026-11-17). An unticked
+  box on sign-in; unticking deletes it at once. It isn't strictly
+  necessary, so PECR needs consent, and the Privacy and Cookies & Storage
+  notices say so (Privacy version 2026-11-17). Never pre-tick it or store
+  the email without the tick.
 - **Images.** 2 MB limit, device-made thumbnails for lists. A one-year
   cache was rejected because deleted photos would stay reachable.
 - **Thumbnails, privacy checks and the 3-second query limit** exist to

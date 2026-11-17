@@ -84,6 +84,7 @@ export default function ListingsScreen() {
 
   return (
     <Screen
+      tab="listings"
       header={hero}
       onRefresh={() => {
         listings.refetch();

@@ -1,6 +1,6 @@
 import { env } from "../../../lib/env";
 import { operator, operatorIdentity } from "../operator";
-import { LEGAL_UPDATED, PRIVACY_VERSION } from "../versions";
+import { PRIVACY_UPDATED, PRIVACY_VERSION } from "../versions";
 import { list, p, rows, section, type LegalDocument } from "./types";
 
 // Stripe appears only while billing is switched on (PRIVACY_VERSION changes
@@ -16,7 +16,7 @@ export const privacy: LegalDocument = {
   title: "Privacy Notice",
   summary: "What personal data we collect, why, who sees it, how long we keep it and your rights.",
   version: PRIVACY_VERSION,
-  updated: LEGAL_UPDATED,
+  updated: PRIVACY_UPDATED,
   sections: [
     section(
       "1. Who we are",
@@ -107,6 +107,10 @@ export const privacy: LegalDocument = {
           "Legitimate interests: helping professionals choose responsive owners and keeping availability accurate",
         ],
         [
+          "Remember your email address on your device for the sign-in form, only if you tick the box",
+          "Consent, which you can withdraw at any time by unticking the box",
+        ],
+        [
           "Keep DirectWork safe: daily limits, blocking contact details in text before acceptance, reports, blocks, moderation, fraud and abuse prevention, security logs",
           "Legitimate interests in safety, security and fraud prevention. Reports that allege a crime (for example a scam) are handled with the extra protections the Data Protection Act 2018 requires for that kind of information, set out in our appropriate policy document",
         ],
@@ -132,7 +136,7 @@ export const privacy: LegalDocument = {
         ],
       ),
       p(
-        "You must give an email address and password to have an account, and a name, headline, at least one skill and a reason for joining to create a profile. Without them we can't provide the service. Everything else is optional. We don't rely on your consent for anything, and we don't send marketing emails.",
+        "You must give an email address and password to have an account, and a name, headline, at least one skill and a reason for joining to create a profile. Without them we can't provide the service. Everything else is optional. The only thing we rely on your consent for is remembering your email address on your device, and only if you tick the box for it (Section 13). We don't send marketing emails.",
       ),
     ),
     section(
@@ -288,6 +292,7 @@ export const privacy: LegalDocument = {
         "delete it;",
         "restrict how we use it;",
         "object to processing based on legitimate interests, including the signals in Section 7 and your payment record;",
+        "withdraw your consent at any time, without affecting what was done before (the only thing we ask consent for is remembering your email on your device: untick the box on the sign-in screen);",
         "move data you gave us to another service, in a machine-readable format.",
       ),
       p("How to use them:"),
@@ -317,7 +322,7 @@ export const privacy: LegalDocument = {
     section(
       "13. What we store on your device",
       p(
-        "We store only what's strictly necessary to keep you signed in, so we don't ask for consent. DirectWork sets no cookies of its own and uses no analytics or advertising trackers. Our Cookies & Storage notice has the details.",
+        'Almost everything we store on your device is strictly necessary to keep you signed in, so it doesn\'t need your consent. One thing is optional: if you tick "Remember my email on this device" when you sign in, we keep your email address on that device so the form is filled in next time. That needs your consent, which you give by ticking the box and can withdraw at any time by unticking it, which deletes it straight away. It never leaves your device. DirectWork sets no cookies of its own and uses no analytics or advertising trackers. Our Cookies & Storage notice has the details.',
       ),
     ),
     section(

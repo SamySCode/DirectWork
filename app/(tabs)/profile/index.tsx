@@ -13,6 +13,7 @@ import { Text } from "../../../components/Text";
 import { useIsAdmin } from "../../../features/admin/hooks";
 import { signOut } from "../../../features/auth/api";
 import { useAuth } from "../../../features/auth/SessionProvider";
+import { DeviceSettings } from "../../../features/profile/components/DeviceSettings";
 import { ProfileSkeleton } from "../../../features/profile/components/ProfileSkeleton";
 import { ProfileStrengthCard } from "../../../features/profile/components/ProfileStrengthCard";
 import { PayRecordLine } from "../../../features/deals/components/PayRecordLine";
@@ -114,6 +115,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen
+      tab="profile"
       onRefresh={refresh}
       refreshing={refreshing}
       header={
@@ -166,6 +168,7 @@ export default function ProfileScreen() {
           </Pressable>
         ))}
       </Card>
+      <DeviceSettings tint={tabThemes.profile.tint} />
       {signOutFailed ? (
         <Text style={styles.error} accessibilityLiveRegion="polite">
           Couldn't sign you out. Try again.

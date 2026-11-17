@@ -1,12 +1,25 @@
 import { Link } from "expo-router";
-import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import {
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from "react-native";
 import { Button } from "../../components/Button";
 import { Card } from "../../components/Card";
+import { Checkbox } from "../../components/Checkbox";
 import { FadeIn } from "../../components/FadeIn";
 import { Text } from "../../components/Text";
 import { TextField } from "../../components/TextField";
 import { signIn } from "../../features/auth/api";
+import {
+  forgetEmail,
+  getRememberedEmail,
+  rememberEmail,
+} from "../../features/auth/rememberedEmail";
 import { AuthHeader } from "../../features/auth/components/AuthHeader";
 import { CheckEmail } from "../../features/auth/components/CheckEmail";
 import { signInSchema } from "../../features/auth/schemas";
@@ -40,6 +53,8 @@ function linkNotice(link: AuthLinkState): { text: string; ok: boolean } | null {
 }
 
 export default function SignInScreen() {
+  // Enter in the email field moves to the password, as a keyboard's Next key does.
+  const passwordInput = useRef<TextInput>(null);
   const notice = linkNotice(useAuthLink());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,6 +63,25 @@ export default function SignInScreen() {
   const [loading, setLoading] = useState(false);
   // Signing in before confirming is common; turn the raw error into a fix.
   const [unconfirmed, setUnconfirmed] = useState(false);
+  // Opt-in only (see features/auth/rememberedEmail.ts): starts unticked,
+  // and is ticked here only because the person ticked it last time.
+  const [remember, setRemember] = useState(false);
+  useEffect(() => {
+    let active = true;
+    void getRememberedEmail().then((saved) => {
+      if (!active || !saved) return;
+      setEmail((current) => current || saved);
+      setRemember(true);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+  const onRememberChange = (next: boolean) => {
+    setRemember(next);
+    // Unticking withdraws consent: forget straight away, not at sign-in.
+    if (!next) void forgetEmail();
+  };
 
   const handleSubmit = async () => {
     setFormError(null);
@@ -61,6 +95,8 @@ export default function SignInScreen() {
     setLoading(true);
     try {
       await signIn(result.data);
+      if (remember) await rememberEmail(result.data.email);
+      else await forgetEmail();
       // Session change is picked up by the root layout's auth listener, which redirects.
     } catch (error) {
       const code = (error as { code?: string } | null)?.code;
@@ -101,6 +137,9 @@ export default function SignInScreen() {
                 keyboardType="email-address"
                 autoComplete="email"
                 textContentType="emailAddress"
+                returnKeyType="next"
+                submitBehavior="submit"
+                onSubmitEditing={() => passwordInput.current?.focus()}
                 error={errors.email}
               />
               <TextField
@@ -108,12 +147,27 @@ export default function SignInScreen() {
                 value={password}
                 onChangeText={setPassword}
                 secureToggle
+                ref={passwordInput}
                 autoComplete="current-password"
                 textContentType="password"
+                returnKeyType="go"
                 onSubmitEditing={handleSubmit}
                 error={errors.password}
               />
             </View>
+            <Checkbox
+              label="Remember my email on this device"
+              checked={remember}
+              onChange={onRememberChange}
+              hint={
+                <>
+                  Kept only on this device and never sent to us. Untick to forget it.{" "}
+                  <Link href="/legal/cookies" style={styles.link}>
+                    About device storage
+                  </Link>
+                </>
+              }
+            />
             {formError ? (
               <Text style={styles.formError} accessibilityLiveRegion="polite">
                 {formError}

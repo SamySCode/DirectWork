@@ -1,25 +1,43 @@
+import Ionicons from "@expo/vector-icons/Ionicons";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { ErrorBoundaryProps, Stack } from "expo-router";
+import {
+  ErrorBoundaryProps,
+  Stack,
+  useGlobalSearchParams,
+  useRouter,
+  useSegments,
+} from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { Appearance, Platform, StyleSheet, View } from "react-native";
+import { Appearance, Platform, Pressable, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppLoadingScreen } from "../components/AppLoadingScreen";
 import { ErrorState } from "../components/ErrorState";
 import { OfflineBanner } from "../components/OfflineBanner";
+import { Text } from "../components/Text";
+import { ToastHost } from "../components/Toast";
 import { SessionProvider, useAuth } from "../features/auth/SessionProvider";
 import { useProtectedRoute } from "../features/auth/hooks";
 import { useSigningOut } from "../features/auth/signingOut";
 import { useLegalStatus } from "../features/legal/hooks";
+import { useListingTitle } from "../features/listings/hooks";
 import { useProfile } from "../features/profile/hooks";
 import { installWebFocusStyles } from "../lib/accessibility";
+import { loadHapticsPreference } from "../lib/haptics";
+import { installHistoryGate } from "../lib/historyGate";
+import { useDocumentTitle } from "../lib/documentTitle";
 import { useAppFonts } from "../lib/fonts";
 import { errorMessage } from "../lib/functions";
 import { queryClient } from "../lib/query";
-import { colors, colorScheme, typography } from "../lib/theme";
+import { colors, colorScheme, minTouchTarget, spacing, typography } from "../lib/theme";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+// Before the router mounts, so it sees browser back/forward steps first
+// (forms with unsaved changes can then hold them: lib/historyGate.ts).
+installHistoryGate();
+// Whether this person turned vibration off on this phone (lib/haptics.ts).
+void loadHapticsPreference();
 
 // Expo Router renders this instead of a white screen if any route throws.
 export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
@@ -32,10 +50,38 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
+/**
+ * Shown in a screen's header when there is nothing to go back to: someone
+ * opened a link straight to a listing or profile (or reloaded the page), so
+ * the stack holds only that screen. Without it they'd have no way into the
+ * rest of the app, since detail screens have no tab bar.
+ */
+function HomeButton() {
+  const router = useRouter();
+  return (
+    <Pressable
+      onPress={() => router.replace("/home")}
+      accessibilityRole="link"
+      accessibilityLabel="Go to Home"
+      hitSlop={8}
+      style={styles.homeButton}
+    >
+      <Ionicons name="chevron-back" size={20} color={colors.accent} />
+      <Text style={styles.homeLabel}>Home</Text>
+    </Pressable>
+  );
+}
+
 function RootNavigator() {
   const { session, loading: sessionLoading } = useAuth();
   const { loaded: fontsLoaded } = useAppFonts();
   const signingOut = useSigningOut();
+  // Browser tab title: the listing's own title on a listing page, the
+  // screen's name everywhere else.
+  const segments = useSegments();
+  const { id } = useGlobalSearchParams<{ id?: string }>();
+  const onListing = segments[0] === "listing" && segments[1] === "[id]";
+  useDocumentTitle(segments, useListingTitle(onListing ? id : undefined));
   const profile = useProfile(session?.user.id);
   // Based on data, not status: a failed background refresh keeps the cached
   // profile, so it mustn't bounce anyone back to onboarding or a spinner (F9).
@@ -74,14 +120,16 @@ function RootNavigator() {
   return (
     <View style={styles.root}>
       <Stack
-        screenOptions={{
+        screenOptions={({ navigation }) => ({
           headerStyle: { backgroundColor: colors.background },
           headerTintColor: colors.textPrimary,
           headerShadowVisible: false,
           headerTitleStyle: { fontFamily: typography.displayFontFamily },
           headerBackTitle: "Back",
           contentStyle: { backgroundColor: colors.background },
-        }}
+          // Only when there's no back button to replace.
+          ...(navigation.canGoBack() ? {} : { headerLeft: () => <HomeButton /> }),
+        })}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -113,6 +161,7 @@ function RootNavigator() {
         />
       </Stack>
       <OfflineBanner />
+      <ToastHost />
       {signingOut ? (
         <View style={StyleSheet.absoluteFill}>
           <AppLoadingScreen label="Signing out" />
@@ -137,6 +186,18 @@ function RootNavigator() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
+  homeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    minHeight: minTouchTarget,
+    paddingRight: spacing.md,
+  },
+  homeLabel: {
+    fontSize: typography.size.md,
+    color: colors.accent,
+    fontWeight: typography.weight.medium,
+  },
 });
 
 // The palette is fixed at launch (lib/theme.ts). On web, follow a system

@@ -15,7 +15,12 @@ function set(next: boolean) {
 }
 
 export const beginSigningOut = () => set(true);
-export const endSigningOut = () => set(false);
+/** Lifts the cover. Returns whether a sign-out was actually in progress. */
+export function endSigningOut(): boolean {
+  const was = active;
+  set(false);
+  return was;
+}
 
 /** True from pressing "Sign out" until the app has left the signed-in screens. */
 export function useSigningOut(): boolean {
